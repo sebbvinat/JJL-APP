@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
-import { Flame, BookOpen, Trophy, Calendar, Upload, Users, User, ChevronRight } from 'lucide-react';
+import { Flame, BookOpen, Trophy, Calendar, Upload, Users, User, ChevronRight, NotebookPen } from 'lucide-react';
 import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import StatCard from '@/components/dashboard/StatCard';
@@ -141,10 +141,10 @@ export default function DashboardPage() {
         <h2 className="text-lg font-semibold mb-4">Acciones Rapidas</h2>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {[
+            { label: 'Diario', href: '/journal', icon: NotebookPen },
             { label: 'Ver Modulos', href: '/modules', icon: BookOpen },
             { label: 'Subir Lucha', href: '/upload', icon: Upload },
             { label: 'Comunidad', href: '/community', icon: Users },
-            { label: 'Mi Perfil', href: '/profile', icon: User },
           ].map((action) => {
             const Icon = action.icon;
             return (

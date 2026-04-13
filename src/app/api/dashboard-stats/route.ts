@@ -71,32 +71,44 @@ export async function GET(request: Request) {
   const completedLessonIds = (completedLessons || []).map((l: any) => l.lesson_id);
   const actualLessonsCompleted = completedLessonIds.length;
 
-  // Calculate completed weeks: modules where ALL lessons are completed
-  const { data: allModules } = await supabase
-    .from('modules')
-    .select('id, semana_numero');
-
-  const { data: allLessons } = await supabase
-    .from('lessons')
-    .select('id, module_id');
+  // Calculate completed weeks from course_data view (has per-user lesson arrays)
+  const { data: userCourseData } = await supabase
+    .from('course_data')
+    .select('module_id, semana_numero, lessons')
+    .eq('user_id', user.id);
 
   const completedSet = new Set(completedLessonIds);
   const completedWeekNumbers: number[] = [];
 
-  if (allModules && allLessons) {
-    // Group lessons by module
-    const lessonsByModule = new Map<string, string[]>();
-    for (const lesson of allLessons) {
-      const list = lessonsByModule.get(lesson.module_id) || [];
-      list.push(lesson.id);
-      lessonsByModule.set(lesson.module_id, list);
+  // Also try from modules/lessons tables as fallback
+  if (userCourseData && userCourseData.length > 0) {
+    for (const row of userCourseData) {
+      const lessons = Array.isArray(row.lessons) ? row.lessons : [];
+      if (lessons.length > 0 && lessons.every((l: any) => completedSet.has(l.id))) {
+        completedWeekNumbers.push(row.semana_numero);
+      }
     }
+  } else {
+    // Fallback: use modules + lessons tables directly
+    const { data: allModules } = await supabase
+      .from('modules')
+      .select('id, semana_numero');
+    const { data: allLessons } = await supabase
+      .from('lessons')
+      .select('id, module_id');
 
-    // Check which modules have ALL lessons completed
-    for (const mod of allModules) {
-      const moduleLessons = lessonsByModule.get(mod.id) || [];
-      if (moduleLessons.length > 0 && moduleLessons.every((lid) => completedSet.has(lid))) {
-        completedWeekNumbers.push(mod.semana_numero);
+    if (allModules && allLessons) {
+      const lessonsByModule = new Map<string, string[]>();
+      for (const lesson of allLessons) {
+        const list = lessonsByModule.get(lesson.module_id) || [];
+        list.push(lesson.id);
+        lessonsByModule.set(lesson.module_id, list);
+      }
+      for (const mod of allModules) {
+        const moduleLessons = lessonsByModule.get(mod.id) || [];
+        if (moduleLessons.length > 0 && moduleLessons.every((lid) => completedSet.has(lid))) {
+          completedWeekNumbers.push(mod.semana_numero);
+        }
       }
     }
   }
@@ -147,6 +159,15 @@ export async function GET(request: Request) {
     }
   }
 
+  // Count total lessons available for this user (for progress display)
+  let totalLessonsAvailable = 0;
+  if (userCourseData && userCourseData.length > 0) {
+    for (const row of userCourseData) {
+      const lessons = Array.isArray(row.lessons) ? row.lessons : [];
+      totalLessonsAvailable += lessons.length;
+    }
+  }
+
   return NextResponse.json({
     profile: {
       ...(profile || { nombre: 'Usuario' }),
@@ -156,6 +177,7 @@ export async function GET(request: Request) {
     trainedDays: trainedDates,
     todayChecked: todayTask?.entreno_check ?? false,
     lessonsCompleted: actualLessonsCompleted,
+    totalLessonsAvailable,
     unlockedModules: unlockedModules ?? 0,
     completedLessonIds,
     completedWeekNumbers,

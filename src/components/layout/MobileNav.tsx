@@ -3,12 +3,12 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { clsx } from 'clsx';
-import { LayoutDashboard, BookOpen, Users, Upload, User } from 'lucide-react';
+import { LayoutDashboard, BookOpen, Users, NotebookPen, User } from 'lucide-react';
 
 const MOBILE_ITEMS = [
   { label: 'Inicio', href: '/dashboard', icon: LayoutDashboard },
+  { label: 'Diario', href: '/journal', icon: NotebookPen },
   { label: 'Modulos', href: '/modules', icon: BookOpen },
-  { label: 'Subir', href: '/upload', icon: Upload },
   { label: 'Social', href: '/community', icon: Users },
   { label: 'Perfil', href: '/profile', icon: User },
 ];
@@ -32,7 +32,7 @@ export default function MobileNav() {
               )}
             >
               <Icon className="h-5 w-5" />
-              <span className="text-[10px] font-medium">{item.label}</span>
+              <span className="text-xs font-medium">{item.label}</span>
             </Link>
           );
         })}
