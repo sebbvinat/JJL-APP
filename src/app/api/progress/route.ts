@@ -44,6 +44,7 @@ export async function POST(request: NextRequest) {
     }, { onConflict: 'user_id,lesson_id' });
 
   if (error) {
+    console.error('Progress upsert error:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 

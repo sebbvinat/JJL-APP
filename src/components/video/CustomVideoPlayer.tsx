@@ -108,9 +108,7 @@ export default function CustomVideoPlayer({
       videoId: youtubeId,
       playerVars: {
         controls: 0,
-        modestbranding: 1,
         rel: 0,
-        showinfo: 0,
         iv_load_policy: 3,
         disablekb: 1,
         fs: 0,
@@ -150,6 +148,11 @@ export default function CustomVideoPlayer({
       startProgressTracking();
     } else if (state === window.YT.PlayerState.PAUSED) {
       setIsPlaying(false);
+      // YouTube also flashes branding on pause transition
+      setHideBranding(true);
+      setTimeout(() => {
+        if (mountedRef.current) setHideBranding(false);
+      }, 4000);
       stopProgressTracking();
     } else if (state === window.YT.PlayerState.ENDED) {
       setIsPlaying(false);
@@ -291,9 +294,13 @@ export default function CustomVideoPlayer({
           </div>
         )}
 
-        {/* Top bar to hide YouTube branding on every play/resume (~4s) */}
+        {/* Permanent subtle top overlay to mask YouTube branding position */}
+        {hasStarted && (
+          <div className="absolute top-0 left-0 right-0 h-10 z-20 bg-gradient-to-b from-black/40 to-transparent pointer-events-none" />
+        )}
+        {/* Stronger top bar during play/pause transitions when YouTube flashes branding */}
         {hideBranding && (
-          <div className="absolute top-0 left-0 right-0 h-16 z-20 bg-gradient-to-b from-black via-black/80 to-transparent pointer-events-none" />
+          <div className="absolute top-0 left-0 right-0 h-16 z-21 bg-gradient-to-b from-black via-black/80 to-transparent pointer-events-none" />
         )}
 
         {/* Loading spinner — before API is ready */}
