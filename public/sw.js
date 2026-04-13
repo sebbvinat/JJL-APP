@@ -1,4 +1,4 @@
-const CACHE_NAME = 'jjl-v2';
+const CACHE_NAME = 'jjl-v3';
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',
@@ -70,7 +70,21 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Cache-first for other static assets
+  // Network-first for HTML pages and CSS (avoid stale styles)
+  if (request.headers.get('accept')?.includes('text/html') || url.pathname.match(/\.css$/)) {
+    event.respondWith(
+      fetch(request).then((response) => {
+        if (response.ok && request.method === 'GET') {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+        }
+        return response;
+      }).catch(() => caches.match(request))
+    );
+    return;
+  }
+
+  // Cache-first for other static assets (JS, fonts)
   event.respondWith(
     caches.match(request).then((cached) => {
       if (cached) return cached;
