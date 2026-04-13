@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Key, LogOut, Eye, EyeOff } from 'lucide-react';
 import Card from '@/components/ui/Card';
 import Avatar from '@/components/ui/Avatar';
@@ -11,8 +12,24 @@ import { useUser } from '@/hooks/useUser';
 import { createClient } from '@/lib/supabase/client';
 
 export default function ProfilePage() {
+  return (
+    <Suspense>
+      <ProfileContent />
+    </Suspense>
+  );
+}
+
+function ProfileContent() {
   const { profile, authUser, loading, signOut } = useUser();
+  const searchParams = useSearchParams();
   const [showPasswordForm, setShowPasswordForm] = useState(false);
+
+  // Auto-open password form when coming from recovery link
+  useEffect(() => {
+    if (searchParams.get('reset') === '1') {
+      setShowPasswordForm(true);
+    }
+  }, [searchParams]);
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
