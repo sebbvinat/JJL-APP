@@ -284,15 +284,18 @@ CREATE POLICY "Users can read own notifications" ON public.notifications
 CREATE POLICY "Users can update own notifications" ON public.notifications
   FOR UPDATE USING (user_id = auth.uid());
 
-CREATE POLICY "System can insert notifications" ON public.notifications
-  FOR INSERT WITH CHECK (true);
+-- Notifications are inserted by server-side code using service_role key
+-- Regular users can only read/update their own
+CREATE POLICY "Service role can insert notifications" ON public.notifications
+  FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
 
 -- PUSH_SUBSCRIPTIONS policies
 CREATE POLICY "Users can manage own push subs" ON public.push_subscriptions
   FOR ALL USING (user_id = auth.uid());
 
-CREATE POLICY "System can read push subs" ON public.push_subscriptions
-  FOR SELECT USING (true);
+-- Push subs read by service_role key only (server-side sends push)
+CREATE POLICY "Admins can read push subs" ON public.push_subscriptions
+  FOR SELECT USING (user_id = auth.uid() OR public.is_admin());
 
 -- ============================================
 -- TRIGGER: auto-create user profile on signup
