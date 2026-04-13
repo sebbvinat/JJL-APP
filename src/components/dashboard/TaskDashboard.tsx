@@ -7,28 +7,39 @@ import Button from '@/components/ui/Button';
 
 interface TaskDashboardProps {
   todayChecked?: boolean;
-  onCheckIn?: () => void;
-  onFeedback?: (text: string) => void;
 }
 
-export default function TaskDashboard({
-  todayChecked = false,
-  onCheckIn,
-  onFeedback,
-}: TaskDashboardProps) {
+export default function TaskDashboard({ todayChecked = false }: TaskDashboardProps) {
   const [checked, setChecked] = useState(todayChecked);
   const [feedback, setFeedback] = useState('');
   const [feedbackSent, setFeedbackSent] = useState(false);
+  const [saving, setSaving] = useState(false);
 
-  const handleCheckIn = () => {
-    setChecked(true);
-    onCheckIn?.();
+  const handleCheckIn = async () => {
+    setSaving(true);
+    try {
+      const res = await fetch('/api/daily-task', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'check-in' }),
+      });
+      if (res.ok) setChecked(true);
+    } catch {}
+    setSaving(false);
   };
 
-  const handleFeedback = () => {
+  const handleFeedback = async () => {
     if (!feedback.trim()) return;
-    onFeedback?.(feedback);
-    setFeedbackSent(true);
+    setSaving(true);
+    try {
+      const res = await fetch('/api/daily-task', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'feedback', text: feedback }),
+      });
+      if (res.ok) setFeedbackSent(true);
+    } catch {}
+    setSaving(false);
   };
 
   return (
@@ -55,7 +66,7 @@ export default function TaskDashboard({
           </div>
 
           {!checked ? (
-            <Button size="lg" onClick={handleCheckIn}>
+            <Button size="lg" onClick={handleCheckIn} loading={saving}>
               SI, ENTRENE
             </Button>
           ) : (
@@ -85,7 +96,7 @@ export default function TaskDashboard({
               placeholder="Escribe tu feedback aqui..."
               className="flex-1 bg-jjl-gray-light border border-jjl-border rounded-lg px-4 py-2.5 text-white text-sm placeholder:text-jjl-muted/60 focus:outline-none focus:ring-2 focus:ring-jjl-red/50 focus:border-jjl-red transition-colors resize-none h-20"
             />
-            <Button variant="primary" className="self-end" onClick={handleFeedback}>
+            <Button variant="primary" className="self-end" onClick={handleFeedback} loading={saving}>
               <Send className="h-4 w-4" />
             </Button>
           </div>

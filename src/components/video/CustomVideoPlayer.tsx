@@ -35,6 +35,7 @@ export default function CustomVideoPlayer({
   const [showControls, setShowControls] = useState(true);
   const [playerReady, setPlayerReady] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
+  const [showThumbnail, setShowThumbnail] = useState(true);
 
   const playerRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -130,6 +131,10 @@ export default function CustomVideoPlayer({
     if (state === window.YT.PlayerState.PLAYING) {
       setIsPlaying(true);
       setHasStarted(true);
+      // Delay thumbnail removal so YouTube branding doesn't flash
+      setTimeout(() => {
+        if (mountedRef.current) setShowThumbnail(false);
+      }, 600);
       startProgressTracking();
     } else if (state === window.YT.PlayerState.PAUSED) {
       setIsPlaying(false);
@@ -245,7 +250,7 @@ export default function CustomVideoPlayer({
         />
 
         {/* Custom thumbnail overlay — covers YouTube's thumbnail+branding completely */}
-        {!hasStarted && (
+        {showThumbnail && (
           <div
             className="absolute inset-0 z-20 cursor-pointer bg-black"
             onClick={togglePlay}

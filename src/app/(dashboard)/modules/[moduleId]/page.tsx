@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft, Lock, BookOpen } from 'lucide-react';
 import Card from '@/components/ui/Card';
@@ -22,6 +22,7 @@ export default function ModuleDetailPage() {
   const [isUnlocked, setIsUnlocked] = useState<boolean | null>(null);
   const [lessons, setLessons] = useState<LessonData[]>([]);
   const [lessonsLoaded, setLessonsLoaded] = useState(false);
+  const [completedIds, setCompletedIds] = useState<Set<string>>(new Set());
 
   const module = MOCK_MODULES.find((m) => m.id === moduleId);
 
@@ -61,6 +62,21 @@ export default function ModuleDetailPage() {
     loadLessons();
   }, [moduleId]);
 
+  // Load user progress for this module's lessons
+  useEffect(() => {
+    if (!authUser) return;
+    async function loadProgress() {
+      try {
+        const res = await fetch('/api/progress');
+        if (res.ok) {
+          const data = await res.json();
+          setCompletedIds(new Set(data.completedLessonIds || []));
+        }
+      } catch {}
+    }
+    loadProgress();
+  }, [authUser]);
+
   // Check access from Supabase
   useEffect(() => {
     if (userLoading) return;
@@ -83,6 +99,25 @@ export default function ModuleDetailPage() {
 
     checkAccess();
   }, [authUser, userLoading, moduleId]);
+
+  const handleComplete = useCallback(async (lessonId: string) => {
+    // Optimistic update
+    setCompletedIds((prev) => new Set([...prev, lessonId]));
+    try {
+      await fetch('/api/progress', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lessonId, completed: true }),
+      });
+    } catch {
+      // Revert on error
+      setCompletedIds((prev) => {
+        const next = new Set(prev);
+        next.delete(lessonId);
+        return next;
+      });
+    }
+  }, []);
 
   const activeLesson = lessons.find((l) => l.id === activeLessonId);
 
@@ -124,7 +159,7 @@ export default function ModuleDetailPage() {
   }
 
   const videoLessons = lessons.filter((l) => l.tipo !== 'reflection');
-  const completedCount = 0; // TODO: read from user_progress
+  const completedCount = videoLessons.filter((l) => completedIds.has(l.id)).length;
   const progress = videoLessons.length > 0 ? Math.round((completedCount / videoLessons.length) * 100) : 0;
   const isReflection = activeLesson?.tipo === 'reflection';
 
@@ -142,10 +177,12 @@ export default function ModuleDetailPage() {
     youtube_id: l.youtube_id,
     descripcion: l.descripcion,
     orden: l.orden,
-    duracion: l.duracion,
-    completed: false,
+    duracion: '', // Don't show mock durations — real duration shows in player
+    completed: completedIds.has(l.id),
     tipo: l.tipo,
   }));
+
+  const isActiveLessonCompleted = activeLessonId ? completedIds.has(activeLessonId) : false;
 
   return (
     <div className="space-y-6 max-w-5xl">
@@ -196,7 +233,8 @@ export default function ModuleDetailPage() {
               <CustomVideoPlayer
                 youtubeId={activeLesson.youtube_id}
                 title={activeLesson.titulo}
-                completed={false}
+                completed={isActiveLessonCompleted}
+                onComplete={() => handleComplete(activeLessonId)}
               />
               {activeLesson.descripcion && (
                 <Card>
