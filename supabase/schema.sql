@@ -11,6 +11,7 @@ CREATE TABLE public.users (
   puntos INTEGER DEFAULT 0,
   rol TEXT DEFAULT 'alumno' CHECK (rol IN ('admin', 'alumno')),
   avatar_url TEXT,
+  planilla_id TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );

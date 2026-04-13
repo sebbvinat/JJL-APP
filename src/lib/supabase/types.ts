@@ -12,6 +12,7 @@ export interface User {
   puntos: number;
   rol: UserRole;
   avatar_url: string | null;
+  planilla_id: string | null;
   created_at: string;
   updated_at: string;
 }

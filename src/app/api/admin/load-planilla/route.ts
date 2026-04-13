@@ -94,6 +94,12 @@ export async function POST(request: NextRequest) {
       );
   }
 
+  // Save which planilla was loaded for this user
+  await adminClient
+    .from('users')
+    .update({ planilla_id: planillaId })
+    .eq('id', userId);
+
   if (errors.length > 0) {
     return NextResponse.json({
       success: false,

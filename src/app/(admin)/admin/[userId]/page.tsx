@@ -501,8 +501,8 @@ export default function AdminStudentPage() {
                 <h2 className="text-lg font-semibold">Curso del Alumno</h2>
                 <p className="text-xs text-jjl-muted mt-0.5">
                   {hasCourseData
-                    ? `${studentModules.length} semanas cargadas`
-                    : 'Usando curso por defecto. Carga una planilla o copia de otro alumno.'
+                    ? `${studentModules.length} semanas cargadas${student?.planilla_id ? ` · Planilla: ${PLANILLAS.find(p => p.id === student?.planilla_id)?.nombre || student?.planilla_id}` : ''}`
+                    : 'Sin curso asignado. Carga una planilla o copia de otro alumno.'
                   }
                 </p>
               </div>
@@ -522,17 +522,30 @@ export default function AdminStudentPage() {
 
             {showPlanillaMenu && (
               <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {PLANILLAS.filter(p => p.id !== 'atleticos').map((planilla) => (
-                  <button key={planilla.id} onClick={() => handleLoadPlanilla(planilla.id)}
-                    disabled={loadingAction}
-                    className="flex items-center gap-3 p-3 rounded-lg border border-jjl-border hover:border-jjl-red bg-jjl-gray-light/50 hover:bg-jjl-gray-light transition-colors text-left">
-                    <Upload className="h-4 w-4 text-jjl-red shrink-0" />
-                    <div>
-                      <p className="text-sm font-medium">{planilla.nombre}</p>
-                      <p className="text-xs text-jjl-muted">{planilla.descripcion}</p>
-                    </div>
-                  </button>
-                ))}
+                {PLANILLAS.map((planilla) => {
+                  const isActive = student?.planilla_id === planilla.id;
+                  return (
+                    <button key={planilla.id} onClick={() => handleLoadPlanilla(planilla.id)}
+                      disabled={loadingAction}
+                      className={`flex items-center gap-3 p-3 rounded-lg border transition-colors text-left ${
+                        isActive
+                          ? 'border-green-500/50 bg-green-500/10'
+                          : 'border-jjl-border hover:border-jjl-red bg-jjl-gray-light/50 hover:bg-jjl-gray-light'
+                      }`}>
+                      <Upload className="h-4 w-4 text-jjl-red shrink-0" />
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-medium">{planilla.nombre}</p>
+                          {isActive && (
+                            <span className="text-[10px] bg-green-500/20 text-green-400 px-1.5 py-0.5 rounded font-medium">ACTUAL</span>
+                          )}
+                        </div>
+                        <p className="text-xs text-jjl-muted">{planilla.descripcion}</p>
+                        <p className="text-[10px] text-jjl-muted mt-0.5">{planilla.weeks.length} semanas · {planilla.weeks.reduce((s, w) => s + w.lessons.length, 0)} lecciones</p>
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             )}
 

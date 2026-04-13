@@ -433,7 +433,7 @@ function PlanillaTab() {
       {/* Programs grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {PLANILLAS.map((planilla) => {
-          const weeks = planilla.id === 'atleticos' ? getPlanillaWeeks('atleticos') : planilla.weeks;
+          const weeks = planilla.weeks;
           const isEmpty = weeks.length === 0;
           const totalLessons = weeks.reduce((sum, w) => sum + w.lessons.length, 0);
           const totalVideos = weeks.reduce(
@@ -441,7 +441,6 @@ function PlanillaTab() {
             0
           );
           const isExpanded = expandedPlanilla === planilla.id;
-          const isCurrentProgram = planilla.id === 'atleticos';
 
           return (
             <Card key={planilla.id}>
@@ -449,11 +448,9 @@ function PlanillaTab() {
                 <div>
                   <div className="flex items-center gap-2">
                     <h2 className="text-lg font-bold">{planilla.nombre}</h2>
-                    {isCurrentProgram && (
-                      <span className="text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full font-medium">
-                        ACTUAL
-                      </span>
-                    )}
+                    <span className="text-xs text-jjl-muted bg-jjl-gray-light px-2 py-0.5 rounded-full">
+                      {weeks.length} semanas
+                    </span>
                   </div>
                   <p className="text-sm text-jjl-muted mt-1">{planilla.descripcion}</p>
                 </div>
