@@ -11,7 +11,6 @@ export default function VersionCheck() {
 
     async function checkVersion() {
       try {
-        // Next.js exposes build ID in the page source — we check if it changed
         const res = await fetch('/', { cache: 'no-store', headers: { Accept: 'text/html' } });
         const html = await res.text();
         const match = html.match(/"buildId":"([^"]+)"/);
@@ -22,12 +21,13 @@ export default function VersionCheck() {
         if (!initialBuildId) {
           initialBuildId = buildId;
         } else if (buildId !== initialBuildId) {
+          // Auto-reload after 2 seconds (gives SW time to activate)
           setUpdateAvailable(true);
+          setTimeout(() => window.location.reload(), 2000);
         }
       } catch {}
     }
 
-    // Check every 60 seconds
     checkVersion();
     const interval = setInterval(checkVersion, 60000);
     return () => clearInterval(interval);
@@ -36,15 +36,9 @@ export default function VersionCheck() {
   if (!updateAvailable) return null;
 
   return (
-    <div className="fixed top-0 left-0 right-0 z-[9999] bg-jjl-red text-white text-center py-2 px-4 flex items-center justify-center gap-3 text-sm font-medium shadow-lg">
-      <span>Nueva version disponible</span>
-      <button
-        onClick={() => window.location.reload()}
-        className="flex items-center gap-1.5 bg-white/20 hover:bg-white/30 px-3 py-1 rounded-lg transition-colors text-xs font-bold"
-      >
-        <RefreshCw className="h-3.5 w-3.5" />
-        Actualizar
-      </button>
+    <div className="fixed top-0 left-0 right-0 z-[9999] bg-jjl-red text-white text-center py-2.5 px-4 flex items-center justify-center gap-3 text-sm font-medium shadow-lg">
+      <RefreshCw className="h-4 w-4 animate-spin" />
+      <span>Actualizando...</span>
     </div>
   );
 }
