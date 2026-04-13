@@ -20,6 +20,12 @@ export default function AdminStudentPage() {
   const [unlockedModules, setUnlockedModules] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+
+  function showToast(message: string, type: 'success' | 'error') {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  }
 
   useEffect(() => {
     async function fetchData() {
@@ -54,6 +60,7 @@ export default function AdminStudentPage() {
     const supabase = createClient();
     const isCurrentlyUnlocked = unlockedModules.has(moduleId);
     const newValue = !isCurrentlyUnlocked;
+    const previousSet = new Set(unlockedModules);
 
     // Optimistic update
     setUnlockedModules((prev) => {
@@ -67,7 +74,7 @@ export default function AdminStudentPage() {
     });
 
     // Upsert to Supabase
-    await supabase
+    const { error } = await supabase
       .from('user_access')
       .upsert({
         user_id: userId,
@@ -77,6 +84,14 @@ export default function AdminStudentPage() {
         onConflict: 'user_id,module_id',
       });
 
+    if (error) {
+      console.error('Toggle module error:', error);
+      setUnlockedModules(previousSet);
+      showToast('Error al guardar. Intenta de nuevo.', 'error');
+    } else {
+      showToast('Guardado', 'success');
+    }
+
     setSaving(null);
   }
 
@@ -84,6 +99,7 @@ export default function AdminStudentPage() {
     setSaving('batch');
     const supabase = createClient();
     const modulesToUnlock = MOCK_MODULES.slice(0, targetModuleIndex + 1);
+    const previousSet = new Set(unlockedModules);
 
     // Optimistic update
     const newSet = new Set(unlockedModules);
@@ -97,9 +113,17 @@ export default function AdminStudentPage() {
       is_unlocked: true,
     }));
 
-    await supabase
+    const { error } = await supabase
       .from('user_access')
       .upsert(rows as any, { onConflict: 'user_id,module_id' });
+
+    if (error) {
+      console.error('Unlock batch error:', error);
+      setUnlockedModules(previousSet);
+      showToast('Error al desbloquear. Intenta de nuevo.', 'error');
+    } else {
+      showToast(`${modulesToUnlock.length} modulos desbloqueados`, 'success');
+    }
 
     setSaving(null);
   }
@@ -107,6 +131,7 @@ export default function AdminStudentPage() {
   async function lockAll() {
     setSaving('batch');
     const supabase = createClient();
+    const previousSet = new Set(unlockedModules);
 
     setUnlockedModules(new Set());
 
@@ -117,9 +142,17 @@ export default function AdminStudentPage() {
       is_unlocked: false,
     }));
 
-    await supabase
+    const { error } = await supabase
       .from('user_access')
       .upsert(rows as any, { onConflict: 'user_id,module_id' });
+
+    if (error) {
+      console.error('Lock all error:', error);
+      setUnlockedModules(previousSet);
+      showToast('Error al bloquear. Intenta de nuevo.', 'error');
+    } else {
+      showToast('Todos los modulos bloqueados', 'success');
+    }
 
     setSaving(null);
   }
@@ -184,7 +217,12 @@ export default function AdminStudentPage() {
 
       {/* Quick unlock buttons */}
       <Card>
-        <h2 className="text-lg font-semibold mb-3">Desbloqueo Rapido</h2>
+        <div className="flex items-center gap-2 mb-3">
+          <h2 className="text-lg font-semibold">Desbloqueo Rapido</h2>
+          {saving && (
+            <div className="w-4 h-4 border-2 border-jjl-red border-t-transparent rounded-full animate-spin" />
+          )}
+        </div>
         <div className="flex flex-wrap gap-2">
           {[
             { label: 'Fundamentos', index: 0 },
@@ -258,6 +296,18 @@ export default function AdminStudentPage() {
           </div>
         </Card>
       ))}
+
+      {/* Toast notification */}
+      {toast && (
+        <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-lg text-sm font-medium shadow-xl transition-all ${
+          toast.type === 'success'
+            ? 'bg-green-900/90 border border-green-500/30 text-green-300'
+            : 'bg-red-900/90 border border-red-500/30 text-red-300'
+        }`}>
+          {toast.type === 'success' && <Check className="h-4 w-4 inline mr-1.5" />}
+          {toast.message}
+        </div>
+      )}
     </div>
   );
 }
