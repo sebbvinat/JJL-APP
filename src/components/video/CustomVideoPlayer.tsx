@@ -41,7 +41,6 @@ export default function CustomVideoPlayer({
   const [playerReady, setPlayerReady] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
   const [showThumbnail, setShowThumbnail] = useState(true);
-  const [hideBranding, setHideBranding] = useState(false);
 
   const playerRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -135,24 +134,12 @@ export default function CustomVideoPlayer({
     if (state === window.YT.PlayerState.PLAYING) {
       setIsPlaying(true);
       setHasStarted(true);
-      // YouTube shows branding overlay for ~3.5s on every play/resume.
-      // Show a gradient bar at the top to hide it, remove after 4s.
-      setHideBranding(true);
-      setTimeout(() => {
-        if (mountedRef.current) setHideBranding(false);
-      }, 4000);
-      // Remove full thumbnail on first play
       if (!hasStarted) {
         setShowThumbnail(false);
       }
       startProgressTracking();
     } else if (state === window.YT.PlayerState.PAUSED) {
       setIsPlaying(false);
-      // YouTube also flashes branding on pause transition
-      setHideBranding(true);
-      setTimeout(() => {
-        if (mountedRef.current) setHideBranding(false);
-      }, 4000);
       stopProgressTracking();
     } else if (state === window.YT.PlayerState.ENDED) {
       setIsPlaying(false);
@@ -294,14 +281,7 @@ export default function CustomVideoPlayer({
           </div>
         )}
 
-        {/* Permanent subtle top overlay to mask YouTube branding position */}
-        {hasStarted && (
-          <div className="absolute top-0 left-0 right-0 h-10 z-20 bg-gradient-to-b from-black/40 to-transparent pointer-events-none" />
-        )}
-        {/* Stronger top bar during play/pause transitions when YouTube flashes branding */}
-        {hideBranding && (
-          <div className="absolute top-0 left-0 right-0 h-16 z-21 bg-gradient-to-b from-black via-black/80 to-transparent pointer-events-none" />
-        )}
+        {/* intentionally removed: YouTube branding overlays not needed */}
 
         {/* Loading spinner — before API is ready */}
         {!playerReady && (
