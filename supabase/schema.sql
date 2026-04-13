@@ -1,0 +1,282 @@
+-- ============================================
+-- JIU JITSU LATINO — Database Schema
+-- ============================================
+
+-- 1. USERS (extiende auth.users de Supabase)
+CREATE TABLE public.users (
+  id UUID REFERENCES auth.users ON DELETE CASCADE PRIMARY KEY,
+  nombre TEXT NOT NULL,
+  email TEXT,
+  cinturon_actual TEXT DEFAULT 'white' CHECK (cinturon_actual IN ('white', 'blue', 'purple', 'brown', 'black')),
+  puntos INTEGER DEFAULT 0,
+  rol TEXT DEFAULT 'alumno' CHECK (rol IN ('admin', 'alumno')),
+  avatar_url TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 2. MODULES (semanas del programa 1-24)
+CREATE TABLE public.modules (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  semana_numero INTEGER NOT NULL UNIQUE,
+  titulo TEXT NOT NULL,
+  descripcion TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 3. LESSONS (videos dentro de cada modulo)
+CREATE TABLE public.lessons (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  module_id UUID REFERENCES public.modules ON DELETE CASCADE NOT NULL,
+  titulo TEXT NOT NULL,
+  youtube_id TEXT NOT NULL,
+  descripcion TEXT,
+  orden INTEGER DEFAULT 0,
+  duracion TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 4. USER_PROGRESS (tracking de lecciones completadas)
+CREATE TABLE public.user_progress (
+  user_id UUID REFERENCES public.users ON DELETE CASCADE NOT NULL,
+  lesson_id UUID REFERENCES public.lessons ON DELETE CASCADE NOT NULL,
+  completado BOOLEAN DEFAULT FALSE,
+  completed_at TIMESTAMPTZ,
+  PRIMARY KEY (user_id, lesson_id)
+);
+
+-- 5. USER_ACCESS (candado por modulo — admin controla)
+CREATE TABLE public.user_access (
+  user_id UUID REFERENCES public.users ON DELETE CASCADE NOT NULL,
+  module_id UUID REFERENCES public.modules ON DELETE CASCADE NOT NULL,
+  is_unlocked BOOLEAN DEFAULT FALSE,
+  unlocked_at TIMESTAMPTZ,
+  PRIMARY KEY (user_id, module_id)
+);
+
+-- 6. DAILY_TASKS (check diario de entrenamiento)
+CREATE TABLE public.daily_tasks (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES public.users ON DELETE CASCADE NOT NULL,
+  fecha DATE DEFAULT CURRENT_DATE,
+  entreno_check BOOLEAN DEFAULT FALSE,
+  feedback_texto TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(user_id, fecha)
+);
+
+-- 7. POSTS (comunidad/foro)
+CREATE TABLE public.posts (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  author_id UUID REFERENCES public.users ON DELETE CASCADE NOT NULL,
+  titulo TEXT NOT NULL,
+  contenido TEXT NOT NULL,
+  categoria TEXT DEFAULT 'discussion' CHECK (categoria IN ('question', 'technique', 'progress', 'discussion', 'competition')),
+  likes_count INTEGER DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 8. COMMENTS (comentarios en posts)
+CREATE TABLE public.comments (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  post_id UUID REFERENCES public.posts ON DELETE CASCADE NOT NULL,
+  author_id UUID REFERENCES public.users ON DELETE CASCADE NOT NULL,
+  contenido TEXT NOT NULL,
+  likes_count INTEGER DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 9. LIKES (sistema de likes para posts y comments)
+CREATE TABLE public.likes (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES public.users ON DELETE CASCADE NOT NULL,
+  post_id UUID REFERENCES public.posts ON DELETE CASCADE,
+  comment_id UUID REFERENCES public.comments ON DELETE CASCADE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  CHECK (
+    (post_id IS NOT NULL AND comment_id IS NULL) OR
+    (post_id IS NULL AND comment_id IS NOT NULL)
+  ),
+  UNIQUE(user_id, post_id),
+  UNIQUE(user_id, comment_id)
+);
+
+-- 10. VIDEO_UPLOADS (registro de videos subidos a Drive)
+CREATE TABLE public.video_uploads (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES public.users ON DELETE CASCADE NOT NULL,
+  titulo TEXT NOT NULL,
+  descripcion TEXT,
+  drive_file_id TEXT,
+  drive_url TEXT,
+  tags TEXT[],
+  file_size BIGINT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ============================================
+-- INDICES
+-- ============================================
+CREATE INDEX idx_lessons_module ON public.lessons(module_id);
+CREATE INDEX idx_user_progress_user ON public.user_progress(user_id);
+CREATE INDEX idx_user_access_user ON public.user_access(user_id);
+CREATE INDEX idx_daily_tasks_user_fecha ON public.daily_tasks(user_id, fecha);
+CREATE INDEX idx_posts_author ON public.posts(author_id);
+CREATE INDEX idx_posts_created ON public.posts(created_at DESC);
+CREATE INDEX idx_comments_post ON public.comments(post_id);
+CREATE INDEX idx_video_uploads_user ON public.video_uploads(user_id);
+
+-- ============================================
+-- ROW LEVEL SECURITY (RLS)
+-- ============================================
+
+-- Habilitar RLS en todas las tablas
+ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.modules ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.lessons ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.user_progress ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.user_access ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.daily_tasks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.posts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.comments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.likes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.video_uploads ENABLE ROW LEVEL SECURITY;
+
+-- Helper: verificar si el usuario es admin
+CREATE OR REPLACE FUNCTION public.is_admin()
+RETURNS BOOLEAN AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.users WHERE id = auth.uid() AND rol = 'admin'
+  );
+$$ LANGUAGE sql SECURITY DEFINER;
+
+-- USERS policies
+CREATE POLICY "Users can read own profile" ON public.users
+  FOR SELECT USING (id = auth.uid() OR public.is_admin());
+
+CREATE POLICY "Users can update own profile" ON public.users
+  FOR UPDATE USING (id = auth.uid());
+
+CREATE POLICY "Admin can update any user" ON public.users
+  FOR UPDATE USING (public.is_admin());
+
+-- MODULES policies (todos pueden leer)
+CREATE POLICY "Anyone can read modules" ON public.modules
+  FOR SELECT USING (true);
+
+CREATE POLICY "Admin can manage modules" ON public.modules
+  FOR ALL USING (public.is_admin());
+
+-- LESSONS policies (todos pueden leer)
+CREATE POLICY "Anyone can read lessons" ON public.lessons
+  FOR SELECT USING (true);
+
+CREATE POLICY "Admin can manage lessons" ON public.lessons
+  FOR ALL USING (public.is_admin());
+
+-- USER_PROGRESS policies
+CREATE POLICY "Users can read own progress" ON public.user_progress
+  FOR SELECT USING (user_id = auth.uid() OR public.is_admin());
+
+CREATE POLICY "Users can update own progress" ON public.user_progress
+  FOR INSERT WITH CHECK (user_id = auth.uid());
+
+CREATE POLICY "Users can modify own progress" ON public.user_progress
+  FOR UPDATE USING (user_id = auth.uid());
+
+-- USER_ACCESS policies
+CREATE POLICY "Users can read own access" ON public.user_access
+  FOR SELECT USING (user_id = auth.uid() OR public.is_admin());
+
+CREATE POLICY "Admin can manage access" ON public.user_access
+  FOR ALL USING (public.is_admin());
+
+-- DAILY_TASKS policies
+CREATE POLICY "Users can read own tasks" ON public.daily_tasks
+  FOR SELECT USING (user_id = auth.uid() OR public.is_admin());
+
+CREATE POLICY "Users can insert own tasks" ON public.daily_tasks
+  FOR INSERT WITH CHECK (user_id = auth.uid());
+
+CREATE POLICY "Users can update own tasks" ON public.daily_tasks
+  FOR UPDATE USING (user_id = auth.uid());
+
+-- POSTS policies (todos pueden leer, autores pueden escribir)
+CREATE POLICY "Anyone can read posts" ON public.posts
+  FOR SELECT USING (true);
+
+CREATE POLICY "Users can create posts" ON public.posts
+  FOR INSERT WITH CHECK (author_id = auth.uid());
+
+CREATE POLICY "Authors can update own posts" ON public.posts
+  FOR UPDATE USING (author_id = auth.uid());
+
+CREATE POLICY "Authors or admin can delete posts" ON public.posts
+  FOR DELETE USING (author_id = auth.uid() OR public.is_admin());
+
+-- COMMENTS policies
+CREATE POLICY "Anyone can read comments" ON public.comments
+  FOR SELECT USING (true);
+
+CREATE POLICY "Users can create comments" ON public.comments
+  FOR INSERT WITH CHECK (author_id = auth.uid());
+
+CREATE POLICY "Authors can delete own comments" ON public.comments
+  FOR DELETE USING (author_id = auth.uid() OR public.is_admin());
+
+-- LIKES policies
+CREATE POLICY "Anyone can read likes" ON public.likes
+  FOR SELECT USING (true);
+
+CREATE POLICY "Users can insert own likes" ON public.likes
+  FOR INSERT WITH CHECK (user_id = auth.uid());
+
+CREATE POLICY "Users can delete own likes" ON public.likes
+  FOR DELETE USING (user_id = auth.uid());
+
+-- VIDEO_UPLOADS policies
+CREATE POLICY "Users can read own uploads" ON public.video_uploads
+  FOR SELECT USING (user_id = auth.uid() OR public.is_admin());
+
+CREATE POLICY "Users can insert own uploads" ON public.video_uploads
+  FOR INSERT WITH CHECK (user_id = auth.uid());
+
+-- ============================================
+-- TRIGGER: auto-create user profile on signup
+-- ============================================
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.users (id, nombre, email)
+  VALUES (
+    NEW.id,
+    COALESCE(NEW.raw_user_meta_data->>'nombre', NEW.raw_user_meta_data->>'name', 'Usuario'),
+    NEW.email
+  );
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- ============================================
+-- TRIGGER: update updated_at timestamp
+-- ============================================
+CREATE OR REPLACE FUNCTION public.update_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER update_users_updated_at
+  BEFORE UPDATE ON public.users
+  FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
+
+CREATE TRIGGER update_posts_updated_at
+  BEFORE UPDATE ON public.posts
+  FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
