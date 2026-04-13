@@ -117,5 +117,41 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
+  // Push notify all other users about the new post
+  try {
+    const { data: authorProfile } = await supabase
+      .from('users')
+      .select('nombre')
+      .eq('id', user.id)
+      .single();
+
+    const { createClient } = await import('@supabase/supabase-js');
+    const admin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      { auth: { autoRefreshToken: false, persistSession: false } }
+    );
+
+    // Get all users except the author
+    const { data: allUsers } = await admin
+      .from('users')
+      .select('id')
+      .neq('id', user.id);
+
+    if (allUsers && allUsers.length > 0) {
+      const { createNotification } = await import('@/lib/notifications');
+      const authorName = authorProfile?.nombre || 'Alguien';
+      for (const u of allUsers) {
+        await createNotification(
+          u.id,
+          'system',
+          `Nuevo post de ${authorName}`,
+          titulo.trim(),
+          '/community'
+        );
+      }
+    }
+  } catch {}
+
   return NextResponse.json({ success: true, post: data });
 }
