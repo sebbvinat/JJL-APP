@@ -80,13 +80,12 @@ function ProfileContent() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [uploadedAvatarUrl, setUploadedAvatarUrl] = useState<string | null>(null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    if (profile?.avatar_url) setAvatarUrl(profile.avatar_url);
-  }, [profile?.avatar_url]);
+  // Use uploaded URL if just changed, otherwise profile URL from DB
+  const avatarUrl = uploadedAvatarUrl || profile?.avatar_url || null;
 
   const [avatarError, setAvatarError] = useState('');
 
@@ -104,7 +103,7 @@ function ProfileContent() {
       const res = await fetch('/api/profile/avatar', { method: 'POST', body: formData });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Error al subir imagen');
-      setAvatarUrl(data.avatar_url);
+      setUploadedAvatarUrl(data.avatar_url);
       setMessage('Foto actualizada');
       setTimeout(() => setMessage(''), 3000);
     } catch (err: any) {
