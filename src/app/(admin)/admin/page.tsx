@@ -7,7 +7,6 @@ import Card from '@/components/ui/Card';
 import Avatar from '@/components/ui/Avatar';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
-import { createClient } from '@/lib/supabase/client';
 import type { User } from '@/lib/supabase/types';
 
 interface StudentRow extends User {
@@ -29,38 +28,16 @@ export default function AdminPage() {
   }, []);
 
   async function fetchStudents() {
-    const supabase = createClient();
-
-    // Get all alumnos
-    const { data: users } = await supabase
-      .from('users')
-      .select('*')
-      .eq('rol', 'alumno')
-      .order('created_at', { ascending: false });
-
-    if (!users) {
+    try {
+      const res = await fetch('/api/admin/students');
+      if (!res.ok) throw new Error('Failed to fetch');
+      const data = await res.json();
+      setStudents(data.students || []);
+    } catch (err) {
+      console.error('Fetch students error:', err);
+    } finally {
       setLoading(false);
-      return;
     }
-
-    // Get unlocked module counts per user
-    const { data: accessData } = await supabase
-      .from('user_access')
-      .select('user_id, module_id')
-      .eq('is_unlocked', true);
-
-    const countMap: Record<string, number> = {};
-    (accessData as { user_id: string; module_id: string }[] | null)?.forEach((row) => {
-      countMap[row.user_id] = (countMap[row.user_id] || 0) + 1;
-    });
-
-    const rows: StudentRow[] = users.map((u: any) => ({
-      ...u,
-      unlocked_count: countMap[u.id] || 0,
-    }));
-
-    setStudents(rows);
-    setLoading(false);
   }
 
   async function handleCreateStudent(e: React.FormEvent) {

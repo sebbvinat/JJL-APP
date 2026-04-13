@@ -7,7 +7,6 @@ import Card from '@/components/ui/Card';
 import Avatar from '@/components/ui/Avatar';
 import Badge from '@/components/ui/Badge';
 import Toggle from '@/components/ui/Toggle';
-import { createClient } from '@/lib/supabase/client';
 import { MOCK_MODULES } from '@/lib/mock-data';
 import type { User } from '@/lib/supabase/types';
 
@@ -29,35 +28,37 @@ export default function AdminStudentPage() {
 
   useEffect(() => {
     async function fetchData() {
-      const supabase = createClient();
-
-      // Get student info
-      const { data: userData } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', userId)
-        .single();
-
-      if (userData) setStudent(userData);
-
-      // Get unlocked modules
-      const { data: accessData } = await supabase
-        .from('user_access')
-        .select('module_id')
-        .eq('user_id', userId)
-        .eq('is_unlocked', true);
-
-      const unlocked = new Set((accessData as { module_id: string }[] | null)?.map((r) => r.module_id) || []);
-      setUnlockedModules(unlocked);
-      setLoading(false);
+      try {
+        const res = await fetch(`/api/admin/student-data?userId=${userId}`);
+        if (!res.ok) throw new Error('Failed to fetch');
+        const data = await res.json();
+        setStudent(data.student);
+        setUnlockedModules(new Set(data.unlockedModuleIds || []));
+      } catch (err) {
+        console.error('Fetch student error:', err);
+      } finally {
+        setLoading(false);
+      }
     }
 
     fetchData();
   }, [userId]);
 
+  async function saveAccess(modules: { id: string; is_unlocked: boolean }[]) {
+    const res = await fetch('/api/admin/toggle-access', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId, modules }),
+    });
+
+    if (!res.ok) {
+      const data = await res.json();
+      throw new Error(data.error || 'Error al guardar');
+    }
+  }
+
   async function toggleModule(moduleId: string) {
     setSaving(moduleId);
-    const supabase = createClient();
     const isCurrentlyUnlocked = unlockedModules.has(moduleId);
     const newValue = !isCurrentlyUnlocked;
     const previousSet = new Set(unlockedModules);
@@ -65,31 +66,18 @@ export default function AdminStudentPage() {
     // Optimistic update
     setUnlockedModules((prev) => {
       const next = new Set(prev);
-      if (newValue) {
-        next.add(moduleId);
-      } else {
-        next.delete(moduleId);
-      }
+      if (newValue) next.add(moduleId);
+      else next.delete(moduleId);
       return next;
     });
 
-    // Upsert to Supabase
-    const { error } = await supabase
-      .from('user_access')
-      .upsert({
-        user_id: userId,
-        module_id: moduleId,
-        is_unlocked: newValue,
-      } as any, {
-        onConflict: 'user_id,module_id',
-      });
-
-    if (error) {
-      console.error('Toggle module error:', error);
-      setUnlockedModules(previousSet);
-      showToast('Error al guardar. Intenta de nuevo.', 'error');
-    } else {
+    try {
+      await saveAccess([{ id: moduleId, is_unlocked: newValue }]);
       showToast('Guardado', 'success');
+    } catch (err: any) {
+      console.error('Toggle module error:', err);
+      setUnlockedModules(previousSet);
+      showToast(err.message || 'Error al guardar', 'error');
     }
 
     setSaving(null);
@@ -97,7 +85,6 @@ export default function AdminStudentPage() {
 
   async function unlockUpTo(targetModuleIndex: number) {
     setSaving('batch');
-    const supabase = createClient();
     const modulesToUnlock = MOCK_MODULES.slice(0, targetModuleIndex + 1);
     const previousSet = new Set(unlockedModules);
 
@@ -106,23 +93,13 @@ export default function AdminStudentPage() {
     modulesToUnlock.forEach((m) => newSet.add(m.id));
     setUnlockedModules(newSet);
 
-    // Batch upsert
-    const rows = modulesToUnlock.map((m) => ({
-      user_id: userId,
-      module_id: m.id,
-      is_unlocked: true,
-    }));
-
-    const { error } = await supabase
-      .from('user_access')
-      .upsert(rows as any, { onConflict: 'user_id,module_id' });
-
-    if (error) {
-      console.error('Unlock batch error:', error);
-      setUnlockedModules(previousSet);
-      showToast('Error al desbloquear. Intenta de nuevo.', 'error');
-    } else {
+    try {
+      await saveAccess(modulesToUnlock.map((m) => ({ id: m.id, is_unlocked: true })));
       showToast(`${modulesToUnlock.length} modulos desbloqueados`, 'success');
+    } catch (err: any) {
+      console.error('Unlock batch error:', err);
+      setUnlockedModules(previousSet);
+      showToast(err.message || 'Error al desbloquear', 'error');
     }
 
     setSaving(null);
@@ -130,28 +107,16 @@ export default function AdminStudentPage() {
 
   async function lockAll() {
     setSaving('batch');
-    const supabase = createClient();
     const previousSet = new Set(unlockedModules);
-
     setUnlockedModules(new Set());
 
-    // Set all to false
-    const rows = MOCK_MODULES.map((m) => ({
-      user_id: userId,
-      module_id: m.id,
-      is_unlocked: false,
-    }));
-
-    const { error } = await supabase
-      .from('user_access')
-      .upsert(rows as any, { onConflict: 'user_id,module_id' });
-
-    if (error) {
-      console.error('Lock all error:', error);
-      setUnlockedModules(previousSet);
-      showToast('Error al bloquear. Intenta de nuevo.', 'error');
-    } else {
+    try {
+      await saveAccess(MOCK_MODULES.map((m) => ({ id: m.id, is_unlocked: false })));
       showToast('Todos los modulos bloqueados', 'success');
+    } catch (err: any) {
+      console.error('Lock all error:', err);
+      setUnlockedModules(previousSet);
+      showToast(err.message || 'Error al bloquear', 'error');
     }
 
     setSaving(null);
