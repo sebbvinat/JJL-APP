@@ -114,7 +114,7 @@ export default function CustomVideoPlayer({
         fs: 0,
         cc_load_policy: 0,
         playsinline: 1,
-        vq: 'hd720',
+        vq: 'hd1080',
         origin: typeof window !== 'undefined' ? window.location.origin : '',
       },
       events: {
@@ -128,8 +128,8 @@ export default function CustomVideoPlayer({
     if (!mountedRef.current) return;
     setPlayerReady(true);
     setDuration(event.target.getDuration());
-    // Force HD quality
-    try { event.target.setPlaybackQuality('hd720'); } catch {}
+    // Force max quality
+    try { event.target.setPlaybackQuality('hd1080'); } catch {}
   }
 
   function onPlayerStateChange(event: any) {

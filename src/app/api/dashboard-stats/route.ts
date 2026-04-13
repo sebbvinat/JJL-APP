@@ -29,10 +29,10 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
   }
 
-  // Fetch profile (belt, points)
+  // Fetch profile (belt, points, role)
   const { data: profile } = await supabase
     .from('users')
-    .select('cinturon_actual, puntos, nombre')
+    .select('cinturon_actual, puntos, nombre, rol')
     .eq('id', user.id)
     .single();
 
@@ -126,35 +126,47 @@ export async function GET(request: Request) {
     }
   }
 
-  // Recalculate belt and points, update profile if changed
+  // Recalculate belt and points
   const { calculateGamification } = await import('@/lib/gamification');
+  const { BELT_PROGRESSION } = await import('@/lib/constants');
   const gamification = calculateGamification({
     completedWeeks: completedWeekNumbers,
     totalTrainingDays: trainedDates.length,
     totalLessonsCompleted: actualLessonsCompleted,
   });
 
-  const newBelt = gamification.newBelt;
-  const newPuntos = gamification.puntos;
+  const isAdmin = profile?.rol === 'admin';
 
-  // Update user profile if belt or points changed
+  // Belt logic: use the HIGHER of calculated vs profile (admin-set) belt
+  // Admin users always get black belt
+  const beltOrder = BELT_PROGRESSION.map((b) => b.key);
+  const profileBeltIdx = beltOrder.indexOf(profile?.cinturon_actual || 'white');
+  const calculatedBeltIdx = beltOrder.indexOf(gamification.newBelt);
+  const effectiveBelt = isAdmin
+    ? 'black'
+    : beltOrder[Math.max(profileBeltIdx, calculatedBeltIdx)] || gamification.newBelt;
+  const effectivePuntos = Math.max(profile?.puntos || 0, gamification.puntos);
+
+  // Only update DB if calculated belt/points advanced beyond what's stored
   if (
     profile &&
-    (profile.cinturon_actual !== newBelt || profile.puntos !== newPuntos)
+    !isAdmin &&
+    (calculatedBeltIdx > profileBeltIdx || gamification.puntos > (profile.puntos || 0))
   ) {
-    await supabase
-      .from('users')
-      .update({ cinturon_actual: newBelt, puntos: newPuntos })
-      .eq('id', user.id);
+    const updates: Record<string, any> = {};
+    if (calculatedBeltIdx > profileBeltIdx) updates.cinturon_actual = gamification.newBelt;
+    if (gamification.puntos > (profile.puntos || 0)) updates.puntos = gamification.puntos;
+
+    await supabase.from('users').update(updates).eq('id', user.id);
 
     // Notify on belt advancement
-    if (profile.cinturon_actual !== newBelt) {
+    if (updates.cinturon_actual) {
       const { createNotification, BELT_NAMES } = await import('@/lib/notifications');
       await createNotification(
         user.id,
         'belt',
-        `Nuevo cinturon: ${BELT_NAMES[newBelt] || newBelt}`,
-        `Felicitaciones! Avanzaste al cinturon ${BELT_NAMES[newBelt] || newBelt}. Segui entrenando!`
+        `Nuevo cinturon: ${BELT_NAMES[gamification.newBelt] || gamification.newBelt}`,
+        `Felicitaciones! Avanzaste al cinturon ${BELT_NAMES[gamification.newBelt] || gamification.newBelt}. Segui entrenando!`
       );
     }
   }
@@ -171,8 +183,9 @@ export async function GET(request: Request) {
   return NextResponse.json({
     profile: {
       ...(profile || { nombre: 'Usuario' }),
-      cinturon_actual: newBelt,
-      puntos: newPuntos,
+      cinturon_actual: effectiveBelt,
+      puntos: effectivePuntos,
+      rol: profile?.rol || 'alumno',
     },
     trainedDays: trainedDates,
     todayChecked: todayTask?.entreno_check ?? false,

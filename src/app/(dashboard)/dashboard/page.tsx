@@ -14,7 +14,7 @@ import { MOCK_MODULES } from '@/lib/mock-data';
 import type { BeltLevel } from '@/lib/supabase/types';
 
 interface DashboardData {
-  profile: { cinturon_actual: string; puntos: number; nombre: string };
+  profile: { cinturon_actual: string; puntos: number; nombre: string; rol?: string };
   trainedDays: string[];
   todayChecked: boolean;
   lessonsCompleted: number;
@@ -62,26 +62,27 @@ export default function DashboardPage() {
     );
   }
 
-  const profile = data?.profile || { cinturon_actual: 'white', puntos: 0, nombre: 'Guerrero' };
+  const profile = data?.profile || { cinturon_actual: 'white', puntos: 0, nombre: 'Guerrero', rol: 'alumno' };
   const trainedDays = data?.trainedDays || [];
   const todayChecked = data?.todayChecked || false;
   const lessonsCompleted = data?.lessonsCompleted || 0;
   const unlockedModules = data?.unlockedModules || 0;
   const streak = data?.streak || 0;
   const totalTrainingDays = data?.totalTrainingDays || 0;
+  const isAdmin = profile.rol === 'admin';
 
-  // Calculate gamification from real data
+  // Belt and points come from API (already resolved: max of calculated vs admin-set)
+  const currentBelt = (profile.cinturon_actual || 'white') as BeltLevel;
+  const points = profile.puntos || 0;
   const totalModules = MOCK_MODULES.length;
+
+  // Calculate progress to next belt from the profile belt
   const completedWeekNumbers = data?.completedWeekNumbers || [];
   const gamification = calculateGamification({
     completedWeeks: completedWeekNumbers,
     totalTrainingDays,
     totalLessonsCompleted: lessonsCompleted,
   });
-
-  // Use profile belt (admin can set it) or calculated belt
-  const currentBelt = (profile.cinturon_actual || gamification.newBelt) as BeltLevel;
-  const points = profile.puntos || gamification.puntos;
 
   return (
     <div className="space-y-6 max-w-4xl">
@@ -92,7 +93,14 @@ export default function DashboardPage() {
             <h1 className="text-2xl font-bold text-white">Bienvenido, {profile.nombre || 'Guerrero'}</h1>
             <p className="text-jjl-muted mt-1">Tu camino en el Jiu Jitsu continua. Sigue adelante.</p>
           </div>
-          <Badge belt={currentBelt} />
+          <div className="flex items-center gap-2">
+            {isAdmin && (
+              <span className="px-2.5 py-1 rounded-lg bg-yellow-500/20 border border-yellow-500/30 text-yellow-400 text-xs font-bold uppercase tracking-wider">
+                Admin
+              </span>
+            )}
+            <Badge belt={currentBelt} />
+          </div>
         </div>
       </div>
 
@@ -130,7 +138,7 @@ export default function DashboardPage() {
       {/* Belt Progress */}
       <Card>
         <h2 className="text-lg font-semibold mb-4">Progresion de Cinturon</h2>
-        <BeltProgress currentBelt={currentBelt} progressToNext={gamification.progressToNext} />
+        <BeltProgress currentBelt={currentBelt} progressToNext={currentBelt === 'black' ? 100 : gamification.progressToNext} />
       </Card>
 
       {/* Training Calendar */}
