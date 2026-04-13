@@ -1,4 +1,4 @@
-const CACHE_NAME = 'jjl-v1';
+const CACHE_NAME = 'jjl-v2';
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',
@@ -32,7 +32,15 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Cache-first for static assets
+  // Network-first for images (avoid stale cache)
+  if (url.pathname.match(/\.(png|jpg|jpeg|svg|webp|ico)$/)) {
+    event.respondWith(
+      fetch(request).catch(() => caches.match(request))
+    );
+    return;
+  }
+
+  // Cache-first for other static assets
   event.respondWith(
     caches.match(request).then((cached) => {
       if (cached) return cached;
