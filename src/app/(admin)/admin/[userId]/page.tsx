@@ -10,6 +10,7 @@ import Badge from '@/components/ui/Badge';
 import Toggle from '@/components/ui/Toggle';
 import { MOCK_MODULES, MOCK_LESSONS } from '@/lib/mock-data';
 import type { User } from '@/lib/supabase/types';
+import type { LessonData } from '@/lib/course-data';
 
 export default function AdminStudentPage() {
   const params = useParams();
@@ -22,6 +23,8 @@ export default function AdminStudentPage() {
   const [saving, setSaving] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [expandedModule, setExpandedModule] = useState<string | null>(null);
+  // Lesson overrides from course_data table (admin edits)
+  const [lessonOverrides, setLessonOverrides] = useState<Record<string, LessonData[]>>({});
 
   function showToast(message: string, type: 'success' | 'error') {
     setToast({ message, type });
@@ -43,7 +46,27 @@ export default function AdminStudentPage() {
       }
     }
 
+    // Load lesson overrides from course_data for all modules
+    async function fetchOverrides() {
+      const overrides: Record<string, LessonData[]> = {};
+      await Promise.all(
+        MOCK_MODULES.map(async (mod) => {
+          try {
+            const res = await fetch(`/api/course-data?moduleId=${mod.id}`);
+            if (res.ok) {
+              const data = await res.json();
+              if (data.module?.lessons) {
+                overrides[mod.id] = data.module.lessons;
+              }
+            }
+          } catch { /* use mock fallback */ }
+        })
+      );
+      setLessonOverrides(overrides);
+    }
+
     fetchData();
+    fetchOverrides();
   }, [userId]);
 
   async function saveAccess(modules: { id: string; is_unlocked: boolean }[]) {
@@ -233,9 +256,10 @@ export default function AdminStudentPage() {
             {group.modules.map((mod) => {
               const isUnlocked = unlockedModules.has(mod.id);
               const isExpanded = expandedModule === mod.id;
-              const lessons = MOCK_LESSONS[mod.id] || [];
-              const videoLessons = lessons.filter((l) => l.tipo !== 'reflection');
-              const videosWithUrl = videoLessons.filter((l) => l.youtube_id && l.youtube_id.length > 0);
+              const overriddenLessons = lessonOverrides[mod.id];
+              const lessons = overriddenLessons || MOCK_LESSONS[mod.id] || [];
+              const videoLessons = lessons.filter((l: any) => l.tipo !== 'reflection');
+              const videosWithUrl = videoLessons.filter((l: any) => l.youtube_id && l.youtube_id.length > 0);
 
               return (
                 <div key={mod.id}>
@@ -289,7 +313,7 @@ export default function AdminStudentPage() {
                   {/* Expanded lesson list */}
                   {isExpanded && (
                     <div className="bg-jjl-gray-light/20 rounded-b-lg border-t border-jjl-border/30 px-4 py-2 space-y-1">
-                      {lessons.map((lesson, li) => (
+                      {lessons.map((lesson: any, li: number) => (
                         <div
                           key={lesson.id}
                           className={`flex items-center gap-2 py-1.5 text-xs ${
