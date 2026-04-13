@@ -79,7 +79,7 @@ CREATE TABLE public.posts (
   author_id UUID REFERENCES public.users ON DELETE CASCADE NOT NULL,
   titulo TEXT NOT NULL,
   contenido TEXT NOT NULL,
-  categoria TEXT DEFAULT 'discussion' CHECK (categoria IN ('question', 'technique', 'progress', 'discussion', 'competition')),
+  categoria TEXT DEFAULT 'discussion' CHECK (categoria IN ('question', 'technique', 'progress', 'discussion', 'competition', 'offtopic')),
   likes_count INTEGER DEFAULT 0,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()

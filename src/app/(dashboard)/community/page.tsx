@@ -32,10 +32,11 @@ const CATEGORY_LABELS: Record<string, string> = {
   progress: 'Progreso',
   discussion: 'Discusion',
   competition: 'Competencia',
+  offtopic: 'Off Topic',
 };
 
-const CATEGORIES = ['all', 'question', 'technique', 'progress', 'discussion', 'competition'];
-const CATEGORY_DISPLAY = ['Todos', 'Preguntas', 'Tecnicas', 'Progreso', 'Discusion', 'Competencia'];
+const CATEGORIES = ['all', 'question', 'technique', 'progress', 'discussion', 'competition', 'offtopic'];
+const CATEGORY_DISPLAY = ['Todos', 'Preguntas', 'Tecnicas', 'Progreso', 'Discusion', 'Competencia', 'Off Topic'];
 
 export default function CommunityPage() {
   const [posts, setPosts] = useState<Post[]>([]);

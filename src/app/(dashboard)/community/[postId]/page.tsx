@@ -40,6 +40,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   progress: 'Progreso',
   discussion: 'Discusion',
   competition: 'Competencia',
+  offtopic: 'Off Topic',
 };
 
 export default function PostDetailPage() {
