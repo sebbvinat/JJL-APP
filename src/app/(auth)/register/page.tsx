@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import Image from 'next/image';
+
 import { Lock } from 'lucide-react';
 import Button from '@/components/ui/Button';
 
@@ -9,13 +9,12 @@ export default function RegisterPage() {
   return (
     <div className="w-full max-w-sm text-center">
       <div className="flex flex-col items-center mb-8">
-        <Image
+        <img
           src="/logo-jjl.png"
           alt="JJL"
           width={56}
           height={56}
           className="mb-4"
-          unoptimized
         />
         <h1 className="text-2xl font-bold">JIU JITSU LATINO</h1>
       </div>

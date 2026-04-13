@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Image from 'next/image';
+
 import { createClient } from '@/lib/supabase/client';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
@@ -39,13 +39,12 @@ export default function LoginPage() {
     <div className="w-full max-w-sm">
       {/* Logo */}
       <div className="flex flex-col items-center mb-8">
-        <Image
+        <img
           src="/logo-jjl.png"
           alt="JJL"
           width={56}
           height={56}
           className="mb-4"
-          unoptimized
         />
         <h1 className="text-2xl font-bold">JIU JITSU LATINO</h1>
         <p className="text-jjl-muted text-sm mt-1">Inicia sesion en tu cuenta</p>
