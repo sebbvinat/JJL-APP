@@ -781,6 +781,218 @@ const SIMBIO_MONTH_6: PlanillaWeek[] = [
 ];
 
 // =============================================
+// ATLETICOS — Months 3-6
+// =============================================
+
+const ATLETICOS_MONTH_3: PlanillaWeek[] = [
+  {
+    semana_numero: 9,
+    titulo: 'Leg Trap + De la Riva I',
+    lessons: [
+      v('Conceptos Leg Trap'),
+      v('Conceptos De la Riva'),
+      v('Leg Trap 1'),
+      v('De la Riva variante 1'),
+      v('Drill 1: Leg trap'),
+      v('Drill 2: De la Riva'),
+      r(),
+    ],
+  },
+  {
+    semana_numero: 10,
+    titulo: 'Leg Trap + De la Riva II',
+    lessons: [
+      v('Leg Trap variante 2'),
+      v('De la Riva variante 2'),
+      v('Drill 1: Leg Trap'),
+      v('Drill 2: De la Riva'),
+      v('Drill en combinación: Leg Trap'),
+      r(),
+    ],
+  },
+  {
+    semana_numero: 11,
+    titulo: 'Leg Trap + De la Riva III',
+    lessons: [
+      v('Leg Trap variante 3'),
+      v('De la Riva variante 3'),
+      v('Drill 1: Leg Trap'),
+      v('Drill 2: De la Riva'),
+      v('Drill en combinación: Leg trap'),
+      v('Específico de DLR'),
+      r(),
+    ],
+  },
+  {
+    semana_numero: 12,
+    titulo: 'Leg Trap + De la Riva IV',
+    lessons: [
+      v('Leg Trap variante 4'),
+      v('De la Riva variante 4'),
+      v('Drill 1: Leg Trap'),
+      v('Drill 2: De la Riva'),
+      v('Drill en combinación: De la Riva'),
+      v('Juego ecológico: pasaje / guardia'),
+      r(),
+    ],
+  },
+];
+
+const ATLETICOS_MONTH_4: PlanillaWeek[] = [
+  {
+    semana_numero: 13,
+    titulo: 'Montada + Triángulo de Brazo',
+    lessons: [
+      v('Conceptos de montada'),
+      v('Finalización Triángulo de Brazo'),
+      v('Drill 1: Triangulo de brazo'),
+      v('Drill 2: Drilles en combinación de pasaje (toreos + Leg trap) + triangulo de brazo'),
+      v('Juego ecológico: pasaje / guardia'),
+      r(),
+    ],
+  },
+  {
+    semana_numero: 14,
+    titulo: 'Llave de Brazo',
+    lessons: [
+      v('Finalización Llave de Brazo'),
+      v('Drill 1: finalización llave de brazo'),
+      v('Drill 2: Drill en combinación de pasaje (toreos + Leg Trap) + llave de brazo'),
+      v('Juego ecológico: guardia / pasaje'),
+      r(),
+    ],
+  },
+  {
+    semana_numero: 15,
+    titulo: 'Escape de Montada I',
+    lessons: [
+      v('Concepto escape de montada'),
+      v('Escape de montada variante 1'),
+      v('Drill 1: Escape de montada'),
+      v('Drill 2: Escape 1 + Combinación guardia (cerrada + DLR)'),
+      v('Juego ecológico: posiciones dominantes'),
+      r(),
+    ],
+  },
+  {
+    semana_numero: 16,
+    titulo: 'Escape de Montada II',
+    lessons: [
+      v('Escape de Montada 2'),
+      v('Drill 1: Escape de montada variante 2'),
+      v('Drill 2: Escape 1 + Escape 2 + Combinación guardia (cerrada + DLR)'),
+      v('Juego ecológico: posiciones dominantes'),
+      r(),
+    ],
+  },
+];
+
+const ATLETICOS_MONTH_5: PlanillaWeek[] = [
+  {
+    semana_numero: 17,
+    titulo: 'Cross Grip + Gola Manga I',
+    lessons: [
+      v('Conceptos de Cross Grip'),
+      v('Gola manga conceptos'),
+      v('Cross Grip Variante 1'),
+      v('Gola manga Variante 1'),
+      v('Drill 1: Cross grip variante 1'),
+      v('Drill 2: Gola manga variante 1'),
+      r(),
+    ],
+  },
+  {
+    semana_numero: 18,
+    titulo: 'Cross Grip + Gola Manga II',
+    lessons: [
+      v('Cross Grip variante 2'),
+      v('Gola manga variante 2'),
+      v('Drill 1: Cross grip variante 2'),
+      v('Drill 2: Gola manga variante 2'),
+      v('Drill 3: Combinación de cross grip'),
+      v('Drill 4: Combinación de Gola manga'),
+      r(),
+    ],
+  },
+  {
+    semana_numero: 19,
+    titulo: 'Gola Manga + Cross Grip III',
+    lessons: [
+      v('Gola manga variante 3'),
+      v('Cross Grip variante 3'),
+      v('Drill 1 Gola manga variante 3'),
+      v('Drill 2: Cross Grip variante 3'),
+      v('Drill 3: Combinación de cross grip'),
+      v('Específico de Gola manga'),
+      r(),
+    ],
+  },
+  {
+    semana_numero: 20,
+    titulo: 'Gola Manga + Cross Grip IV',
+    lessons: [
+      v('Gola manga variante 4'),
+      v('Cross Grip variante 4'),
+      v('Drill 1: Gola manga'),
+      v('Drill 2: Cross grip'),
+      v('Drill 3: Combinación de Gola manga'),
+      v('Específico de Cross Grip'),
+      r(),
+    ],
+  },
+];
+
+const ATLETICOS_MONTH_6: PlanillaWeek[] = [
+  {
+    semana_numero: 21,
+    titulo: 'Defensa de Espalda I',
+    lessons: [
+      v('Conceptos de escapes de espalda'),
+      v('Defensa 1 de espalda'),
+      v('Drill 1: defensa 1 de espalda'),
+      v('Drill 2: Defensa 1 de espalda + combinación de (Gola manga + DLR)'),
+      v('Juego ecológico: posiciones dominantes'),
+      r(),
+    ],
+  },
+  {
+    semana_numero: 22,
+    titulo: 'Defensa de Espalda II',
+    lessons: [
+      v('Defensa 2 de espalda'),
+      v('Drill 1: defensa 2 de espalda'),
+      v('Drill 2: Defensa 1 + 2 de espalda + combinación de (Gola Manga + DLR)'),
+      v('Juego ecológico de posiciones dominantes'),
+      r(),
+    ],
+  },
+  {
+    semana_numero: 23,
+    titulo: 'Ataque de Espalda I',
+    lessons: [
+      v('Entradas a la posición de la espalda'),
+      v('Concepto de ataque de espalda'),
+      v('Ataque 1 de espalda'),
+      v('Drill 1: ataque 1'),
+      v('Drill 2: combinación de pasajes + ataque de espalda'),
+      v('Específico de espalda'),
+      r(),
+    ],
+  },
+  {
+    semana_numero: 24,
+    titulo: 'Ataque de Espalda II',
+    lessons: [
+      v('Ataques de la espalda 2'),
+      v('Drill 1: ataque 2'),
+      v('Drill 2: combinación de pasajes + ataque 1 y 2'),
+      v('Juego ecológico: posiciones dominantes'),
+      r(),
+    ],
+  },
+];
+
+// =============================================
 // ASSEMBLED PLANILLAS
 // =============================================
 
@@ -830,8 +1042,16 @@ export const PLANILLAS: Planilla[] = [
   {
     id: 'atleticos',
     nombre: 'Atleticos',
-    descripcion: 'Programa enfocado en Leg Trap, Cross Grip, Gola Manga (programa actual)',
-    weeks: [], // Se genera dinamicamente desde MOCK_MODULES/MOCK_LESSONS
+    descripcion: 'Programa enfocado en Leg Trap, Cross Grip y Gola Manga',
+    weeks: [
+      FUNDAMENTOS,
+      ...SHARED_MONTH_1,
+      ...SHARED_MONTH_2,
+      ...ATLETICOS_MONTH_3,
+      ...ATLETICOS_MONTH_4,
+      ...ATLETICOS_MONTH_5,
+      ...ATLETICOS_MONTH_6,
+    ],
   },
 ];
 
@@ -857,12 +1077,9 @@ export function buildAtleticosPlanilla(): PlanillaWeek[] {
 }
 
 /**
- * Get planilla weeks, including dynamic Atleticos
+ * Get planilla weeks by ID
  */
 export function getPlanillaWeeks(planillaId: string): PlanillaWeek[] {
-  if (planillaId === 'atleticos') {
-    return buildAtleticosPlanilla();
-  }
   const planilla = PLANILLAS.find((p) => p.id === planillaId);
   return planilla?.weeks || [];
 }
