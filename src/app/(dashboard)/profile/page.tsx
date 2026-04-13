@@ -115,8 +115,9 @@ function ProfileContent() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Error al subir imagen');
       setUploadedAvatarUrl(data.avatar_url);
-      setMessage('Foto actualizada');
-      setTimeout(() => setMessage(''), 3000);
+      setMessage('Foto actualizada. Recargando...');
+      // Reload page so topbar and all components get the new avatar
+      setTimeout(() => window.location.reload(), 1000);
     } catch (err: any) {
       console.error('Avatar upload error:', err);
       setAvatarError(err.message || 'Error al subir imagen');
