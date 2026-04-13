@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Users, ChevronRight, Plus, BookOpen } from 'lucide-react';
+import { Users, ChevronRight, Plus } from 'lucide-react';
 import Card from '@/components/ui/Card';
 import Avatar from '@/components/ui/Avatar';
 import Badge from '@/components/ui/Badge';
@@ -91,18 +91,10 @@ export default function AdminPage() {
           <h1 className="text-2xl font-bold">Panel de Administracion</h1>
           <p className="text-jjl-muted mt-1">Gestiona el acceso de tus alumnos</p>
         </div>
-        <div className="flex gap-2">
-          <Link href="/admin/courses">
-            <Button variant="secondary" size="sm">
-              <BookOpen className="h-4 w-4 mr-1.5" />
-              Crear Curso
-            </Button>
-          </Link>
-          <Button variant="primary" size="sm" onClick={() => setShowAddForm(!showAddForm)}>
-            <Plus className="h-4 w-4 mr-1.5" />
-            Nuevo Alumno
-          </Button>
-        </div>
+        <Button variant="primary" size="sm" onClick={() => setShowAddForm(!showAddForm)}>
+          <Plus className="h-4 w-4 mr-1.5" />
+          Nuevo Alumno
+        </Button>
       </div>
 
       {/* Add student form */}

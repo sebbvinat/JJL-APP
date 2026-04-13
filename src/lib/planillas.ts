@@ -4,6 +4,7 @@
 export interface PlanillaLesson {
   titulo: string;
   tipo: 'video' | 'reflection';
+  youtube_id?: string;
 }
 
 export interface PlanillaWeek {
@@ -20,7 +21,7 @@ export interface Planilla {
 }
 
 // Helpers
-const v = (titulo: string): PlanillaLesson => ({ titulo, tipo: 'video' });
+const v = (titulo: string, youtube_id?: string): PlanillaLesson => ({ titulo, tipo: 'video', ...(youtube_id ? { youtube_id } : {}) });
 const r = (): PlanillaLesson => ({ titulo: 'Reflexión semanal', tipo: 'reflection' });
 
 // =============================================
@@ -31,10 +32,10 @@ const FUNDAMENTOS: PlanillaWeek = {
   semana_numero: 0,
   titulo: 'Fundamentos',
   lessons: [
-    v('Llamado a guardia cerrada'),
-    v('Apertura de guardia'),
-    v('Retención de guardia'),
-    v('Concepto de pasaje'),
+    v('Llamado a guardia cerrada', 'dUxhJHQ54Gg'),
+    v('Apertura de guardia', 's4SPE-fe1jo'),
+    v('Retención de guardia', 'yZFj0LE2LvA'),
+    v('Concepto de pasaje', 'XnO6TeVky4s'),
   ],
 };
 
@@ -43,13 +44,13 @@ const SHARED_MONTH_1: PlanillaWeek[] = [
     semana_numero: 1,
     titulo: 'Guardia Cerrada + Toreos I',
     lessons: [
-      v('Introducción'),
-      v('Guardia Cerrada Conceptos'),
-      v('Guardia cerrada: Triángulo'),
-      v('Toreos: conceptos'),
-      v('Toreos Variante 1'),
-      v('Drill 1: Guardia cerrada'),
-      v('Drill 2: Toreos'),
+      v('Introducción', 'BKOP6KjTuwY'),
+      v('Guardia Cerrada Conceptos', 'MzuPY_e1PXc'),
+      v('Guardia cerrada: Triángulo', 'VHgmbNpcUFk'),
+      v('Toreos: conceptos', '54mccu1o81M'),
+      v('Toreos Variante 1', 'ENySL6LZUkw'),
+      v('Drill 1: Guardia cerrada', '_5cf4LGtmWo'),
+      v('Drill 2: Toreos', 'GvqXaIXzWAM'),
       r(),
     ],
   },
@@ -57,10 +58,10 @@ const SHARED_MONTH_1: PlanillaWeek[] = [
     semana_numero: 2,
     titulo: 'Guardia Cerrada + Toreos II',
     lessons: [
-      v('Guardia cerrada: Top Lock'),
-      v('Toreos Variante 2'),
-      v('Drill 1: Toreos'),
-      v('Drill 2: Guardia cerrada'),
+      v('Guardia cerrada: Top Lock', 'zTIbX29qSfM'),
+      v('Toreos Variante 2', 'e96uxETi2dU'),
+      v('Drill 1: Toreos', 'GvqXaIXzWAM'),
+      v('Drill 2: Guardia cerrada', 'c8tOU7ixu3o'),
       r(),
     ],
   },
@@ -68,12 +69,12 @@ const SHARED_MONTH_1: PlanillaWeek[] = [
     semana_numero: 3,
     titulo: 'Guardia Cerrada + Toreos III',
     lessons: [
-      v('Guardia cerrada: Toma de espalda'),
-      v('Toreos Variante 3'),
-      v('Drill 1: Guardia cerrada'),
-      v('Drill 2: Toreos'),
-      v('Drill de combinación: Guardia cerrada'),
-      v('Drill en combinación: Toreos'),
+      v('Guardia cerrada: Toma de espalda', 'wUWELg_DMXY'),
+      v('Toreos Variante 3', 'ZOa2PEUBNWg'),
+      v('Drill 1: Guardia cerrada', 'fJi6tP69M5c'),
+      v('Drill 2: Toreos', 'P5FQWD9dq4k'),
+      v('Drill de combinación: Guardia cerrada', '1tFPeXVh0bk'),
+      v('Drill en combinación: Toreos', '0dGGXYtDqDw'),
       r(),
     ],
   },
@@ -81,11 +82,12 @@ const SHARED_MONTH_1: PlanillaWeek[] = [
     semana_numero: 4,
     titulo: 'Guardia Cerrada + Toreos IV',
     lessons: [
-      v('Guardia cerrada: Flower / Péndulo'),
+      v('Guardia cerrada: Flower / Péndulo', '2zjErl0f0mQ'),
       v('Toreos Variante 4'),
       v('Drill 1: Guardia cerrada'),
       v('Drill 2: Toreos'),
-      v('Específico de guardia cerrada'),
+      v('Drill en combinación: Toreos', '0dGGXYtDqDw'),
+      v('Específico de guardia cerrada', 'YXkwsg4Wy3g'),
       r(),
     ],
   },
@@ -828,30 +830,74 @@ export const PLANILLAS: Planilla[] = [
   {
     id: 'atleticos',
     nombre: 'Atleticos',
-    descripcion: 'Programa para competidores atleticos (proximamente)',
-    weeks: [],
+    descripcion: 'Programa enfocado en Leg Trap, Cross Grip, Gola Manga (programa actual)',
+    weeks: [], // Se genera dinamicamente desde MOCK_MODULES/MOCK_LESSONS
   },
 ];
+
+/**
+ * Build Atleticos planilla dynamically from MOCK data.
+ * Called lazily so we don't import mock-data at module level.
+ */
+export function buildAtleticosPlanilla(): PlanillaWeek[] {
+  // Dynamic import workaround: we'll import inline
+  // This is called from client components so it's fine
+  const { MOCK_MODULES, MOCK_LESSONS } = require('@/lib/mock-data');
+  return MOCK_MODULES.map((mod: any) => {
+    const lessons = (MOCK_LESSONS[mod.id] || []).map((l: any) => ({
+      titulo: l.titulo,
+      tipo: l.tipo as 'video' | 'reflection',
+    }));
+    return {
+      semana_numero: mod.semana_numero,
+      titulo: mod.titulo,
+      lessons,
+    };
+  });
+}
+
+/**
+ * Get planilla weeks, including dynamic Atleticos
+ */
+export function getPlanillaWeeks(planillaId: string): PlanillaWeek[] {
+  if (planillaId === 'atleticos') {
+    return buildAtleticosPlanilla();
+  }
+  const planilla = PLANILLAS.find((p) => p.id === planillaId);
+  return planilla?.weeks || [];
+}
 
 /**
  * Generate lesson IDs and full structure for saving to course_data
  */
 export function getPlanillaForSave(planillaId: string) {
-  const planilla = PLANILLAS.find((p) => p.id === planillaId);
-  if (!planilla) return null;
+  const weeks = getPlanillaWeeks(planillaId);
+  if (weeks.length === 0) return null;
 
-  return planilla.weeks.map((week) => ({
-    module_id: `mod-${week.semana_numero}`,
-    semana_numero: week.semana_numero,
-    titulo: week.titulo,
-    descripcion: '',
-    lessons: week.lessons.map((lesson, idx) => ({
-      id: `${planillaId}-s${week.semana_numero}-${idx}`,
-      titulo: lesson.titulo,
-      tipo: lesson.tipo,
-      youtube_id: '',
+  // For Atleticos, also copy youtube_ids from MOCK_LESSONS
+  let mockLessonsMap: Record<string, any[]> | null = null;
+  if (planillaId === 'atleticos') {
+    const { MOCK_LESSONS } = require('@/lib/mock-data');
+    mockLessonsMap = MOCK_LESSONS;
+  }
+
+  return weeks.map((week) => {
+    const moduleId = `mod-${week.semana_numero}`;
+    const mockLessons = mockLessonsMap ? (mockLessonsMap[moduleId] || []) : [];
+
+    return {
+      module_id: moduleId,
+      semana_numero: week.semana_numero,
+      titulo: week.titulo,
       descripcion: '',
-      orden: idx,
-    })),
-  }));
+      lessons: week.lessons.map((lesson, idx) => ({
+        id: `${planillaId}-s${week.semana_numero}-${idx}`,
+        titulo: lesson.titulo,
+        tipo: lesson.tipo,
+        youtube_id: lesson.youtube_id || mockLessons[idx]?.youtube_id || '',
+        descripcion: mockLessons[idx]?.descripcion || '',
+        orden: idx,
+      })),
+    };
+  });
 }
