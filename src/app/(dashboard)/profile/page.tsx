@@ -90,7 +90,7 @@ function ProfileContent() {
     if (!authUser) return;
     const supabase = createClient();
     supabase.from('users').select('avatar_url').eq('id', authUser.id).single()
-      .then(({ data }) => {
+      .then(({ data }: { data: any }) => {
         if (data?.avatar_url) setDbAvatarUrl(data.avatar_url);
       });
   }, [authUser]);
