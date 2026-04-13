@@ -87,6 +87,11 @@ export async function GET(request: NextRequest) {
         descripcion: data.descripcion,
         lessons: data.lessons,
       },
+      moduleInfo: {
+        semana_numero: data.semana_numero,
+        titulo: data.titulo,
+        descripcion: data.descripcion || '',
+      },
     });
   }
 
