@@ -1,45 +1,45 @@
 import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
+import { createClient } from '@supabase/supabase-js';
 import { NextResponse, type NextRequest } from 'next/server';
 import { getPlanillaForSave } from '@/lib/planillas';
 
 export async function POST(request: NextRequest) {
-  const cookieStore = await cookies();
-
-  // Use service role to bypass RLS
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  // 1. Verify caller is admin (using anon key + cookies for auth)
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    serviceKey || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            );
-          } catch {}
-        },
+        getAll() { return request.cookies.getAll(); },
+        setAll() {},
       },
     }
   );
 
-  // Verify admin
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
   }
 
-  const { data: profile } = await supabase
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!serviceRoleKey) {
+    return NextResponse.json({ error: 'Service role key not configured' }, { status: 500 });
+  }
+
+  // 2. Use service role client to bypass RLS
+  const adminClient = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    serviceRoleKey,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  );
+
+  const { data: profile } = await adminClient
     .from('users')
     .select('rol')
     .eq('id', user.id)
     .single();
 
-  if ((profile as any)?.rol !== 'admin') {
+  if (profile?.rol !== 'admin') {
     return NextResponse.json({ error: 'Not admin' }, { status: 403 });
   }
 
@@ -50,12 +50,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Planilla not found' }, { status: 404 });
   }
 
-  // Bulk upsert into course_data
+  // Bulk upsert into course_data using admin client
   const errors: string[] = [];
   let saved = 0;
 
   for (const mod of modules) {
-    const { error } = await supabase
+    const { error } = await adminClient
       .from('course_data')
       .upsert(
         {
@@ -65,6 +65,7 @@ export async function POST(request: NextRequest) {
           descripcion: mod.descripcion,
           lessons: mod.lessons,
           programa: planillaId,
+          updated_at: new Date().toISOString(),
         },
         { onConflict: 'module_id' }
       );
@@ -81,6 +82,7 @@ export async function POST(request: NextRequest) {
       success: false,
       saved,
       errors,
+      message: `${saved} guardados, ${errors.length} errores`,
     }, { status: 207 });
   }
 
