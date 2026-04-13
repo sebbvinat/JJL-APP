@@ -53,7 +53,7 @@ export default function AchievementBadge({
       <h4 className={clsx('text-sm font-semibold', unlocked ? 'text-white' : 'text-jjl-muted')}>
         {title}
       </h4>
-      <p className="text-[10px] text-jjl-muted mt-0.5">{description}</p>
+      <p className="text-xs text-jjl-muted mt-0.5">{description}</p>
       {unlocked && earnedAt && (
         <p className="text-[9px] text-jjl-muted/60 mt-1">{earnedAt}</p>
       )}

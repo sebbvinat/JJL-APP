@@ -77,7 +77,7 @@ export default function TrainingCalendar({ trainedDays = [], weeks = 13 }: Train
         <div className="flex flex-col gap-1 mr-1">
           {dayLabels.map((d) => (
             <div key={d} className="h-[14px] flex items-center">
-              <span className="text-[10px] text-jjl-muted leading-none">{d}</span>
+              <span className="text-xs text-jjl-muted leading-none">{d}</span>
             </div>
           ))}
         </div>

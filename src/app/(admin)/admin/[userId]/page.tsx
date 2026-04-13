@@ -407,7 +407,7 @@ export default function AdminStudentPage() {
                   return (
                     <div key={belt} className="flex-1">
                       <div className={`h-2 rounded-full ${achieved ? 'bg-jjl-red' : 'bg-jjl-gray-light'}`} />
-                      <p className={`text-[10px] text-center mt-1 ${achieved ? 'text-white' : 'text-jjl-muted'}`}>
+                      <p className={`text-xs text-center mt-1 ${achieved ? 'text-white' : 'text-jjl-muted'}`}>
                         {BELT_LABELS[belt]}
                       </p>
                     </div>

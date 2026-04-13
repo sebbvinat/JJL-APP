@@ -6,7 +6,7 @@
   --color-jjl-dark: #000000;
   --color-jjl-gray: #1A1A1A;
   --color-jjl-gray-light: #262626;
-  --color-jjl-muted: #9CA3AF;
+  --color-jjl-muted: #B0B8C4;
   --color-jjl-border: #333333;
   --color-belt-white: #FFFFFF;
   --color-belt-blue: #3B82F6;
@@ -41,6 +41,21 @@ body {
 }
 ::-webkit-scrollbar-thumb:hover {
   background: #555555;
+}
+
+/* Smooth scroll */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Pulse glow animation for CTAs */
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 8px rgba(220, 38, 38, 0.25), 0 0 20px rgba(220, 38, 38, 0.1);
+  }
+  50% {
+    box-shadow: 0 0 16px rgba(220, 38, 38, 0.4), 0 0 32px rgba(220, 38, 38, 0.2);
+  }
 }
 
 /* Selection */

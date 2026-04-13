@@ -60,7 +60,7 @@ export default function BeltProgress({ currentBelt, progressToNext = 0 }: BeltPr
               </div>
 
               <span
-                className={`text-[10px] mt-1.5 font-medium ${
+                className={`text-xs mt-1.5 font-medium ${
                   isActive ? 'text-jjl-red' : isPast ? 'text-white' : 'text-jjl-muted/50'
                 }`}
               >
