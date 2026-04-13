@@ -1,60 +1,29 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { MessageCircle, Heart, Plus } from 'lucide-react';
+import { MessageCircle, Heart, Plus, Loader2 } from 'lucide-react';
+import { formatDistanceToNow } from 'date-fns';
+import { es } from 'date-fns/locale';
 import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import Avatar from '@/components/ui/Avatar';
 import Button from '@/components/ui/Button';
 import PostForm from '@/components/community/PostForm';
 
-const INITIAL_POSTS = [
-  {
-    id: '1',
-    author: 'Carlos M.',
-    belt: 'blue',
-    title: 'Tip para mejorar la guardia cerrada',
-    content: 'Descubri que mantener los codos pegados y controlar la postura con los pies en la cadera hace una gran diferencia. Tambien ayuda mucho trabajar el angulo del cuerpo para crear oportunidades de sweep. Alguien mas tiene tips para mejorar el control desde guardia cerrada?',
-    likes: 12,
-    comments: 5,
-    time: 'Hace 2h',
-    category: 'technique',
-  },
-  {
-    id: '2',
-    author: 'Maria L.',
-    belt: 'purple',
-    title: 'Primer torneo completado!',
-    content: 'Despues de 3 meses de preparacion, finalmente compete en mi primer torneo. Gane 2 de 3 combates, uno por sumision (triangle!) y otro por puntos. El que perdi fue contra una chica con mucha mas experiencia pero aprendi mucho. Super agradecida con el programa!',
-    likes: 24,
-    comments: 8,
-    time: 'Hace 5h',
-    category: 'progress',
-  },
-  {
-    id: '3',
-    author: 'Juan P.',
-    belt: 'white',
-    title: 'Duda sobre pase de guardia',
-    content: 'Tengo problemas para pasar la guardia abierta, especialmente cuando mi oponente tiene grips en mis mangas. Alguien tiene consejos para principiantes? Que pase recomiendan aprender primero?',
-    likes: 6,
-    comments: 12,
-    time: 'Hace 1d',
-    category: 'question',
-  },
-  {
-    id: '4',
-    author: 'Roberto S.',
-    belt: 'brown',
-    title: 'Analisis de mi lucha en el panamericano',
-    content: 'Subi mi video del panamericano a la plataforma. Me gustaria que me den feedback sobre mi juego de guardia. Siento que me estan pasando mucho por el lado derecho. Alguna sugerencia?',
-    likes: 18,
-    comments: 15,
-    time: 'Hace 2d',
-    category: 'competition',
-  },
-];
+interface Post {
+  id: string;
+  autor: string;
+  cinturon: string;
+  titulo: string;
+  contenido: string;
+  categoria: string;
+  likes: number;
+  comments: number;
+  liked: boolean;
+  isOwner: boolean;
+  createdAt: string;
+}
 
 const CATEGORY_LABELS: Record<string, string> = {
   question: 'Pregunta',
@@ -68,30 +37,79 @@ const CATEGORIES = ['all', 'question', 'technique', 'progress', 'discussion', 'c
 const CATEGORY_DISPLAY = ['Todos', 'Preguntas', 'Tecnicas', 'Progreso', 'Discusion', 'Competencia'];
 
 export default function CommunityPage() {
-  const [posts, setPosts] = useState(INITIAL_POSTS);
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [activeCategory, setActiveCategory] = useState('all');
+  const [likingId, setLikingId] = useState<string | null>(null);
 
-  const filteredPosts = activeCategory === 'all'
-    ? posts
-    : posts.filter((p) => p.category === activeCategory);
+  useEffect(() => {
+    fetchPosts();
+  }, [activeCategory]);
 
-  const handleNewPost = (data: { titulo: string; contenido: string; categoria: string }) => {
-    setPosts([
-      {
-        id: `new-${Date.now()}`,
-        author: 'Tu',
-        belt: 'blue',
-        title: data.titulo,
-        content: data.contenido,
-        likes: 0,
-        comments: 0,
-        time: 'Ahora',
-        category: data.categoria,
-      },
-      ...posts,
-    ]);
-  };
+  async function fetchPosts() {
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/community/posts?category=${activeCategory}`);
+      if (res.ok) {
+        const data = await res.json();
+        setPosts(data.posts || []);
+      }
+    } catch {}
+    setLoading(false);
+  }
+
+  async function handleNewPost(data: { titulo: string; contenido: string; categoria: string }) {
+    try {
+      const res = await fetch('/api/community/posts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      if (res.ok) {
+        setShowForm(false);
+        fetchPosts();
+      }
+    } catch {}
+  }
+
+  async function handleLike(postId: string) {
+    setLikingId(postId);
+    // Optimistic update
+    setPosts((prev) =>
+      prev.map((p) =>
+        p.id === postId
+          ? { ...p, liked: !p.liked, likes: p.liked ? p.likes - 1 : p.likes + 1 }
+          : p
+      )
+    );
+
+    try {
+      await fetch('/api/community/like', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ postId }),
+      });
+    } catch {
+      // Revert on error
+      setPosts((prev) =>
+        prev.map((p) =>
+          p.id === postId
+            ? { ...p, liked: !p.liked, likes: p.liked ? p.likes - 1 : p.likes + 1 }
+            : p
+        )
+      );
+    }
+    setLikingId(null);
+  }
+
+  function timeAgo(dateStr: string) {
+    try {
+      return formatDistanceToNow(new Date(dateStr), { addSuffix: true, locale: es });
+    } catch {
+      return '';
+    }
+  }
 
   return (
     <div className="space-y-6 max-w-3xl">
@@ -124,37 +142,62 @@ export default function CommunityPage() {
       </div>
 
       {/* Posts */}
-      <div className="space-y-4">
-        {filteredPosts.map((post) => (
-          <Link key={post.id} href={`/community/${post.id}`}>
-            <Card hover className="mb-4">
-              <div className="flex gap-3">
-                <Avatar name={post.author} />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-semibold text-sm">{post.author}</span>
-                    <Badge belt={post.belt} />
-                    <span className="text-xs text-jjl-muted">{post.time}</span>
+      {loading ? (
+        <div className="flex items-center justify-center py-16">
+          <Loader2 className="h-6 w-6 animate-spin text-jjl-muted" />
+        </div>
+      ) : posts.length === 0 ? (
+        <Card>
+          <div className="text-center py-12">
+            <MessageCircle className="h-12 w-12 text-jjl-muted mx-auto mb-3" />
+            <p className="text-jjl-muted">No hay posts todavia. Se el primero!</p>
+          </div>
+        </Card>
+      ) : (
+        <div className="space-y-4">
+          {posts.map((post) => (
+            <div key={post.id}>
+              <Link href={`/community/${post.id}`}>
+                <Card hover className="mb-0">
+                  <div className="flex gap-3">
+                    <Avatar name={post.autor} />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-semibold text-sm">{post.autor}</span>
+                        <Badge belt={post.cinturon} />
+                        <span className="text-xs text-jjl-muted">{timeAgo(post.createdAt)}</span>
+                      </div>
+                      <h3 className="font-bold mt-1.5">{post.titulo}</h3>
+                      <p className="text-sm text-jjl-muted mt-1 line-clamp-2">{post.contenido}</p>
+                      <div className="flex items-center gap-4 mt-3">
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleLike(post.id);
+                          }}
+                          disabled={likingId === post.id}
+                          className={`flex items-center gap-1.5 text-sm transition-colors ${
+                            post.liked ? 'text-red-400' : 'text-jjl-muted hover:text-red-400'
+                          }`}
+                        >
+                          <Heart className="h-4 w-4" fill={post.liked ? 'currentColor' : 'none'} />
+                          {post.likes}
+                        </button>
+                        <span className="flex items-center gap-1.5 text-jjl-muted text-sm">
+                          <MessageCircle className="h-4 w-4" />
+                          {post.comments}
+                        </span>
+                        <Badge>{CATEGORY_LABELS[post.categoria] || post.categoria}</Badge>
+                      </div>
+                    </div>
                   </div>
-                  <h3 className="font-bold mt-1.5">{post.title}</h3>
-                  <p className="text-sm text-jjl-muted mt-1 line-clamp-2">{post.content}</p>
-                  <div className="flex items-center gap-4 mt-3">
-                    <span className="flex items-center gap-1.5 text-jjl-muted text-sm">
-                      <Heart className="h-4 w-4" />
-                      {post.likes}
-                    </span>
-                    <span className="flex items-center gap-1.5 text-jjl-muted text-sm">
-                      <MessageCircle className="h-4 w-4" />
-                      {post.comments}
-                    </span>
-                    <Badge>{CATEGORY_LABELS[post.category] || post.category}</Badge>
-                  </div>
-                </div>
-              </div>
-            </Card>
-          </Link>
-        ))}
-      </div>
+                </Card>
+              </Link>
+            </div>
+          ))}
+        </div>
+      )}
 
       {showForm && <PostForm onClose={() => setShowForm(false)} onSubmit={handleNewPost} />}
     </div>
