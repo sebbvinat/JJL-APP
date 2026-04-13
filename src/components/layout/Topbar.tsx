@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 
-import { LogOut, Settings, Menu, X } from 'lucide-react';
+import { LogOut, Settings, Menu, X, RefreshCw } from 'lucide-react';
 import Avatar from '@/components/ui/Avatar';
 import NotificationBell from '@/components/layout/NotificationBell';
 import { NAV_ITEMS, ADMIN_NAV } from '@/lib/constants';
@@ -39,6 +39,13 @@ export default function Topbar() {
 
         {/* Right side */}
         <div className="flex items-center gap-1">
+          <button
+            onClick={() => { window.location.reload(); }}
+            className="p-2 rounded-lg hover:bg-jjl-gray-light text-jjl-muted hover:text-white transition-colors"
+            title="Actualizar"
+          >
+            <RefreshCw className="h-4 w-4" />
+          </button>
           <NotificationBell />
           <div className="relative">
           <button

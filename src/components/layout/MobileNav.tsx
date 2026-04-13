@@ -3,7 +3,8 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { clsx } from 'clsx';
-import { LayoutDashboard, BookOpen, Users, NotebookPen, User } from 'lucide-react';
+import { LayoutDashboard, BookOpen, Users, NotebookPen, User, Shield } from 'lucide-react';
+import { useUser } from '@/hooks/useUser';
 
 const MOBILE_ITEMS = [
   { label: 'Inicio', href: '/dashboard', icon: LayoutDashboard },
@@ -15,20 +16,29 @@ const MOBILE_ITEMS = [
 
 export default function MobileNav() {
   const pathname = usePathname();
+  const { profile } = useUser();
+  const isAdmin = profile?.rol === 'admin';
+
+  const items = isAdmin
+    ? [...MOBILE_ITEMS.slice(0, 4), { label: 'Admin', href: '/admin', icon: Shield }]
+    : MOBILE_ITEMS;
 
   return (
     <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-jjl-gray border-t border-jjl-border z-40 safe-area-bottom">
       <div className="flex items-center justify-around h-16 px-2">
-        {MOBILE_ITEMS.map((item) => {
+        {items.map((item) => {
           const isActive = pathname.startsWith(item.href);
           const Icon = item.icon;
+          const isAdminItem = item.href === '/admin';
           return (
             <Link
               key={item.href}
               href={item.href}
               className={clsx(
                 'flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg transition-colors min-w-[56px]',
-                isActive ? 'text-jjl-red' : 'text-jjl-muted'
+                isAdminItem
+                  ? isActive ? 'text-yellow-400' : 'text-yellow-500/70'
+                  : isActive ? 'text-jjl-red' : 'text-jjl-muted'
               )}
             >
               <Icon className="h-5 w-5" />
