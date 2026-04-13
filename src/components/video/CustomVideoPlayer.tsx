@@ -218,12 +218,17 @@ export default function CustomVideoPlayer({
     }
   }, [isIOS]);
 
-  // Lock body scroll when CSS fullscreen is active
+  // Lock body scroll and scroll to top when CSS fullscreen is active
   useEffect(() => {
     if (isCssFullscreen) {
       document.body.style.overflow = 'hidden';
+      // Scroll to top to hide Safari address bar on iOS
+      window.scrollTo(0, 0);
+      // Try to lock orientation to landscape
+      try { (screen.orientation as any)?.lock?.('landscape').catch(() => {}); } catch {}
     } else {
       document.body.style.overflow = '';
+      try { (screen.orientation as any)?.unlock?.(); } catch {}
     }
     return () => { document.body.style.overflow = ''; };
   }, [isCssFullscreen]);
@@ -261,9 +266,10 @@ export default function CustomVideoPlayer({
         ref={containerRef}
         className={`relative overflow-hidden bg-black select-none group ${
           isCssFullscreen
-            ? 'fixed inset-0 z-[9999] w-screen h-screen rounded-none'
+            ? 'fixed inset-0 z-[9999] rounded-none'
             : 'w-full aspect-video rounded-xl'
         }`}
+        style={isCssFullscreen ? { width: '100vw', height: '100dvh' } : undefined}
         onContextMenu={preventContext}
         onMouseMove={handleMouseMove}
         onMouseLeave={() => isPlaying && setShowControls(false)}
