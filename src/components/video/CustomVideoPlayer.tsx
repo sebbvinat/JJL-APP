@@ -250,9 +250,14 @@ export default function CustomVideoPlayer({
     }
 
     if (document.fullscreenElement) {
-      document.exitFullscreen();
+      document.exitFullscreen().then(() => {
+        try { (screen.orientation as any)?.unlock?.(); } catch {}
+      }).catch(() => {});
     } else {
-      containerRef.current.requestFullscreen();
+      containerRef.current.requestFullscreen().then(() => {
+        // Lock to landscape AFTER entering fullscreen (required by Android)
+        try { (screen.orientation as any)?.lock?.('landscape').catch(() => {}); } catch {}
+      }).catch(() => {});
     }
   }, [isIOS]);
 
