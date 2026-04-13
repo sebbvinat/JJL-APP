@@ -28,9 +28,17 @@ export default function CustomVideoPlayer({
 }: CustomVideoPlayerProps) {
   const [isCompleted, setIsCompleted] = useState(completed);
 
-  // Sync with prop when switching lessons
+  // Reset state when switching lessons
   useEffect(() => {
     setIsCompleted(completed);
+    setIsPlaying(false);
+    setProgress(0);
+    setCurrentTime(0);
+    setDuration(0);
+    setPlayerReady(false);
+    setHasStarted(false);
+    setShowThumbnail(true);
+    setShowControls(true);
   }, [completed, youtubeId]);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
@@ -202,22 +210,11 @@ export default function CustomVideoPlayer({
 
   const isIOS = typeof navigator !== 'undefined' && /iPhone|iPad|iPod/.test(navigator.userAgent);
 
-  const [needsRotation, setNeedsRotation] = useState(false);
-
   const handleFullscreen = useCallback(() => {
     if (!containerRef.current) return;
 
     if (isIOS || !document.fullscreenEnabled) {
-      if (isCssFullscreen) {
-        // Exit fullscreen
-        setIsCssFullscreen(false);
-        setNeedsRotation(false);
-      } else {
-        // Enter fullscreen — check if we need to rotate
-        const portrait = window.innerHeight > window.innerWidth;
-        setNeedsRotation(portrait);
-        setIsCssFullscreen(true);
-      }
+      setIsCssFullscreen((prev) => !prev);
       return;
     }
 
@@ -226,19 +223,25 @@ export default function CustomVideoPlayer({
     } else {
       containerRef.current.requestFullscreen();
     }
-  }, [isIOS, isCssFullscreen]);
+  }, [isIOS]);
 
   // Lock body scroll when CSS fullscreen
   useEffect(() => {
     if (isCssFullscreen) {
       document.body.style.overflow = 'hidden';
+      document.documentElement.style.overflow = 'hidden';
       window.scrollTo(0, 0);
+      // Try to lock landscape on Android (iOS ignores this)
       try { (screen.orientation as any)?.lock?.('landscape').catch(() => {}); } catch {}
     } else {
       document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
       try { (screen.orientation as any)?.unlock?.(); } catch {}
     }
-    return () => { document.body.style.overflow = ''; };
+    return () => {
+      document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
+    };
   }, [isCssFullscreen]);
 
   const handleComplete = () => {
@@ -278,9 +281,7 @@ export default function CustomVideoPlayer({
             : 'w-full aspect-video rounded-xl'
         }`}
         style={isCssFullscreen
-          ? needsRotation
-            ? { position: 'fixed' as const, top: 0, left: 0, width: '100dvh', height: '100vw', transform: 'rotate(90deg)', transformOrigin: 'top left', marginLeft: '100vw', zIndex: 9999 }
-            : { position: 'fixed' as const, top: 0, left: 0, right: 0, bottom: 0, width: '100vw', height: '100dvh', zIndex: 9999 }
+          ? { position: 'fixed' as const, top: 0, left: 0, width: '100vw', height: '100dvh', zIndex: 9999, background: '#000' }
           : undefined
         }
         onContextMenu={preventContext}
