@@ -131,18 +131,11 @@ export default function CustomVideoPlayer({
     if (state === window.YT.PlayerState.PLAYING) {
       setIsPlaying(true);
       setHasStarted(true);
-      // Wait until video is actually playing (currentTime > 0.5s) before removing thumbnail
-      // This prevents YouTube branding from flashing
-      const checkInterval = setInterval(() => {
-        if (!mountedRef.current) { clearInterval(checkInterval); return; }
-        const ct = playerRef.current?.getCurrentTime?.() || 0;
-        if (ct > 0.5) {
-          clearInterval(checkInterval);
-          if (mountedRef.current) setShowThumbnail(false);
-        }
-      }, 100);
-      // Safety: remove after 3s max
-      setTimeout(() => { clearInterval(checkInterval); if (mountedRef.current) setShowThumbnail(false); }, 3000);
+      // YouTube shows branding overlay for ~3.5s. We fade out our thumbnail
+      // quickly but keep a top strip to hide the branding, then remove fully after 4s.
+      setTimeout(() => {
+        if (mountedRef.current) setShowThumbnail(false);
+      }, 4000);
       startProgressTracking();
     } else if (state === window.YT.PlayerState.PAUSED) {
       setIsPlaying(false);
@@ -257,24 +250,21 @@ export default function CustomVideoPlayer({
           onClick={togglePlay}
         />
 
-        {/* Custom thumbnail overlay — covers YouTube's thumbnail+branding completely */}
-        {showThumbnail && (
+        {/* Custom thumbnail overlay — covers YouTube's thumbnail+branding */}
+        {showThumbnail && !hasStarted && (
           <div
             className="absolute inset-0 z-20 cursor-pointer bg-black"
             onClick={togglePlay}
           >
-            {/* Our own thumbnail from YouTube's image CDN (no branding) */}
             <img
               src={thumbnailUrl}
               alt={title || 'Video'}
               className="absolute inset-0 w-full h-full object-cover opacity-80"
               onError={(e) => {
-                // Fallback to hqdefault if maxres not available
                 (e.target as HTMLImageElement).src = `https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg`;
               }}
             />
             <div className="absolute inset-0 bg-black/30" />
-            {/* Play button */}
             {playerReady && (
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="w-16 h-16 rounded-full bg-jjl-red/90 flex items-center justify-center hover:bg-jjl-red hover:scale-110 transition-all shadow-lg shadow-black/50">
@@ -282,13 +272,17 @@ export default function CustomVideoPlayer({
                 </div>
               </div>
             )}
-            {/* Title on thumbnail */}
             {title && (
               <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4 pt-10">
                 <p className="text-white font-semibold text-sm">{title}</p>
               </div>
             )}
           </div>
+        )}
+
+        {/* Top bar to hide YouTube branding while it fades (first 4s of playback) */}
+        {hasStarted && showThumbnail && (
+          <div className="absolute top-0 left-0 right-0 h-16 z-20 bg-gradient-to-b from-black via-black/80 to-transparent pointer-events-none" />
         )}
 
         {/* Loading spinner — before API is ready */}

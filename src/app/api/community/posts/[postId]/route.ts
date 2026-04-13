@@ -29,7 +29,7 @@ export async function GET(
   // Fetch post
   const { data: post, error } = await supabase
     .from('posts')
-    .select('*, users!posts_user_id_fkey(nombre, cinturon_actual)')
+    .select('*')
     .eq('id', postId)
     .single();
 
@@ -40,9 +40,24 @@ export async function GET(
   // Fetch comments
   const { data: comments } = await supabase
     .from('comments')
-    .select('*, users!comments_user_id_fkey(nombre, cinturon_actual)')
+    .select('*')
     .eq('post_id', postId)
     .order('created_at', { ascending: true });
+
+  // Fetch user info for post author + comment authors
+  const allUserIds = [
+    post.user_id,
+    ...((comments || []).map((c: any) => c.user_id)),
+  ];
+  const uniqueUserIds = [...new Set(allUserIds)];
+
+  const { data: users } = await supabase
+    .from('users')
+    .select('id, nombre, cinturon_actual')
+    .in('id', uniqueUserIds);
+
+  const userMap: Record<string, { nombre: string; cinturon_actual: string }> = {};
+  (users || []).forEach((u: any) => { userMap[u.id] = u; });
 
   // Check if user liked this post
   const { data: like } = await supabase
@@ -55,8 +70,8 @@ export async function GET(
   return NextResponse.json({
     post: {
       id: post.id,
-      autor: (post.users as any)?.nombre || 'Usuario',
-      cinturon: (post.users as any)?.cinturon_actual || 'white',
+      autor: userMap[post.user_id]?.nombre || 'Usuario',
+      cinturon: userMap[post.user_id]?.cinturon_actual || 'white',
       titulo: post.titulo,
       contenido: post.contenido,
       categoria: post.categoria,
@@ -68,8 +83,8 @@ export async function GET(
     },
     comments: (comments || []).map((c: any) => ({
       id: c.id,
-      autor: (c.users as any)?.nombre || 'Usuario',
-      cinturon: (c.users as any)?.cinturon_actual || 'white',
+      autor: userMap[c.user_id]?.nombre || 'Usuario',
+      cinturon: userMap[c.user_id]?.cinturon_actual || 'white',
       contenido: c.contenido,
       isOwner: c.user_id === user.id,
       createdAt: c.created_at,

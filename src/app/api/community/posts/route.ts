@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
 
   let query = supabase
     .from('posts')
-    .select('*, users!posts_user_id_fkey(nombre, cinturon_actual)')
+    .select('*')
     .order('created_at', { ascending: false })
     .limit(50);
 
@@ -41,8 +41,22 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
+  if (!posts || posts.length === 0) {
+    return NextResponse.json({ posts: [] });
+  }
+
+  // Fetch user info for all post authors
+  const userIds = [...new Set(posts.map((p: any) => p.user_id))];
+  const { data: users } = await supabase
+    .from('users')
+    .select('id, nombre, cinturon_actual')
+    .in('id', userIds);
+
+  const userMap: Record<string, { nombre: string; cinturon_actual: string }> = {};
+  (users || []).forEach((u: any) => { userMap[u.id] = u; });
+
   // Check which posts the current user has liked
-  const postIds = (posts || []).map((p: any) => p.id);
+  const postIds = posts.map((p: any) => p.id);
   let likedPostIds: string[] = [];
 
   if (postIds.length > 0) {
@@ -55,10 +69,10 @@ export async function GET(request: NextRequest) {
     likedPostIds = (likes || []).map((l: any) => l.post_id);
   }
 
-  const formatted = (posts || []).map((p: any) => ({
+  const formatted = posts.map((p: any) => ({
     id: p.id,
-    autor: (p.users as any)?.nombre || 'Usuario',
-    cinturon: (p.users as any)?.cinturon_actual || 'white',
+    autor: userMap[p.user_id]?.nombre || 'Usuario',
+    cinturon: userMap[p.user_id]?.cinturon_actual || 'white',
     titulo: p.titulo,
     contenido: p.contenido,
     categoria: p.categoria,
