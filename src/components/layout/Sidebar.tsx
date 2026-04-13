@@ -13,13 +13,13 @@ export default function Sidebar() {
   const isAdmin = profile?.rol === 'admin';
 
   return (
-    <aside className="hidden lg:flex flex-col w-64 bg-jjl-gray border-r border-jjl-border h-screen sticky top-0">
+    <aside className="hidden lg:flex flex-col w-64 bg-gradient-to-b from-jjl-gray to-black border-r border-jjl-border h-screen sticky top-0">
       {/* Logo */}
       <div className="flex items-center gap-3 px-6 h-16 border-b border-jjl-border">
-        <img src="/logo-jjl.png?v=2" alt="JJL" width={36} height={36} className="rounded-lg" />
+        <img src="/logo-jjl.png" alt="JJL" width={36} height={36} className="rounded-lg" />
         <div>
           <h1 className="text-base font-bold text-white leading-tight">JIU JITSU</h1>
-          <p className="text-[10px] font-semibold text-jjl-red tracking-[0.2em] uppercase -mt-0.5">Latino</p>
+          <p className="text-xs font-semibold text-jjl-red tracking-[0.2em] uppercase -mt-0.5">Latino</p>
         </div>
       </div>
 
@@ -33,10 +33,10 @@ export default function Sidebar() {
               key={item.href}
               href={item.href}
               className={clsx(
-                'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
+                'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200',
                 isActive
-                  ? 'bg-jjl-red/10 text-jjl-red border border-jjl-red/20'
-                  : 'text-jjl-muted hover:text-white hover:bg-jjl-gray-light'
+                  ? 'bg-jjl-red/10 text-jjl-red border-l-[3px] border-l-jjl-red border-y border-r border-y-jjl-red/20 border-r-jjl-red/20'
+                  : 'text-jjl-muted hover:text-white hover:bg-jjl-gray-light hover:translate-x-0.5'
               )}
             >
               <Icon className="h-5 w-5 shrink-0" />
@@ -57,10 +57,10 @@ export default function Sidebar() {
                 key={item.href}
                 href={item.href}
                 className={clsx(
-                  'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
+                  'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200',
                   isActive
-                    ? 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20'
-                    : 'text-yellow-500/70 hover:text-yellow-400 hover:bg-jjl-gray-light'
+                    ? 'bg-yellow-500/10 text-yellow-400 border-l-[3px] border-l-yellow-400 border-y border-r border-y-yellow-500/20 border-r-yellow-500/20'
+                    : 'text-yellow-500/70 hover:text-yellow-400 hover:bg-jjl-gray-light hover:translate-x-0.5'
                 )}
               >
                 <Icon className="h-5 w-5 shrink-0" />
@@ -73,7 +73,7 @@ export default function Sidebar() {
 
       {/* Footer */}
       <div className="px-4 py-4 border-t border-jjl-border">
-        <p className="text-xs text-jjl-muted/50 text-center">JJL Platform v1.0</p>
+        <p className="text-[10px] text-jjl-muted/40 text-center tracking-widest uppercase font-medium">JJL Platform <span className="text-jjl-red/50">v1.0</span></p>
       </div>
     </aside>
   );

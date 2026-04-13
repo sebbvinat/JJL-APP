@@ -88,9 +88,9 @@ export default function UploadPage() {
 
   if (result) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4 max-w-lg mx-auto">
-        <div className="h-20 w-20 bg-green-500/20 rounded-full flex items-center justify-center">
-          <CheckCircle className="h-10 w-10 text-green-400" />
+      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-5 max-w-lg mx-auto">
+        <div className="h-24 w-24 bg-green-500/15 rounded-full flex items-center justify-center shadow-lg shadow-green-500/10 animate-[scale-in_0.4s_ease-out]">
+          <CheckCircle className="h-12 w-12 text-green-400 drop-shadow-[0_0_8px_rgba(74,222,128,0.3)]" />
         </div>
         <h2 className="text-2xl font-bold">Video Subido Exitosamente</h2>
         <p className="text-jjl-muted text-center">
@@ -101,7 +101,7 @@ export default function UploadPage() {
             href={result.webViewLink}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-2 text-jjl-red hover:underline text-sm"
+            className="flex items-center gap-2 text-jjl-red hover:text-red-400 hover:underline text-sm transition-colors"
           >
             <ExternalLink className="h-4 w-4" />
             Ver en Google Drive
@@ -115,8 +115,8 @@ export default function UploadPage() {
   return (
     <div className="space-y-6 max-w-2xl mx-auto">
       <div>
-        <h1 className="text-2xl font-bold">Subir Video de Lucha</h1>
-        <p className="text-jjl-muted mt-1">Sube tus videos para revision y feedback personalizado</p>
+        <h1 className="text-2xl font-bold">Subir Video</h1>
+        <p className="text-jjl-muted mt-1">Subi tu video de lucha o entrenamiento</p>
       </div>
 
       {/* Dropzone */}

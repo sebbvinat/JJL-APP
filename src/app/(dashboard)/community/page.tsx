@@ -117,7 +117,7 @@ export default function CommunityPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Comunidad</h1>
-          <p className="text-jjl-muted mt-1">Comparte y aprende con otros guerreros</p>
+          <p className="text-jjl-muted mt-1">Comparte y aprende con toda la galera</p>
         </div>
         <Button onClick={() => setShowForm(true)}>
           <Plus className="h-4 w-4 mr-2" />
@@ -131,9 +131,9 @@ export default function CommunityPage() {
           <button
             key={cat}
             onClick={() => setActiveCategory(cat)}
-            className={`px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
+            className={`px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all duration-200 ${
               activeCategory === cat
-                ? 'bg-jjl-red text-white'
+                ? 'bg-jjl-red text-white shadow-sm shadow-jjl-red/20'
                 : 'bg-jjl-gray-light border border-jjl-border text-jjl-muted hover:text-white hover:border-jjl-red/40'
             }`}
           >
@@ -149,9 +149,18 @@ export default function CommunityPage() {
         </div>
       ) : posts.length === 0 ? (
         <Card>
-          <div className="text-center py-12">
-            <MessageCircle className="h-12 w-12 text-jjl-muted mx-auto mb-3" />
-            <p className="text-jjl-muted">No hay posts todavia. Se el primero!</p>
+          <div className="text-center py-16">
+            <div className="h-20 w-20 bg-jjl-red/10 rounded-full flex items-center justify-center mx-auto mb-4">
+              <MessageCircle className="h-16 w-16 text-jjl-red/70" />
+            </div>
+            <h3 className="text-lg font-bold mb-1">La comunidad te espera</h3>
+            <p className="text-jjl-muted max-w-sm mx-auto">
+              Se el primero en compartir una tecnica, hacer una pregunta o celebrar tu progreso. Cada post fortalece al equipo.
+            </p>
+            <Button onClick={() => setShowForm(true)} className="mt-5">
+              <Plus className="h-4 w-4 mr-2" />
+              Crear el primer post
+            </Button>
           </div>
         </Card>
       ) : (

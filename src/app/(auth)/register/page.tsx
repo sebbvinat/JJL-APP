@@ -10,7 +10,7 @@ export default function RegisterPage() {
     <div className="w-full max-w-sm text-center">
       <div className="flex flex-col items-center mb-8">
         <img
-          src="/logo-jjl.png?v=2"
+          src="/logo-jjl.png"
           alt="JJL"
           width={56}
           height={56}

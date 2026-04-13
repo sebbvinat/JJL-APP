@@ -131,7 +131,9 @@ export default function ModulesPage() {
     <div className="space-y-6 max-w-4xl">
       <div>
         <h1 className="text-2xl font-bold">Tu Programa</h1>
-        <p className="text-jjl-muted mt-1">6 meses de entrenamiento — 24 semanas + fundamentos</p>
+        <p className="text-jjl-muted mt-1">
+          Construyendo tu juego ideal entrenamiento a entrenamiento
+        </p>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

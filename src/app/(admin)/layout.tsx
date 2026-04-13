@@ -18,10 +18,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <header className="bg-jjl-gray border-b border-jjl-border sticky top-0 z-40">
         <div className="flex items-center justify-between px-6 h-16">
           <div className="flex items-center gap-3">
-            <img src="/logo-jjl.png?v=2" alt="JJL" width={36} height={36} className="rounded-lg" />
+            <img src="/logo-jjl.png" alt="JJL" width={36} height={36} className="rounded-lg" />
             <div>
               <h1 className="text-base font-bold leading-tight">ADMIN PANEL</h1>
-              <p className="text-[10px] text-jjl-red tracking-widest uppercase -mt-0.5">Jiu Jitsu Latino</p>
+              <p className="text-xs text-jjl-red tracking-widest uppercase -mt-0.5">Jiu Jitsu Latino</p>
             </div>
           </div>
           <Link

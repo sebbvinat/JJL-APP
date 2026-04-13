@@ -136,7 +136,7 @@ function ProfileContent() {
       <div className="space-y-6 max-w-md mx-auto mt-12">
         <Card>
           <div className="text-center mb-6">
-            <img src="/logo-jjl.png?v=2" alt="JJL" width={48} height={48} className="mx-auto mb-3" />
+            <img src="/logo-jjl.png" alt="JJL" width={48} height={48} className="mx-auto mb-3" />
             <h1 className="text-xl font-bold">Cambiar Contraseña</h1>
             <p className="text-sm text-jjl-muted mt-1">Ingresa tu nueva contraseña</p>
           </div>
@@ -180,8 +180,9 @@ function ProfileContent() {
   return (
     <div className="space-y-6 max-w-3xl mx-auto">
       {/* Profile Header */}
-      <Card>
-        <div className="flex flex-col sm:flex-row items-center gap-4">
+      <Card className="relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-jjl-red/10 via-transparent to-transparent pointer-events-none" />
+        <div className="relative flex flex-col sm:flex-row items-center gap-4">
           <Avatar name={profile?.nombre || 'Usuario'} size="lg" />
           <div className="text-center sm:text-left flex-1">
             <h1 className="text-xl font-bold">{profile?.nombre || 'Usuario'}</h1>
@@ -190,8 +191,8 @@ function ProfileContent() {
               <span className="text-sm text-jjl-muted">{authUser?.email}</span>
             </div>
           </div>
-          <div className="text-center">
-            <p className="text-3xl font-bold text-jjl-red">{profile?.puntos || 0}</p>
+          <div className="text-center px-5 py-3 bg-jjl-red/10 rounded-xl shadow-sm shadow-jjl-red/10">
+            <p className="text-3xl font-bold text-jjl-red drop-shadow-[0_0_6px_rgba(220,38,38,0.3)]">{profile?.puntos || 0}</p>
             <p className="text-xs text-jjl-muted">Puntos</p>
           </div>
         </div>
@@ -200,7 +201,7 @@ function ProfileContent() {
       {/* Settings */}
       <Card>
         <h2 className="text-lg font-semibold mb-4">Configuracion</h2>
-        <div className="space-y-3">
+        <div className="space-y-3 divide-y divide-jjl-border/50 [&>*:not(:first-child)]:pt-3">
           {/* Change Password */}
           <button
             onClick={() => { setShowPasswordForm(!showPasswordForm); setError(''); setMessage(''); }}
