@@ -202,6 +202,8 @@ export default function CustomVideoPlayer({
 
   const isIOS = typeof navigator !== 'undefined' && /iPhone|iPad|iPod/.test(navigator.userAgent);
 
+  const [isPortrait, setIsPortrait] = useState(false);
+
   const handleFullscreen = useCallback(() => {
     if (!containerRef.current) return;
 
@@ -218,16 +220,21 @@ export default function CustomVideoPlayer({
     }
   }, [isIOS]);
 
-  // Lock body scroll and scroll to top when CSS fullscreen is active
+  // Lock body scroll and force landscape when CSS fullscreen is active
   useEffect(() => {
     if (isCssFullscreen) {
       document.body.style.overflow = 'hidden';
-      // Scroll to top to hide Safari address bar on iOS
       window.scrollTo(0, 0);
-      // Try to lock orientation to landscape
+      // Try native orientation lock first
       try { (screen.orientation as any)?.lock?.('landscape').catch(() => {}); } catch {}
+      // Check if portrait — we'll rotate with CSS
+      const checkPortrait = () => setIsPortrait(window.innerHeight > window.innerWidth);
+      checkPortrait();
+      window.addEventListener('resize', checkPortrait);
+      return () => window.removeEventListener('resize', checkPortrait);
     } else {
       document.body.style.overflow = '';
+      setIsPortrait(false);
       try { (screen.orientation as any)?.unlock?.(); } catch {}
     }
     return () => { document.body.style.overflow = ''; };
@@ -266,10 +273,15 @@ export default function CustomVideoPlayer({
         ref={containerRef}
         className={`relative overflow-hidden bg-black select-none group ${
           isCssFullscreen
-            ? 'fixed inset-0 z-[9999] rounded-none'
+            ? 'fixed z-[9999] rounded-none'
             : 'w-full aspect-video rounded-xl'
         }`}
-        style={isCssFullscreen ? { width: '100vw', height: '100dvh' } : undefined}
+        style={isCssFullscreen
+          ? isCssFullscreen && isPortrait
+            ? { position: 'fixed', top: 0, left: 0, width: '100dvh', height: '100vw', transform: 'rotate(90deg)', transformOrigin: 'top left', marginLeft: '100vw' }
+            : { position: 'fixed', inset: 0, width: '100vw', height: '100dvh' }
+          : undefined
+        }
         onContextMenu={preventContext}
         onMouseMove={handleMouseMove}
         onMouseLeave={() => isPlaying && setShowControls(false)}
