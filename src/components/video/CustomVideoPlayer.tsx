@@ -339,7 +339,7 @@ export default function CustomVideoPlayer({
         {hasStarted && !isCssFullscreen && (
           <button
             onClick={(e) => { e.stopPropagation(); handleFullscreen(); }}
-            className="absolute top-3 right-3 z-30 w-10 h-10 rounded-full bg-black/60 flex items-center justify-center active:bg-black/80 lg:hidden"
+            className="absolute top-3 right-3 z-30 w-10 h-10 rounded-full bg-black/60 flex items-center justify-center active:bg-black/80"
           >
             <Maximize className="h-5 w-5 text-white" />
           </button>
