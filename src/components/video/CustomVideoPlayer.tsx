@@ -41,7 +41,6 @@ export default function CustomVideoPlayer({
   const [playerReady, setPlayerReady] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
   const [showThumbnail, setShowThumbnail] = useState(true);
-  const [hideBranding, setHideBranding] = useState(false);
 
   const playerRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -135,11 +134,6 @@ export default function CustomVideoPlayer({
     if (state === window.YT.PlayerState.PLAYING) {
       setIsPlaying(true);
       setHasStarted(true);
-      // Cover YouTube branding overlay that appears on every play/resume
-      setHideBranding(true);
-      setTimeout(() => {
-        if (mountedRef.current) setHideBranding(false);
-      }, 5000);
       if (!hasStarted) {
         setShowThumbnail(false);
       }
@@ -291,14 +285,15 @@ export default function CustomVideoPlayer({
           </div>
         )}
 
-        {/* Hide YouTube branding overlays on play/resume (~5s) */}
-        {hideBranding && (
-          <>
-            {/* Top: covers channel name + video title */}
-            <div className="absolute top-0 left-0 right-0 h-20 z-20 bg-gradient-to-b from-black via-black/70 to-transparent pointer-events-none" />
-            {/* Bottom-right: covers YouTube watermark */}
-            <div className="absolute bottom-8 right-0 w-32 h-10 z-20 bg-gradient-to-l from-black/80 to-transparent pointer-events-none" />
-          </>
+        {/* Permanent top bar — covers YouTube title/channel branding naturally */}
+        {hasStarted && title && (
+          <div className={`absolute top-0 left-0 right-0 z-20 pointer-events-none transition-opacity duration-300 ${
+            showControls || !isPlaying ? 'opacity-100' : 'opacity-0'
+          }`}>
+            <div className="bg-gradient-to-b from-black/80 via-black/40 to-transparent px-4 pt-3 pb-8">
+              <p className="text-white text-sm font-medium truncate">{title}</p>
+            </div>
+          </div>
         )}
 
         {/* Loading spinner — before API is ready */}
