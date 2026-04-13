@@ -125,13 +125,23 @@ export default function ModuleDetailPage() {
     // Optimistic update
     setCompletedIds((prev) => new Set([...prev, lessonId]));
     try {
-      await fetch('/api/progress', {
+      const res = await fetch('/api/progress', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ lessonId, completed: true }),
       });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        console.error('Error saving progress:', data.error || res.statusText);
+        // Revert on server error
+        setCompletedIds((prev) => {
+          const next = new Set(prev);
+          next.delete(lessonId);
+          return next;
+        });
+      }
     } catch {
-      // Revert on error
+      // Revert on network error
       setCompletedIds((prev) => {
         const next = new Set(prev);
         next.delete(lessonId);
