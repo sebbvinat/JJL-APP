@@ -335,6 +335,26 @@ export default function CustomVideoPlayer({
           </div>
         )}
 
+        {/* Floating fullscreen button — always visible on mobile for easy tap */}
+        {hasStarted && !isCssFullscreen && (
+          <button
+            onClick={(e) => { e.stopPropagation(); handleFullscreen(); }}
+            className="absolute top-3 right-3 z-30 w-10 h-10 rounded-full bg-black/60 flex items-center justify-center active:bg-black/80 lg:hidden"
+          >
+            <Maximize className="h-5 w-5 text-white" />
+          </button>
+        )}
+
+        {/* Close fullscreen button — visible in CSS fullscreen mode */}
+        {isCssFullscreen && (
+          <button
+            onClick={(e) => { e.stopPropagation(); handleFullscreen(); }}
+            className="absolute top-4 right-4 z-[10000] w-11 h-11 rounded-full bg-black/70 flex items-center justify-center active:bg-black/90"
+          >
+            <Minimize className="h-6 w-6 text-white" />
+          </button>
+        )}
+
         {/* Pause overlay — brief center icon */}
         {hasStarted && !isPlaying && (
           <div
