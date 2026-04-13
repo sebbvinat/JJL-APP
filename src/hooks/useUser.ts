@@ -14,19 +14,23 @@ export function useUser() {
     const supabase = createClient();
 
     async function getUser() {
-      const { data: { user } } = await supabase.auth.getUser();
-      setAuthUser(user);
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        setAuthUser(user);
 
-      if (user) {
-        const { data } = await supabase
-          .from('users')
-          .select('*')
-          .eq('id', user.id)
-          .single();
-        setProfile(data);
+        if (user) {
+          const { data } = await supabase
+            .from('users')
+            .select('*')
+            .eq('id', user.id)
+            .single();
+          setProfile(data);
+        }
+      } catch (err) {
+        console.error('useUser error:', err);
+      } finally {
+        setLoading(false);
       }
-
-      setLoading(false);
     }
 
     getUser();
