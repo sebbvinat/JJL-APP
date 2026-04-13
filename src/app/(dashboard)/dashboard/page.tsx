@@ -18,8 +18,12 @@ interface DashboardData {
   trainedDays: string[];
   todayChecked: boolean;
   lessonsCompleted: number;
+  totalLessonsAvailable: number;
   unlockedModules: number;
   completedWeekNumbers: number[];
+  completedWeeksCount: number;
+  totalWeeks: number;
+  overallProgress: number;
   streak: number;
   totalTrainingDays: number;
 }
@@ -139,6 +143,28 @@ export default function DashboardPage() {
       <Card>
         <h2 className="text-lg font-semibold mb-4">Progresion de Cinturon</h2>
         <BeltProgress currentBelt={currentBelt} progressToNext={currentBelt === 'black' ? 100 : gamification.progressToNext} />
+        {/* Overall lesson progress */}
+        {(data?.totalLessonsAvailable ?? 0) > 0 && (
+          <div className="mt-4 pt-4 border-t border-jjl-border/30">
+            <div className="flex justify-between text-xs mb-1.5">
+              <span className="text-jjl-muted">Progreso general</span>
+              <span className="text-white font-medium">
+                {lessonsCompleted}/{data?.totalLessonsAvailable} lecciones · {data?.overallProgress}%
+              </span>
+            </div>
+            <div className="w-full bg-jjl-gray-light rounded-full h-2.5">
+              <div
+                className="bg-gradient-to-r from-jjl-red to-orange-500 h-2.5 rounded-full transition-all duration-700"
+                style={{ width: `${data?.overallProgress || 0}%` }}
+              />
+            </div>
+            {(data?.completedWeeksCount ?? 0) > 0 && (
+              <p className="text-[11px] text-jjl-muted mt-1.5">
+                {data?.completedWeeksCount} semana{data?.completedWeeksCount !== 1 ? 's' : ''} completada{data?.completedWeeksCount !== 1 ? 's' : ''} de {data?.totalWeeks}
+              </p>
+            )}
+          </div>
+        )}
       </Card>
 
       {/* Training Calendar */}

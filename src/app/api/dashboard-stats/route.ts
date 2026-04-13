@@ -171,14 +171,29 @@ export async function GET(request: Request) {
     }
   }
 
-  // Count total lessons available for this user (for progress display)
+  // Calculate per-week completion for progress display
   let totalLessonsAvailable = 0;
+  let completedWeeksCount = 0;
+  let totalWeeks = 0;
+  const weekProgress: { semana: number; completed: number; total: number }[] = [];
+
   if (userCourseData && userCourseData.length > 0) {
     for (const row of userCourseData) {
       const lessons = Array.isArray(row.lessons) ? row.lessons : [];
       totalLessonsAvailable += lessons.length;
+      totalWeeks++;
+      const completedInWeek = lessons.filter((l: any) => completedSet.has(l.id)).length;
+      weekProgress.push({ semana: row.semana_numero, completed: completedInWeek, total: lessons.length });
+      if (lessons.length > 0 && completedInWeek === lessons.length) {
+        completedWeeksCount++;
+      }
     }
   }
+
+  // Overall lesson-based progress percentage
+  const overallProgress = totalLessonsAvailable > 0
+    ? Math.round((actualLessonsCompleted / totalLessonsAvailable) * 100)
+    : 0;
 
   return NextResponse.json({
     profile: {
@@ -194,6 +209,9 @@ export async function GET(request: Request) {
     unlockedModules: unlockedModules ?? 0,
     completedLessonIds,
     completedWeekNumbers,
+    completedWeeksCount,
+    totalWeeks,
+    overallProgress,
     streak,
     totalTrainingDays: trainedDates.length,
   });
