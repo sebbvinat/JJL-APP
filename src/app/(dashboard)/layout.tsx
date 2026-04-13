@@ -2,6 +2,7 @@ import Sidebar from '@/components/layout/Sidebar';
 import Topbar from '@/components/layout/Topbar';
 import MobileNav from '@/components/layout/MobileNav';
 import { UserProvider } from '@/providers/UserProvider';
+import PushPrompt from '@/components/PushPrompt';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -15,6 +16,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </main>
         </div>
         <MobileNav />
+        <PushPrompt />
       </div>
     </UserProvider>
   );

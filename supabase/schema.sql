@@ -134,6 +134,17 @@ CREATE TABLE public.notifications (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- 12. PUSH_SUBSCRIPTIONS (Web Push subscriptions)
+CREATE TABLE public.push_subscriptions (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES public.users ON DELETE CASCADE NOT NULL,
+  endpoint TEXT NOT NULL,
+  keys_p256dh TEXT NOT NULL,
+  keys_auth TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(user_id, endpoint)
+);
+
 -- ============================================
 -- INDICES
 -- ============================================
@@ -147,6 +158,7 @@ CREATE INDEX idx_comments_post ON public.comments(post_id);
 CREATE INDEX idx_video_uploads_user ON public.video_uploads(user_id);
 CREATE INDEX idx_notifications_user ON public.notifications(user_id, created_at DESC);
 CREATE INDEX idx_notifications_unread ON public.notifications(user_id) WHERE leido = FALSE;
+CREATE INDEX idx_push_subscriptions_user ON public.push_subscriptions(user_id);
 
 -- ============================================
 -- ROW LEVEL SECURITY (RLS)
@@ -164,6 +176,7 @@ ALTER TABLE public.comments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.likes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.video_uploads ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.push_subscriptions ENABLE ROW LEVEL SECURITY;
 
 -- Helper: verificar si el usuario es admin
 CREATE OR REPLACE FUNCTION public.is_admin()
@@ -273,6 +286,13 @@ CREATE POLICY "Users can update own notifications" ON public.notifications
 
 CREATE POLICY "System can insert notifications" ON public.notifications
   FOR INSERT WITH CHECK (true);
+
+-- PUSH_SUBSCRIPTIONS policies
+CREATE POLICY "Users can manage own push subs" ON public.push_subscriptions
+  FOR ALL USING (user_id = auth.uid());
+
+CREATE POLICY "System can read push subs" ON public.push_subscriptions
+  FOR SELECT USING (true);
 
 -- ============================================
 -- TRIGGER: auto-create user profile on signup
