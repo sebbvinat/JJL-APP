@@ -2,12 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Check } from 'lucide-react';
+import Link from 'next/link';
+import { ArrowLeft, Check, ChevronDown, ChevronRight, Play, Pencil } from 'lucide-react';
 import Card from '@/components/ui/Card';
 import Avatar from '@/components/ui/Avatar';
 import Badge from '@/components/ui/Badge';
 import Toggle from '@/components/ui/Toggle';
-import { MOCK_MODULES } from '@/lib/mock-data';
+import { MOCK_MODULES, MOCK_LESSONS } from '@/lib/mock-data';
 import type { User } from '@/lib/supabase/types';
 
 export default function AdminStudentPage() {
@@ -20,6 +21,7 @@ export default function AdminStudentPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [expandedModule, setExpandedModule] = useState<string | null>(null);
 
   function showToast(message: string, type: 'success' | 'error') {
     setToast({ message, type });
@@ -63,7 +65,6 @@ export default function AdminStudentPage() {
     const newValue = !isCurrentlyUnlocked;
     const previousSet = new Set(unlockedModules);
 
-    // Optimistic update
     setUnlockedModules((prev) => {
       const next = new Set(prev);
       if (newValue) next.add(moduleId);
@@ -75,7 +76,6 @@ export default function AdminStudentPage() {
       await saveAccess([{ id: moduleId, is_unlocked: newValue }]);
       showToast('Guardado', 'success');
     } catch (err: any) {
-      console.error('Toggle module error:', err);
       setUnlockedModules(previousSet);
       showToast(err.message || 'Error al guardar', 'error');
     }
@@ -88,7 +88,6 @@ export default function AdminStudentPage() {
     const modulesToUnlock = MOCK_MODULES.slice(0, targetModuleIndex + 1);
     const previousSet = new Set(unlockedModules);
 
-    // Optimistic update
     const newSet = new Set(unlockedModules);
     modulesToUnlock.forEach((m) => newSet.add(m.id));
     setUnlockedModules(newSet);
@@ -97,7 +96,6 @@ export default function AdminStudentPage() {
       await saveAccess(modulesToUnlock.map((m) => ({ id: m.id, is_unlocked: true })));
       showToast(`${modulesToUnlock.length} modulos desbloqueados`, 'success');
     } catch (err: any) {
-      console.error('Unlock batch error:', err);
       setUnlockedModules(previousSet);
       showToast(err.message || 'Error al desbloquear', 'error');
     }
@@ -114,7 +112,6 @@ export default function AdminStudentPage() {
       await saveAccess(MOCK_MODULES.map((m) => ({ id: m.id, is_unlocked: false })));
       showToast('Todos los modulos bloqueados', 'success');
     } catch (err: any) {
-      console.error('Lock all error:', err);
       setUnlockedModules(previousSet);
       showToast(err.message || 'Error al bloquear', 'error');
     }
@@ -226,7 +223,7 @@ export default function AdminStudentPage() {
         </div>
       </Card>
 
-      {/* Module toggles grouped by month */}
+      {/* Module toggles grouped by month — with expandable lessons */}
       {monthGroups.map((group) => (
         <Card key={group.label}>
           <h2 className="text-sm font-semibold text-jjl-red uppercase tracking-wider mb-3">
@@ -235,26 +232,94 @@ export default function AdminStudentPage() {
           <div className="space-y-1">
             {group.modules.map((mod) => {
               const isUnlocked = unlockedModules.has(mod.id);
+              const isExpanded = expandedModule === mod.id;
+              const lessons = MOCK_LESSONS[mod.id] || [];
+              const videoLessons = lessons.filter((l) => l.tipo !== 'reflection');
+              const videosWithUrl = videoLessons.filter((l) => l.youtube_id && l.youtube_id.length > 0);
+
               return (
-                <div
-                  key={mod.id}
-                  className={`flex items-center justify-between px-4 py-3 rounded-lg transition-colors ${
-                    isUnlocked ? 'bg-jjl-gray-light/50' : ''
-                  }`}
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <span className="text-xs font-bold text-jjl-red w-8 shrink-0">
-                      {mod.semana_numero === 0 ? 'Intro' : `S${mod.semana_numero}`}
-                    </span>
-                    <span className={`text-sm truncate ${isUnlocked ? 'text-white' : 'text-jjl-muted'}`}>
-                      {mod.titulo}
-                    </span>
+                <div key={mod.id}>
+                  <div
+                    className={`flex items-center justify-between px-4 py-3 rounded-lg transition-colors ${
+                      isUnlocked ? 'bg-jjl-gray-light/50' : ''
+                    } ${isExpanded ? 'rounded-b-none' : ''}`}
+                  >
+                    <button
+                      onClick={() => setExpandedModule(isExpanded ? null : mod.id)}
+                      className="flex items-center gap-3 min-w-0 flex-1 text-left"
+                    >
+                      {isExpanded ? (
+                        <ChevronDown className="h-4 w-4 text-jjl-muted shrink-0" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4 text-jjl-muted shrink-0" />
+                      )}
+                      <span className="text-xs font-bold text-jjl-red w-8 shrink-0">
+                        {mod.semana_numero === 0 ? 'Intro' : `S${mod.semana_numero}`}
+                      </span>
+                      <div className="min-w-0">
+                        <span className={`text-sm truncate block ${isUnlocked ? 'text-white' : 'text-jjl-muted'}`}>
+                          {mod.titulo}
+                        </span>
+                        <span className="text-xs text-jjl-muted">
+                          {videoLessons.length} lecciones
+                          {videosWithUrl.length < videoLessons.length && (
+                            <span className="text-yellow-500 ml-1">
+                              ({videosWithUrl.length}/{videoLessons.length} videos)
+                            </span>
+                          )}
+                        </span>
+                      </div>
+                    </button>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Link
+                        href={`/admin/edit/${mod.id}`}
+                        className="p-1.5 rounded hover:bg-jjl-gray-light text-jjl-muted hover:text-white transition-colors"
+                        title="Editar modulo"
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Link>
+                      <Toggle
+                        checked={isUnlocked}
+                        onChange={() => toggleModule(mod.id)}
+                        size="sm"
+                      />
+                    </div>
                   </div>
-                  <Toggle
-                    checked={isUnlocked}
-                    onChange={() => toggleModule(mod.id)}
-                    size="sm"
-                  />
+
+                  {/* Expanded lesson list */}
+                  {isExpanded && (
+                    <div className="bg-jjl-gray-light/20 rounded-b-lg border-t border-jjl-border/30 px-4 py-2 space-y-1">
+                      {lessons.map((lesson, li) => (
+                        <div
+                          key={lesson.id}
+                          className={`flex items-center gap-2 py-1.5 text-xs ${
+                            lesson.tipo === 'reflection' ? 'text-yellow-400' : 'text-jjl-muted'
+                          }`}
+                        >
+                          <span className="w-5 text-right shrink-0 opacity-50">{li + 1}.</span>
+                          {lesson.tipo === 'video' ? (
+                            <Play className="h-3 w-3 shrink-0" />
+                          ) : (
+                            <span className="w-3 shrink-0 text-center">📝</span>
+                          )}
+                          <span className="flex-1 truncate">{lesson.titulo}</span>
+                          {lesson.tipo === 'video' && (
+                            lesson.youtube_id ? (
+                              <Check className="h-3 w-3 text-green-400 shrink-0" />
+                            ) : (
+                              <span className="text-red-400 shrink-0">sin video</span>
+                            )
+                          )}
+                        </div>
+                      ))}
+                      <Link
+                        href={`/admin/edit/${mod.id}`}
+                        className="flex items-center gap-1.5 text-xs text-jjl-red hover:text-white py-2 transition-colors"
+                      >
+                        <Pencil className="h-3 w-3" /> Editar lecciones
+                      </Link>
+                    </div>
+                  )}
                 </div>
               );
             })}

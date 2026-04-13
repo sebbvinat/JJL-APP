@@ -11,6 +11,7 @@ import WeeklyReflection from '@/components/modules/WeeklyReflection';
 import { createClient } from '@/lib/supabase/client';
 import { useUser } from '@/hooks/useUser';
 import { MOCK_MODULES, MOCK_LESSONS } from '@/lib/mock-data';
+import { type LessonData } from '@/lib/course-data';
 
 export default function ModuleDetailPage() {
   const params = useParams();
@@ -19,12 +20,46 @@ export default function ModuleDetailPage() {
   const { authUser, loading: userLoading } = useUser();
 
   const [isUnlocked, setIsUnlocked] = useState<boolean | null>(null);
+  const [lessons, setLessons] = useState<LessonData[]>([]);
+  const [lessonsLoaded, setLessonsLoaded] = useState(false);
 
   const module = MOCK_MODULES.find((m) => m.id === moduleId);
-  const lessons = MOCK_LESSONS[moduleId] || [];
 
-  const [activeLessonId, setActiveLessonId] = useState(lessons[0]?.id || '');
-  const activeLesson = lessons.find((l) => l.id === activeLessonId);
+  const [activeLessonId, setActiveLessonId] = useState('');
+
+  // Load lessons: check Supabase overrides first, fall back to mock
+  useEffect(() => {
+    async function loadLessons() {
+      try {
+        const res = await fetch(`/api/course-data?moduleId=${moduleId}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.module?.lessons?.length > 0) {
+            setLessons(data.module.lessons);
+            setActiveLessonId(data.module.lessons[0]?.id || '');
+            setLessonsLoaded(true);
+            return;
+          }
+        }
+      } catch { /* fall through */ }
+
+      // Fall back to mock data
+      const mockLessons = (MOCK_LESSONS[moduleId] || []).map((l) => ({
+        id: l.id,
+        titulo: l.titulo,
+        youtube_id: l.youtube_id,
+        descripcion: l.descripcion,
+        orden: l.orden,
+        duracion: l.duracion,
+        tipo: l.tipo as 'video' | 'reflection',
+      }));
+      setLessons(mockLessons);
+      setActiveLessonId(mockLessons[0]?.id || '');
+      setLessonsLoaded(true);
+    }
+
+    loadLessons();
+  }, [moduleId]);
 
   // Check access from Supabase
   useEffect(() => {
@@ -49,6 +84,8 @@ export default function ModuleDetailPage() {
     checkAccess();
   }, [authUser, userLoading, moduleId]);
 
+  const activeLesson = lessons.find((l) => l.id === activeLessonId);
+
   if (!module) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
@@ -60,7 +97,7 @@ export default function ModuleDetailPage() {
     );
   }
 
-  if (userLoading || isUnlocked === null) {
+  if (userLoading || isUnlocked === null || !lessonsLoaded) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="w-8 h-8 border-2 border-jjl-red border-t-transparent rounded-full animate-spin" />
@@ -87,7 +124,7 @@ export default function ModuleDetailPage() {
   }
 
   const videoLessons = lessons.filter((l) => l.tipo !== 'reflection');
-  const completedCount = videoLessons.filter((l) => l.completed).length;
+  const completedCount = 0; // TODO: read from user_progress
   const progress = videoLessons.length > 0 ? Math.round((completedCount / videoLessons.length) * 100) : 0;
   const isReflection = activeLesson?.tipo === 'reflection';
 
@@ -97,6 +134,18 @@ export default function ModuleDetailPage() {
     module.semana_numero <= 12 ? 'Mes 3' :
     module.semana_numero <= 16 ? 'Mes 4' :
     module.semana_numero <= 20 ? 'Mes 5' : 'Mes 6';
+
+  // Convert LessonData to format LessonList expects
+  const lessonListItems = lessons.map((l) => ({
+    id: l.id,
+    titulo: l.titulo,
+    youtube_id: l.youtube_id,
+    descripcion: l.descripcion,
+    orden: l.orden,
+    duracion: l.duracion,
+    completed: false,
+    tipo: l.tipo,
+  }));
 
   return (
     <div className="space-y-6 max-w-5xl">
@@ -147,7 +196,7 @@ export default function ModuleDetailPage() {
               <CustomVideoPlayer
                 youtubeId={activeLesson.youtube_id}
                 title={activeLesson.titulo}
-                completed={activeLesson.completed}
+                completed={false}
               />
               {activeLesson.descripcion && (
                 <Card>
@@ -173,7 +222,7 @@ export default function ModuleDetailPage() {
               Lecciones ({videoLessons.length})
             </h3>
             <LessonList
-              lessons={lessons}
+              lessons={lessonListItems}
               activeId={activeLessonId}
               onSelect={setActiveLessonId}
             />
