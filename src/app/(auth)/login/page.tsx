@@ -63,7 +63,7 @@ export default function LoginPage() {
       {/* Logo */}
       <div className="flex flex-col items-center mb-8">
         <img
-          src="/logo-jjl.png"
+          src="/logo-jjl.png?v=2"
           alt="JJL"
           width={56}
           height={56}

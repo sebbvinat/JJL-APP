@@ -22,14 +22,58 @@ export default function ProfilePage() {
 function ProfileContent() {
   const { profile, authUser, loading, signOut } = useUser();
   const searchParams = useSearchParams();
+  const isResetMode = searchParams.get('reset') === '1';
   const [showPasswordForm, setShowPasswordForm] = useState(false);
+  const [sessionReady, setSessionReady] = useState(false);
 
-  // Auto-open password form when coming from recovery link
+  // For reset mode: wait for session to be established from hash token
   useEffect(() => {
-    if (searchParams.get('reset') === '1') {
+    if (!isResetMode) {
+      setSessionReady(true);
+      return;
+    }
+
+    const supabase = createClient();
+
+    // Process hash fragment and wait for session
+    async function waitForSession() {
+      // Give Supabase client time to process the hash fragment
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        setSessionReady(true);
+        setShowPasswordForm(true);
+        return;
+      }
+
+      // If no session yet, listen for auth state change
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(
+        (event, session) => {
+          if (session && (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')) {
+            setSessionReady(true);
+            setShowPasswordForm(true);
+            subscription.unsubscribe();
+          }
+        }
+      );
+
+      // Timeout fallback
+      setTimeout(() => {
+        setSessionReady(true);
+        setShowPasswordForm(true);
+        subscription.unsubscribe();
+      }, 5000);
+    }
+
+    waitForSession();
+  }, [isResetMode]);
+
+  // Auto-open password form when coming from recovery link (non-reset mode)
+  useEffect(() => {
+    if (isResetMode && !showPasswordForm && sessionReady) {
       setShowPasswordForm(true);
     }
-  }, [searchParams]);
+  }, [isResetMode, sessionReady, showPasswordForm]);
+
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -68,10 +112,67 @@ function ProfileContent() {
     setSaving(false);
   }
 
-  if (loading) {
+  // In reset mode, show a simplified view if not logged in
+  if (isResetMode && !sessionReady) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
+        <div className="w-8 h-8 border-2 border-jjl-red border-t-transparent rounded-full animate-spin" />
+        <p className="text-jjl-muted text-sm">Verificando sesion...</p>
+      </div>
+    );
+  }
+
+  if (loading && !isResetMode) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="w-8 h-8 border-2 border-jjl-red border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  // Reset mode without full profile - show password form only
+  if (isResetMode && !profile) {
+    return (
+      <div className="space-y-6 max-w-md mx-auto mt-12">
+        <Card>
+          <div className="text-center mb-6">
+            <img src="/logo-jjl.png?v=2" alt="JJL" width={48} height={48} className="mx-auto mb-3" />
+            <h1 className="text-xl font-bold">Cambiar Contraseña</h1>
+            <p className="text-sm text-jjl-muted mt-1">Ingresa tu nueva contraseña</p>
+          </div>
+          <form onSubmit={handleChangePassword} className="space-y-3">
+            <div className="relative">
+              <Input
+                id="new-password"
+                label="Nueva contraseña"
+                type={showPassword ? 'text' : 'password'}
+                placeholder="Minimo 6 caracteres"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-8 text-jjl-muted hover:text-white"
+              >
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
+            <Input
+              id="confirm-password"
+              label="Confirmar contraseña"
+              type={showPassword ? 'text' : 'password'}
+              placeholder="Repeti la contraseña"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+            />
+            {error && <p className="text-sm text-red-400">{error}</p>}
+            {message && <p className="text-sm text-green-400">{message}</p>}
+            <Button type="submit" size="lg" className="w-full" loading={saving} disabled={saving}>
+              Guardar contraseña
+            </Button>
+          </form>
+        </Card>
       </div>
     );
   }

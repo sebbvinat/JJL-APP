@@ -16,7 +16,7 @@ export default function Sidebar() {
     <aside className="hidden lg:flex flex-col w-64 bg-jjl-gray border-r border-jjl-border h-screen sticky top-0">
       {/* Logo */}
       <div className="flex items-center gap-3 px-6 h-16 border-b border-jjl-border">
-        <img src="/logo-jjl.png" alt="JJL" width={36} height={36} className="rounded-lg" />
+        <img src="/logo-jjl.png?v=2" alt="JJL" width={36} height={36} className="rounded-lg" />
         <div>
           <h1 className="text-base font-bold text-white leading-tight">JIU JITSU</h1>
           <p className="text-[10px] font-semibold text-jjl-red tracking-[0.2em] uppercase -mt-0.5">Latino</p>

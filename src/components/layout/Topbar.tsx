@@ -29,7 +29,7 @@ export default function Topbar() {
             {mobileNavOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
           <div className="flex items-center gap-2 lg:hidden">
-            <img src="/logo-jjl.png" alt="JJL" width={32} height={32} className="rounded-lg" />
+            <img src="/logo-jjl.png?v=2" alt="JJL" width={32} height={32} className="rounded-lg" />
             <span className="font-bold text-sm">JJL</span>
           </div>
         </div>
