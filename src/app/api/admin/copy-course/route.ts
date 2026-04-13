@@ -1,10 +1,9 @@
 import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse, type NextRequest } from 'next/server';
-import { getPlanillaForSave } from '@/lib/planillas';
 
+// Copy course_data from one student to another
 export async function POST(request: NextRequest) {
-  // 1. Verify caller is admin
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -42,27 +41,36 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Not admin' }, { status: 403 });
   }
 
-  const { planillaId, userId } = await request.json();
+  const { fromUserId, toUserId } = await request.json();
 
-  if (!userId) {
-    return NextResponse.json({ error: 'userId required' }, { status: 400 });
+  if (!fromUserId || !toUserId) {
+    return NextResponse.json({ error: 'fromUserId and toUserId required' }, { status: 400 });
   }
 
-  const modules = getPlanillaForSave(planillaId);
-  if (!modules) {
-    return NextResponse.json({ error: 'Planilla not found' }, { status: 404 });
+  // Get source student's course data
+  const { data: sourceModules, error: fetchError } = await adminClient
+    .from('course_data')
+    .select('*')
+    .eq('user_id', fromUserId);
+
+  if (fetchError) {
+    return NextResponse.json({ error: fetchError.message }, { status: 500 });
   }
 
-  // Bulk upsert into course_data for this specific user
-  const errors: string[] = [];
+  if (!sourceModules || sourceModules.length === 0) {
+    return NextResponse.json({ error: 'El alumno origen no tiene curso cargado' }, { status: 404 });
+  }
+
+  // Copy to target student
   let saved = 0;
+  const errors: string[] = [];
 
-  for (const mod of modules) {
+  for (const mod of sourceModules) {
     const { error } = await adminClient
       .from('course_data')
       .upsert(
         {
-          user_id: userId,
+          user_id: toUserId,
           module_id: mod.module_id,
           semana_numero: mod.semana_numero,
           titulo: mod.titulo,
@@ -80,13 +88,13 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // Also create user_access entries so the admin can toggle them
-  for (const mod of modules) {
+  // Also create user_access entries
+  for (const mod of sourceModules) {
     await adminClient
       .from('user_access')
       .upsert(
         {
-          user_id: userId,
+          user_id: toUserId,
           module_id: mod.module_id,
           is_unlocked: false,
         },
@@ -95,12 +103,7 @@ export async function POST(request: NextRequest) {
   }
 
   if (errors.length > 0) {
-    return NextResponse.json({
-      success: false,
-      saved,
-      errors,
-      message: `${saved} guardados, ${errors.length} errores`,
-    }, { status: 207 });
+    return NextResponse.json({ success: false, saved, errors }, { status: 207 });
   }
 
   return NextResponse.json({ success: true, saved });

@@ -131,10 +131,18 @@ export default function CustomVideoPlayer({
     if (state === window.YT.PlayerState.PLAYING) {
       setIsPlaying(true);
       setHasStarted(true);
-      // Delay thumbnail removal so YouTube branding doesn't flash
-      setTimeout(() => {
-        if (mountedRef.current) setShowThumbnail(false);
-      }, 600);
+      // Wait until video is actually playing (currentTime > 0.5s) before removing thumbnail
+      // This prevents YouTube branding from flashing
+      const checkInterval = setInterval(() => {
+        if (!mountedRef.current) { clearInterval(checkInterval); return; }
+        const ct = playerRef.current?.getCurrentTime?.() || 0;
+        if (ct > 0.5) {
+          clearInterval(checkInterval);
+          if (mountedRef.current) setShowThumbnail(false);
+        }
+      }, 100);
+      // Safety: remove after 3s max
+      setTimeout(() => { clearInterval(checkInterval); if (mountedRef.current) setShowThumbnail(false); }, 3000);
       startProgressTracking();
     } else if (state === window.YT.PlayerState.PAUSED) {
       setIsPlaying(false);

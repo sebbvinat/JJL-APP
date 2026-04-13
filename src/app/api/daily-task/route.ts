@@ -30,7 +30,8 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json();
-  const today = format(new Date(), 'yyyy-MM-dd');
+  // Use client-provided date to avoid timezone issues (server is UTC, client may be UTC-3, etc.)
+  const today = body.fecha || format(new Date(), 'yyyy-MM-dd');
 
   if (body.action === 'check-in') {
     const { error } = await supabase

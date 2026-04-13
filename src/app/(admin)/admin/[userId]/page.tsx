@@ -3,14 +3,27 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Check, ChevronDown, ChevronRight, Play, Pencil } from 'lucide-react';
+import {
+  ArrowLeft, Check, ChevronDown, ChevronRight, Play, Pencil,
+  Upload, Copy, FileSpreadsheet,
+} from 'lucide-react';
 import Card from '@/components/ui/Card';
 import Avatar from '@/components/ui/Avatar';
 import Badge from '@/components/ui/Badge';
+import Button from '@/components/ui/Button';
 import Toggle from '@/components/ui/Toggle';
 import { MOCK_MODULES, MOCK_LESSONS } from '@/lib/mock-data';
+import { PLANILLAS } from '@/lib/planillas';
 import type { User } from '@/lib/supabase/types';
 import type { LessonData } from '@/lib/course-data';
+
+interface ModuleInfo {
+  id: string;
+  semana_numero: number;
+  titulo: string;
+  descripcion: string;
+  lessons: LessonData[];
+}
 
 export default function AdminStudentPage() {
   const params = useParams();
@@ -23,14 +36,23 @@ export default function AdminStudentPage() {
   const [saving, setSaving] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [expandedModule, setExpandedModule] = useState<string | null>(null);
-  // Lesson overrides from course_data table (admin edits)
-  const [lessonOverrides, setLessonOverrides] = useState<Record<string, LessonData[]>>({});
+
+  // Student's course modules (from course_data or fallback to mock)
+  const [studentModules, setStudentModules] = useState<ModuleInfo[]>([]);
+  const [hasCourseData, setHasCourseData] = useState(false);
+
+  // Planilla/copy UI
+  const [showPlanillaMenu, setShowPlanillaMenu] = useState(false);
+  const [showCopyMenu, setShowCopyMenu] = useState(false);
+  const [allStudents, setAllStudents] = useState<{ id: string; nombre: string }[]>([]);
+  const [loadingAction, setLoadingAction] = useState(false);
 
   function showToast(message: string, type: 'success' | 'error') {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3000);
   }
 
+  // Fetch student info + access + course data
   useEffect(() => {
     async function fetchData() {
       try {
@@ -46,28 +68,44 @@ export default function AdminStudentPage() {
       }
     }
 
-    // Load lesson overrides from course_data for all modules
-    async function fetchOverrides() {
-      const overrides: Record<string, LessonData[]> = {};
-      await Promise.all(
-        MOCK_MODULES.map(async (mod) => {
-          try {
-            const res = await fetch(`/api/course-data?moduleId=${mod.id}`);
-            if (res.ok) {
-              const data = await res.json();
-              if (data.module?.lessons) {
-                overrides[mod.id] = data.module.lessons;
-              }
-            }
-          } catch { /* use mock fallback */ }
-        })
-      );
-      setLessonOverrides(overrides);
-    }
-
     fetchData();
-    fetchOverrides();
+    loadStudentCourse();
   }, [userId]);
+
+  async function loadStudentCourse() {
+    // Fetch this student's course_data
+    try {
+      const res = await fetch(`/api/admin/student-course?userId=${userId}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.modules && data.modules.length > 0) {
+          setStudentModules(data.modules);
+          setHasCourseData(true);
+          return;
+        }
+      }
+    } catch { /* fall through */ }
+
+    // Fallback to mock data
+    setStudentModules(
+      MOCK_MODULES.map((mod) => ({
+        id: mod.id,
+        semana_numero: mod.semana_numero,
+        titulo: mod.titulo,
+        descripcion: mod.descripcion,
+        lessons: (MOCK_LESSONS[mod.id] || []).map((l) => ({
+          id: l.id,
+          titulo: l.titulo,
+          youtube_id: l.youtube_id,
+          descripcion: l.descripcion,
+          orden: l.orden,
+          duracion: l.duracion,
+          tipo: l.tipo as 'video' | 'reflection',
+        })),
+      }))
+    );
+    setHasCourseData(false);
+  }
 
   async function saveAccess(modules: { id: string; is_unlocked: boolean }[]) {
     const res = await fetch('/api/admin/toggle-access', {
@@ -108,7 +146,7 @@ export default function AdminStudentPage() {
 
   async function unlockUpTo(targetModuleIndex: number) {
     setSaving('batch');
-    const modulesToUnlock = MOCK_MODULES.slice(0, targetModuleIndex + 1);
+    const modulesToUnlock = studentModules.slice(0, targetModuleIndex + 1);
     const previousSet = new Set(unlockedModules);
 
     const newSet = new Set(unlockedModules);
@@ -132,7 +170,7 @@ export default function AdminStudentPage() {
     setUnlockedModules(new Set());
 
     try {
-      await saveAccess(MOCK_MODULES.map((m) => ({ id: m.id, is_unlocked: false })));
+      await saveAccess(studentModules.map((m) => ({ id: m.id, is_unlocked: false })));
       showToast('Todos los modulos bloqueados', 'success');
     } catch (err: any) {
       setUnlockedModules(previousSet);
@@ -140,6 +178,77 @@ export default function AdminStudentPage() {
     }
 
     setSaving(null);
+  }
+
+  async function handleLoadPlanilla(planillaId: string) {
+    if (!confirm(`Cargar planilla "${PLANILLAS.find(p => p.id === planillaId)?.nombre}"? Esto reemplaza el curso actual de este alumno.`)) return;
+
+    setLoadingAction(true);
+    try {
+      const res = await fetch('/api/admin/load-planilla', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ planillaId, userId }),
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        showToast(`Planilla cargada (${data.saved} modulos)`, 'success');
+        await loadStudentCourse();
+      } else if (data.errors) {
+        showToast(`${data.saved} cargados, ${data.errors.length} errores`, 'error');
+        console.error('Planilla errors:', data.errors);
+      } else {
+        showToast(data.error || 'Error al cargar', 'error');
+      }
+    } catch {
+      showToast('Error de conexion', 'error');
+    }
+    setLoadingAction(false);
+    setShowPlanillaMenu(false);
+  }
+
+  async function handleCopyFromStudent(fromUserId: string) {
+    const fromStudent = allStudents.find(s => s.id === fromUserId);
+    if (!confirm(`Copiar curso de "${fromStudent?.nombre}"? Esto reemplaza el curso actual de este alumno.`)) return;
+
+    setLoadingAction(true);
+    try {
+      const res = await fetch('/api/admin/copy-course', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fromUserId, toUserId: userId }),
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        showToast(`Curso copiado (${data.saved} modulos)`, 'success');
+        await loadStudentCourse();
+      } else {
+        showToast(data.error || 'Error al copiar', 'error');
+      }
+    } catch {
+      showToast('Error de conexion', 'error');
+    }
+    setLoadingAction(false);
+    setShowCopyMenu(false);
+  }
+
+  async function openCopyMenu() {
+    setShowCopyMenu(true);
+    if (allStudents.length === 0) {
+      try {
+        const res = await fetch('/api/admin/students');
+        if (res.ok) {
+          const data = await res.json();
+          setAllStudents(
+            (data.students || [])
+              .filter((s: any) => s.id !== userId)
+              .map((s: any) => ({ id: s.id, nombre: s.nombre }))
+          );
+        }
+      } catch {}
+    }
   }
 
   if (loading) {
@@ -158,15 +267,19 @@ export default function AdminStudentPage() {
     );
   }
 
+  // Group modules by month
   const monthGroups = [
-    { label: 'Fundamentos', modules: MOCK_MODULES.filter((m) => m.semana_numero === 0) },
-    { label: 'Mes 1 (S1-S4)', modules: MOCK_MODULES.filter((m) => m.semana_numero >= 1 && m.semana_numero <= 4) },
-    { label: 'Mes 2 (S5-S8)', modules: MOCK_MODULES.filter((m) => m.semana_numero >= 5 && m.semana_numero <= 8) },
-    { label: 'Mes 3 (S9-S12)', modules: MOCK_MODULES.filter((m) => m.semana_numero >= 9 && m.semana_numero <= 12) },
-    { label: 'Mes 4 (S13-S16)', modules: MOCK_MODULES.filter((m) => m.semana_numero >= 13 && m.semana_numero <= 16) },
-    { label: 'Mes 5 (S17-S20)', modules: MOCK_MODULES.filter((m) => m.semana_numero >= 17 && m.semana_numero <= 20) },
-    { label: 'Mes 6 (S21-S24)', modules: MOCK_MODULES.filter((m) => m.semana_numero >= 21 && m.semana_numero <= 24) },
-  ];
+    { label: 'Fundamentos', range: [0, 0] },
+    { label: 'Mes 1 (S1-S4)', range: [1, 4] },
+    { label: 'Mes 2 (S5-S8)', range: [5, 8] },
+    { label: 'Mes 3 (S9-S12)', range: [9, 12] },
+    { label: 'Mes 4 (S13-S16)', range: [13, 16] },
+    { label: 'Mes 5 (S17-S20)', range: [17, 20] },
+    { label: 'Mes 6 (S21-S24)', range: [21, 24] },
+  ].map(({ label, range }) => ({
+    label,
+    modules: studentModules.filter((m) => m.semana_numero >= range[0] && m.semana_numero <= range[1]),
+  })).filter(g => g.modules.length > 0);
 
   return (
     <div className="space-y-6 max-w-3xl mx-auto">
@@ -200,6 +313,82 @@ export default function AdminStudentPage() {
         </div>
       </Card>
 
+      {/* Course setup: Load planilla or copy */}
+      <Card>
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <h2 className="text-lg font-semibold">Curso del Alumno</h2>
+            <p className="text-xs text-jjl-muted mt-0.5">
+              {hasCourseData
+                ? `${studentModules.length} semanas cargadas`
+                : 'Usando curso por defecto (mock). Carga una planilla o copia de otro alumno.'
+              }
+            </p>
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={() => { setShowPlanillaMenu(!showPlanillaMenu); setShowCopyMenu(false); }}
+            disabled={loadingAction}
+          >
+            <FileSpreadsheet className="h-4 w-4 mr-1.5" />
+            Cargar Planilla
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => { openCopyMenu(); setShowPlanillaMenu(false); }}
+            disabled={loadingAction}
+          >
+            <Copy className="h-4 w-4 mr-1.5" />
+            Copiar de otro alumno
+          </Button>
+        </div>
+
+        {/* Planilla selector */}
+        {showPlanillaMenu && (
+          <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {PLANILLAS.filter(p => p.id !== 'atleticos').map((planilla) => (
+              <button
+                key={planilla.id}
+                onClick={() => handleLoadPlanilla(planilla.id)}
+                disabled={loadingAction}
+                className="flex items-center gap-3 p-3 rounded-lg border border-jjl-border hover:border-jjl-red bg-jjl-gray-light/50 hover:bg-jjl-gray-light transition-colors text-left"
+              >
+                <Upload className="h-4 w-4 text-jjl-red shrink-0" />
+                <div>
+                  <p className="text-sm font-medium">{planilla.nombre}</p>
+                  <p className="text-xs text-jjl-muted">{planilla.descripcion}</p>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Copy from student selector */}
+        {showCopyMenu && (
+          <div className="mt-4 space-y-1 max-h-60 overflow-y-auto">
+            {allStudents.length === 0 ? (
+              <p className="text-sm text-jjl-muted py-4 text-center">No hay otros alumnos</p>
+            ) : (
+              allStudents.map((s) => (
+                <button
+                  key={s.id}
+                  onClick={() => handleCopyFromStudent(s.id)}
+                  disabled={loadingAction}
+                  className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-jjl-gray-light text-left transition-colors"
+                >
+                  <Avatar name={s.nombre} size="sm" />
+                  <span className="text-sm">{s.nombre}</span>
+                </button>
+              ))
+            )}
+          </div>
+        )}
+      </Card>
+
       {/* Quick unlock buttons */}
       <Card>
         <div className="flex items-center gap-2 mb-3">
@@ -218,8 +407,8 @@ export default function AdminStudentPage() {
             { label: 'Mes 5', index: 20 },
             { label: 'Mes 6 (Todo)', index: 24 },
           ].map(({ label, index }) => {
-            const targetModules = MOCK_MODULES.slice(0, index + 1);
-            const allUnlocked = targetModules.every((m) => unlockedModules.has(m.id));
+            const targetModules = studentModules.slice(0, index + 1);
+            const allUnlocked = targetModules.length > 0 && targetModules.every((m) => unlockedModules.has(m.id));
             return (
               <button
                 key={index}
@@ -246,7 +435,7 @@ export default function AdminStudentPage() {
         </div>
       </Card>
 
-      {/* Module toggles grouped by month — with expandable lessons */}
+      {/* Module toggles grouped by month */}
       {monthGroups.map((group) => (
         <Card key={group.label}>
           <h2 className="text-sm font-semibold text-jjl-red uppercase tracking-wider mb-3">
@@ -256,10 +445,9 @@ export default function AdminStudentPage() {
             {group.modules.map((mod) => {
               const isUnlocked = unlockedModules.has(mod.id);
               const isExpanded = expandedModule === mod.id;
-              const overriddenLessons = lessonOverrides[mod.id];
-              const lessons = overriddenLessons || MOCK_LESSONS[mod.id] || [];
-              const videoLessons = lessons.filter((l: any) => l.tipo !== 'reflection');
-              const videosWithUrl = videoLessons.filter((l: any) => l.youtube_id && l.youtube_id.length > 0);
+              const lessons = mod.lessons || [];
+              const videoLessons = lessons.filter((l) => l.tipo !== 'reflection');
+              const videosWithUrl = videoLessons.filter((l) => l.youtube_id && l.youtube_id.length > 0);
 
               return (
                 <div key={mod.id}>
@@ -296,7 +484,7 @@ export default function AdminStudentPage() {
                     </button>
                     <div className="flex items-center gap-2 shrink-0">
                       <Link
-                        href={`/admin/edit/${mod.id}`}
+                        href={`/admin/edit/${mod.id}?userId=${userId}`}
                         className="p-1.5 rounded hover:bg-jjl-gray-light text-jjl-muted hover:text-white transition-colors"
                         title="Editar modulo"
                       >
@@ -313,9 +501,9 @@ export default function AdminStudentPage() {
                   {/* Expanded lesson list */}
                   {isExpanded && (
                     <div className="bg-jjl-gray-light/20 rounded-b-lg border-t border-jjl-border/30 px-4 py-2 space-y-1">
-                      {lessons.map((lesson: any, li: number) => (
+                      {lessons.map((lesson, li) => (
                         <div
-                          key={lesson.id}
+                          key={lesson.id || li}
                           className={`flex items-center gap-2 py-1.5 text-xs ${
                             lesson.tipo === 'reflection' ? 'text-yellow-400' : 'text-jjl-muted'
                           }`}
@@ -337,7 +525,7 @@ export default function AdminStudentPage() {
                         </div>
                       ))}
                       <Link
-                        href={`/admin/edit/${mod.id}`}
+                        href={`/admin/edit/${mod.id}?userId=${userId}`}
                         className="flex items-center gap-1.5 text-xs text-jjl-red hover:text-white py-2 transition-colors"
                       >
                         <Pencil className="h-3 w-3" /> Editar lecciones
@@ -351,7 +539,7 @@ export default function AdminStudentPage() {
         </Card>
       ))}
 
-      {/* Toast notification */}
+      {/* Toast */}
       {toast && (
         <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-lg text-sm font-medium shadow-xl transition-all ${
           toast.type === 'success'

@@ -13,6 +13,13 @@ import { useUser } from '@/hooks/useUser';
 import { MOCK_MODULES, MOCK_LESSONS } from '@/lib/mock-data';
 import { type LessonData } from '@/lib/course-data';
 
+interface ModuleInfo {
+  id: string;
+  semana_numero: number;
+  titulo: string;
+  descripcion: string;
+}
+
 export default function ModuleDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -23,12 +30,11 @@ export default function ModuleDetailPage() {
   const [lessons, setLessons] = useState<LessonData[]>([]);
   const [lessonsLoaded, setLessonsLoaded] = useState(false);
   const [completedIds, setCompletedIds] = useState<Set<string>>(new Set());
-
-  const module = MOCK_MODULES.find((m) => m.id === moduleId);
+  const [moduleInfo, setModuleInfo] = useState<ModuleInfo | null>(null);
 
   const [activeLessonId, setActiveLessonId] = useState('');
 
-  // Load lessons: check Supabase overrides first, fall back to mock
+  // Load module + lessons: check Supabase first, fall back to mock
   useEffect(() => {
     async function loadLessons() {
       try {
@@ -36,6 +42,12 @@ export default function ModuleDetailPage() {
         if (res.ok) {
           const data = await res.json();
           if (data.module?.lessons?.length > 0) {
+            setModuleInfo({
+              id: data.module.id,
+              semana_numero: data.moduleInfo.semana_numero,
+              titulo: data.moduleInfo.titulo,
+              descripcion: data.moduleInfo.descripcion || '',
+            });
             setLessons(data.module.lessons);
             setActiveLessonId(data.module.lessons[0]?.id || '');
             setLessonsLoaded(true);
@@ -45,6 +57,15 @@ export default function ModuleDetailPage() {
       } catch { /* fall through */ }
 
       // Fall back to mock data
+      const mockMod = MOCK_MODULES.find((m) => m.id === moduleId);
+      if (mockMod) {
+        setModuleInfo({
+          id: mockMod.id,
+          semana_numero: mockMod.semana_numero,
+          titulo: mockMod.titulo,
+          descripcion: mockMod.descripcion,
+        });
+      }
       const mockLessons = (MOCK_LESSONS[moduleId] || []).map((l) => ({
         id: l.id,
         titulo: l.titulo,
@@ -121,7 +142,7 @@ export default function ModuleDetailPage() {
 
   const activeLesson = lessons.find((l) => l.id === activeLessonId);
 
-  if (!module) {
+  if (lessonsLoaded && !moduleInfo) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
         <p className="text-jjl-muted">Modulo no encontrado</p>
@@ -132,7 +153,7 @@ export default function ModuleDetailPage() {
     );
   }
 
-  if (userLoading || isUnlocked === null || !lessonsLoaded) {
+  if (userLoading || isUnlocked === null || !lessonsLoaded || !moduleInfo) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="w-8 h-8 border-2 border-jjl-red border-t-transparent rounded-full animate-spin" />
@@ -163,12 +184,12 @@ export default function ModuleDetailPage() {
   const progress = videoLessons.length > 0 ? Math.round((completedCount / videoLessons.length) * 100) : 0;
   const isReflection = activeLesson?.tipo === 'reflection';
 
-  const monthLabel = module.semana_numero === 0 ? 'Intro' :
-    module.semana_numero <= 4 ? 'Mes 1' :
-    module.semana_numero <= 8 ? 'Mes 2' :
-    module.semana_numero <= 12 ? 'Mes 3' :
-    module.semana_numero <= 16 ? 'Mes 4' :
-    module.semana_numero <= 20 ? 'Mes 5' : 'Mes 6';
+  const monthLabel = moduleInfo.semana_numero === 0 ? 'Intro' :
+    moduleInfo.semana_numero <= 4 ? 'Mes 1' :
+    moduleInfo.semana_numero <= 8 ? 'Mes 2' :
+    moduleInfo.semana_numero <= 12 ? 'Mes 3' :
+    moduleInfo.semana_numero <= 16 ? 'Mes 4' :
+    moduleInfo.semana_numero <= 20 ? 'Mes 5' : 'Mes 6';
 
   // Convert LessonData to format LessonList expects
   const lessonListItems = lessons.map((l) => ({
@@ -197,13 +218,13 @@ export default function ModuleDetailPage() {
         <div>
           <div className="flex items-center gap-2">
             <span className="text-xs text-jjl-red font-semibold uppercase tracking-wider">
-              {module.semana_numero === 0 ? 'Fundamentos' : `Semana ${module.semana_numero}`}
+              {moduleInfo.semana_numero === 0 ? 'Fundamentos' : `Semana ${moduleInfo.semana_numero}`}
             </span>
             <span className="text-xs text-jjl-muted">— {monthLabel}</span>
           </div>
-          <h1 className="text-2xl font-bold">{module.titulo}</h1>
-          {module.descripcion && (
-            <p className="text-sm text-jjl-muted mt-1">{module.descripcion}</p>
+          <h1 className="text-2xl font-bold">{moduleInfo.titulo}</h1>
+          {moduleInfo.descripcion && (
+            <p className="text-sm text-jjl-muted mt-1">{moduleInfo.descripcion}</p>
           )}
         </div>
       </div>
@@ -227,7 +248,7 @@ export default function ModuleDetailPage() {
         {/* Content area — left 2/3 */}
         <div className="lg:col-span-2 space-y-4">
           {isReflection ? (
-            <WeeklyReflection weekNumber={module.semana_numero} />
+            <WeeklyReflection weekNumber={moduleInfo.semana_numero} />
           ) : activeLesson ? (
             <>
               <CustomVideoPlayer

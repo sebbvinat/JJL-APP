@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { format } from 'date-fns';
 import { Flame, BookOpen, Trophy, Calendar } from 'lucide-react';
 import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
@@ -29,7 +30,8 @@ export default function DashboardPage() {
   useEffect(() => {
     async function load() {
       try {
-        const res = await fetch('/api/dashboard-stats');
+        const today = format(new Date(), 'yyyy-MM-dd');
+        const res = await fetch(`/api/dashboard-stats?today=${today}`);
         if (res.ok) {
           const json = await res.json();
           setData(json);

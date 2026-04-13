@@ -3,7 +3,7 @@ import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { format, subDays } from 'date-fns';
 
-export async function GET() {
+export async function GET(request: Request) {
   const cookieStore = await cookies();
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -44,8 +44,9 @@ export async function GET() {
     .eq('entreno_check', true)
     .order('fecha', { ascending: false });
 
-  // Fetch today's task
-  const today = format(new Date(), 'yyyy-MM-dd');
+  // Use client-provided date to avoid timezone issues
+  const url = new URL(request.url);
+  const today = url.searchParams.get('today') || format(new Date(), 'yyyy-MM-dd');
   const { data: todayTask } = await supabase
     .from('daily_tasks')
     .select('entreno_check, feedback_texto')

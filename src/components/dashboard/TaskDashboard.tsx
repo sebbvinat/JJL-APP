@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { format } from 'date-fns';
 import { Dumbbell, CheckCircle, Send } from 'lucide-react';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
@@ -21,7 +22,7 @@ export default function TaskDashboard({ todayChecked = false }: TaskDashboardPro
       const res = await fetch('/api/daily-task', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'check-in' }),
+        body: JSON.stringify({ action: 'check-in', fecha: format(new Date(), 'yyyy-MM-dd') }),
       });
       if (res.ok) setChecked(true);
     } catch {}
@@ -35,7 +36,7 @@ export default function TaskDashboard({ todayChecked = false }: TaskDashboardPro
       const res = await fetch('/api/daily-task', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'feedback', text: feedback }),
+        body: JSON.stringify({ action: 'feedback', text: feedback, fecha: format(new Date(), 'yyyy-MM-dd') }),
       });
       if (res.ok) setFeedbackSent(true);
     } catch {}
