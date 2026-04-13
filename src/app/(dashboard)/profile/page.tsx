@@ -81,11 +81,22 @@ function ProfileContent() {
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [uploadedAvatarUrl, setUploadedAvatarUrl] = useState<string | null>(null);
+  const [dbAvatarUrl, setDbAvatarUrl] = useState<string | null>(null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Use uploaded URL if just changed, otherwise profile URL from DB
-  const avatarUrl = uploadedAvatarUrl || profile?.avatar_url || null;
+  // Fetch avatar URL directly from DB on mount
+  useEffect(() => {
+    if (!authUser) return;
+    const supabase = createClient();
+    supabase.from('users').select('avatar_url').eq('id', authUser.id).single()
+      .then(({ data }) => {
+        if (data?.avatar_url) setDbAvatarUrl(data.avatar_url);
+      });
+  }, [authUser]);
+
+  // Use uploaded URL if just changed, then DB fetch, then profile from provider
+  const avatarUrl = uploadedAvatarUrl || dbAvatarUrl || profile?.avatar_url || null;
 
   const [avatarError, setAvatarError] = useState('');
 
