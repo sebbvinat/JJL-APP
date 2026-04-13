@@ -78,8 +78,8 @@ export async function POST(request: Request) {
 
   const avatarUrl = `${urlData.publicUrl}?t=${Date.now()}`;
 
-  // Update user profile
-  const { error: updateError } = await supabase
+  // Update user profile (use admin client to bypass RLS)
+  const { error: updateError } = await adminClient
     .from('users')
     .update({ avatar_url: avatarUrl })
     .eq('id', user.id);
