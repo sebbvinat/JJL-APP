@@ -71,6 +71,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Notify user about newly unlocked modules
+    const unlockedModules = modules.filter((m: any) => m.is_unlocked);
+    if (unlockedModules.length > 0) {
+      try {
+        const { createNotification } = await import('@/lib/notifications');
+        for (const mod of unlockedModules) {
+          await createNotification(
+            userId,
+            'module',
+            `Nuevo modulo desbloqueado`,
+            `Se desbloqueo: ${mod.titulo || `Semana ${mod.semana_numero}`}. Ya podes empezar a entrenar!`
+          );
+        }
+      } catch {}
+    }
+
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Toggle access error:', error);

@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Key, LogOut, Eye, EyeOff } from 'lucide-react';
+import { Key, LogOut, Eye, EyeOff, Camera } from 'lucide-react';
 import Card from '@/components/ui/Card';
 import Avatar from '@/components/ui/Avatar';
 import Badge from '@/components/ui/Badge';
@@ -80,6 +80,36 @@ function ProfileContent() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (profile?.avatar_url) setAvatarUrl(profile.avatar_url);
+  }, [profile?.avatar_url]);
+
+  async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingAvatar(true);
+    setError('');
+
+    const formData = new FormData();
+    formData.append('avatar', file);
+
+    try {
+      const res = await fetch('/api/profile/avatar', { method: 'POST', body: formData });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Error al subir imagen');
+      setAvatarUrl(data.avatar_url);
+      setMessage('Foto actualizada');
+      setTimeout(() => setMessage(''), 3000);
+    } catch (err: any) {
+      setError(err.message || 'Error al subir imagen');
+    }
+    setUploadingAvatar(false);
+  }
 
   async function handleChangePassword(e: React.FormEvent) {
     e.preventDefault();
@@ -183,7 +213,27 @@ function ProfileContent() {
       <Card className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-jjl-red/10 via-transparent to-transparent pointer-events-none" />
         <div className="relative flex flex-col sm:flex-row items-center gap-4">
-          <Avatar name={profile?.nombre || 'Usuario'} size="lg" />
+          <div className="relative group">
+            <Avatar src={avatarUrl} name={profile?.nombre || 'Usuario'} size="lg" />
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploadingAvatar}
+              className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+            >
+              {uploadingAvatar ? (
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <Camera className="h-5 w-5 text-white" />
+              )}
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleAvatarChange}
+              className="hidden"
+            />
+          </div>
           <div className="text-center sm:text-left flex-1">
             <h1 className="text-xl font-bold">{profile?.nombre || 'Usuario'}</h1>
             <div className="flex items-center gap-2 mt-1 justify-center sm:justify-start">

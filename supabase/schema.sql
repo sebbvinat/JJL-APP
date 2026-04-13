@@ -61,6 +61,14 @@ CREATE TABLE public.daily_tasks (
   fecha DATE DEFAULT CURRENT_DATE,
   entreno_check BOOLEAN DEFAULT FALSE,
   feedback_texto TEXT,
+  fatiga TEXT CHECK (fatiga IN ('verde', 'amarillo', 'rojo')),
+  intensidad TEXT CHECK (intensidad IN ('baja', 'media', 'alta')),
+  objetivo TEXT,
+  objetivo_cumplido BOOLEAN,
+  regla TEXT,
+  regla_cumplida BOOLEAN,
+  puntaje INTEGER CHECK (puntaje >= 1 AND puntaje <= 10),
+  observaciones TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE(user_id, fecha)
 );
@@ -115,6 +123,17 @@ CREATE TABLE public.video_uploads (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- 11. NOTIFICATIONS (sistema de notificaciones)
+CREATE TABLE public.notifications (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES public.users ON DELETE CASCADE NOT NULL,
+  tipo TEXT NOT NULL CHECK (tipo IN ('belt', 'module', 'streak', 'achievement', 'system')),
+  titulo TEXT NOT NULL,
+  mensaje TEXT NOT NULL,
+  leido BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- ============================================
 -- INDICES
 -- ============================================
@@ -126,6 +145,8 @@ CREATE INDEX idx_posts_author ON public.posts(author_id);
 CREATE INDEX idx_posts_created ON public.posts(created_at DESC);
 CREATE INDEX idx_comments_post ON public.comments(post_id);
 CREATE INDEX idx_video_uploads_user ON public.video_uploads(user_id);
+CREATE INDEX idx_notifications_user ON public.notifications(user_id, created_at DESC);
+CREATE INDEX idx_notifications_unread ON public.notifications(user_id) WHERE leido = FALSE;
 
 -- ============================================
 -- ROW LEVEL SECURITY (RLS)
@@ -142,6 +163,7 @@ ALTER TABLE public.posts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.comments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.likes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.video_uploads ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
 
 -- Helper: verificar si el usuario es admin
 CREATE OR REPLACE FUNCTION public.is_admin()
@@ -241,6 +263,16 @@ CREATE POLICY "Users can read own uploads" ON public.video_uploads
 
 CREATE POLICY "Users can insert own uploads" ON public.video_uploads
   FOR INSERT WITH CHECK (user_id = auth.uid());
+
+-- NOTIFICATIONS policies
+CREATE POLICY "Users can read own notifications" ON public.notifications
+  FOR SELECT USING (user_id = auth.uid());
+
+CREATE POLICY "Users can update own notifications" ON public.notifications
+  FOR UPDATE USING (user_id = auth.uid());
+
+CREATE POLICY "System can insert notifications" ON public.notifications
+  FOR INSERT WITH CHECK (true);
 
 -- ============================================
 -- TRIGGER: auto-create user profile on signup

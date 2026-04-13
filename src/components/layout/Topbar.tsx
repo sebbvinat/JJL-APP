@@ -5,6 +5,7 @@ import Link from 'next/link';
 
 import { LogOut, Settings, Menu, X } from 'lucide-react';
 import Avatar from '@/components/ui/Avatar';
+import NotificationBell from '@/components/layout/NotificationBell';
 import { NAV_ITEMS, ADMIN_NAV } from '@/lib/constants';
 import { usePathname } from 'next/navigation';
 import { clsx } from 'clsx';
@@ -35,7 +36,9 @@ export default function Topbar() {
         </div>
 
         {/* Right side */}
-        <div className="relative">
+        <div className="flex items-center gap-1">
+          <NotificationBell />
+          <div className="relative">
           <button
             onClick={() => setMenuOpen(!menuOpen)}
             className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-jjl-gray-light transition-colors"
@@ -65,6 +68,7 @@ export default function Topbar() {
               </div>
             </>
           )}
+        </div>
         </div>
       </header>
 

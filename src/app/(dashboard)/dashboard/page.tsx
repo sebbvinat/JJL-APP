@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
-import { Flame, BookOpen, Trophy, Calendar } from 'lucide-react';
+import { Flame, BookOpen, Trophy, Calendar, Upload, Users, User, ChevronRight } from 'lucide-react';
 import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import StatCard from '@/components/dashboard/StatCard';
@@ -19,6 +19,7 @@ interface DashboardData {
   todayChecked: boolean;
   lessonsCompleted: number;
   unlockedModules: number;
+  completedWeekNumbers: number[];
   streak: number;
   totalTrainingDays: number;
 }
@@ -44,8 +45,19 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="w-8 h-8 border-2 border-jjl-red border-t-transparent rounded-full animate-spin" />
+      <div className="space-y-6 max-w-4xl animate-pulse">
+        {/* Welcome skeleton */}
+        <div className="bg-jjl-gray-light/50 border border-jjl-border rounded-xl p-6 h-24" />
+        {/* Task skeleton */}
+        <div className="bg-jjl-gray-light/50 border border-jjl-border rounded-xl p-6 h-20" />
+        {/* Stats skeleton */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="bg-jjl-gray-light/50 border border-jjl-border rounded-xl p-4 h-24" />
+          ))}
+        </div>
+        {/* Belt skeleton */}
+        <div className="bg-jjl-gray-light/50 border border-jjl-border rounded-xl p-6 h-32" />
       </div>
     );
   }
@@ -60,8 +72,9 @@ export default function DashboardPage() {
 
   // Calculate gamification from real data
   const totalModules = MOCK_MODULES.length;
+  const completedWeekNumbers = data?.completedWeekNumbers || [];
   const gamification = calculateGamification({
-    completedWeeks: [], // TODO: track completed weeks when all lessons in a module are done
+    completedWeeks: completedWeekNumbers,
     totalTrainingDays,
     totalLessonsCompleted: lessonsCompleted,
   });
@@ -82,6 +95,9 @@ export default function DashboardPage() {
           <Badge belt={currentBelt} />
         </div>
       </div>
+
+      {/* Task Dashboard — elevated as the #1 daily action */}
+      <TaskDashboard todayChecked={todayChecked} />
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -117,9 +133,6 @@ export default function DashboardPage() {
         <BeltProgress currentBelt={currentBelt} progressToNext={gamification.progressToNext} />
       </Card>
 
-      {/* Task Dashboard */}
-      <TaskDashboard todayChecked={todayChecked} />
-
       {/* Training Calendar */}
       <TrainingCalendar trainedDays={trainedDays} />
 
@@ -129,19 +142,22 @@ export default function DashboardPage() {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {[
             { label: 'Ver Modulos', href: '/modules', icon: BookOpen },
-            { label: 'Subir Lucha', href: '/upload', icon: Calendar },
-            { label: 'Comunidad', href: '/community', icon: Trophy },
-            { label: 'Mi Perfil', href: '/profile', icon: Flame },
+            { label: 'Subir Lucha', href: '/upload', icon: Upload },
+            { label: 'Comunidad', href: '/community', icon: Users },
+            { label: 'Mi Perfil', href: '/profile', icon: User },
           ].map((action) => {
             const Icon = action.icon;
             return (
               <a
                 key={action.href}
                 href={action.href}
-                className="flex flex-col items-center gap-2 p-4 rounded-lg bg-jjl-gray-light border border-jjl-border hover:border-jjl-red/40 transition-colors text-center"
+                className="group flex flex-col items-center gap-2 p-4 rounded-lg bg-jjl-gray-light border border-jjl-border hover:border-jjl-red/40 transition-all duration-200 text-center relative"
               >
-                <Icon className="h-6 w-6 text-jjl-red" />
-                <span className="text-sm text-jjl-muted">{action.label}</span>
+                <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-jjl-red/10">
+                  <Icon className="h-5 w-5 text-jjl-red" />
+                </div>
+                <span className="text-sm text-white font-medium">{action.label}</span>
+                <ChevronRight className="h-3.5 w-3.5 text-jjl-muted/40 absolute top-2 right-2 group-hover:text-jjl-red/60 transition-colors" />
               </a>
             );
           })}

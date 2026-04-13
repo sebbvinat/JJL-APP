@@ -5,10 +5,12 @@ import {
   Upload,
   User,
   Shield,
+  NotebookPen,
 } from 'lucide-react';
 
 export const NAV_ITEMS = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+  { label: 'Diario', href: '/journal', icon: NotebookPen },
   { label: 'Modulos', href: '/modules', icon: BookOpen },
   { label: 'Comunidad', href: '/community', icon: Users },
   { label: 'Subir Video', href: '/upload', icon: Upload },

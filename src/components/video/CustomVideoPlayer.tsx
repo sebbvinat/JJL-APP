@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useRef, useEffect, useId } from 'react';
-import { CheckCircle, Circle, Play, Pause, Volume2, VolumeX, Maximize } from 'lucide-react';
+import { CheckCircle, Circle, Play, Pause, Volume2, VolumeX, Maximize, Minimize } from 'lucide-react';
 import Button from '@/components/ui/Button';
 
 interface CustomVideoPlayerProps {
@@ -41,6 +41,7 @@ export default function CustomVideoPlayer({
   const [playerReady, setPlayerReady] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
   const [showThumbnail, setShowThumbnail] = useState(true);
+  const [isCssFullscreen, setIsCssFullscreen] = useState(false);
 
   const playerRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -196,15 +197,33 @@ export default function CustomVideoPlayer({
     playerRef.current.seekTo(pct * duration, true);
   }, [duration]);
 
+  const isIOS = typeof navigator !== 'undefined' && /iPhone|iPad|iPod/.test(navigator.userAgent);
+
   const handleFullscreen = useCallback(() => {
-    if (containerRef.current) {
-      if (document.fullscreenElement) {
-        document.exitFullscreen();
-      } else {
-        containerRef.current.requestFullscreen();
-      }
+    if (!containerRef.current) return;
+
+    // iOS doesn't support Fullscreen API for iframes — use CSS fullscreen
+    if (isIOS || !document.fullscreenEnabled) {
+      setIsCssFullscreen((prev) => !prev);
+      return;
     }
-  }, []);
+
+    if (document.fullscreenElement) {
+      document.exitFullscreen();
+    } else {
+      containerRef.current.requestFullscreen();
+    }
+  }, [isIOS]);
+
+  // Lock body scroll when CSS fullscreen is active
+  useEffect(() => {
+    if (isCssFullscreen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [isCssFullscreen]);
 
   const handleComplete = () => {
     setIsCompleted(true);
@@ -237,7 +256,11 @@ export default function CustomVideoPlayer({
       {/* Video container */}
       <div
         ref={containerRef}
-        className="relative w-full aspect-video rounded-xl overflow-hidden bg-black select-none group"
+        className={`relative overflow-hidden bg-black select-none group ${
+          isCssFullscreen
+            ? 'fixed inset-0 z-[9999] w-screen h-screen rounded-none'
+            : 'w-full aspect-video rounded-xl'
+        }`}
         onContextMenu={preventContext}
         onMouseMove={handleMouseMove}
         onMouseLeave={() => isPlaying && setShowControls(false)}
@@ -357,7 +380,7 @@ export default function CustomVideoPlayer({
               onClick={(e) => { e.stopPropagation(); handleFullscreen(); }}
               className="text-white hover:text-jjl-red transition-colors"
             >
-              <Maximize className="h-5 w-5" />
+              {isCssFullscreen ? <Minimize className="h-5 w-5" /> : <Maximize className="h-5 w-5" />}
             </button>
           </div>
         </div>

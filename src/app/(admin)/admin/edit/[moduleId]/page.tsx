@@ -76,10 +76,14 @@ export default function EditModulePage() {
   function addLesson() {
     if (!module) return;
     const newId = `${moduleId}-new-${Date.now()}`;
+    // Pre-fill youtube_id from the last video lesson that has one
+    const lastVideoWithUrl = [...module.lessons]
+      .reverse()
+      .find((l) => l.tipo === 'video' && l.youtube_id && l.youtube_id.length > 0);
     const newLesson: LessonData = {
       id: newId,
       titulo: 'Nueva leccion',
-      youtube_id: '',
+      youtube_id: lastVideoWithUrl?.youtube_id || '',
       descripcion: '',
       orden: module.lessons.length + 1,
       duracion: '10:00',

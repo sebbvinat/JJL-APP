@@ -54,13 +54,6 @@ export async function GET(request: Request) {
     .eq('fecha', today)
     .single();
 
-  // Fetch completed lessons count
-  const { count: lessonsCompleted } = await supabase
-    .from('user_progress')
-    .select('*', { count: 'exact', head: true })
-    .eq('user_id', user.id)
-    .eq('completado', true);
-
   // Fetch unlocked modules count
   const { count: unlockedModules } = await supabase
     .from('user_access')
@@ -68,32 +61,104 @@ export async function GET(request: Request) {
     .eq('user_id', user.id)
     .eq('is_unlocked', true);
 
-  // Fetch completed lesson IDs (for module detail pages)
+  // Fetch completed lesson IDs (replaces separate count query above)
   const { data: completedLessons } = await supabase
     .from('user_progress')
     .select('lesson_id')
     .eq('user_id', user.id)
     .eq('completado', true);
 
-  // Calculate streak from training days
+  const completedLessonIds = (completedLessons || []).map((l: any) => l.lesson_id);
+  const actualLessonsCompleted = completedLessonIds.length;
+
+  // Calculate completed weeks: modules where ALL lessons are completed
+  const { data: allModules } = await supabase
+    .from('modules')
+    .select('id, semana_numero');
+
+  const { data: allLessons } = await supabase
+    .from('lessons')
+    .select('id, module_id');
+
+  const completedSet = new Set(completedLessonIds);
+  const completedWeekNumbers: number[] = [];
+
+  if (allModules && allLessons) {
+    // Group lessons by module
+    const lessonsByModule = new Map<string, string[]>();
+    for (const lesson of allLessons) {
+      const list = lessonsByModule.get(lesson.module_id) || [];
+      list.push(lesson.id);
+      lessonsByModule.set(lesson.module_id, list);
+    }
+
+    // Check which modules have ALL lessons completed
+    for (const mod of allModules) {
+      const moduleLessons = lessonsByModule.get(mod.id) || [];
+      if (moduleLessons.length > 0 && moduleLessons.every((lid) => completedSet.has(lid))) {
+        completedWeekNumbers.push(mod.semana_numero);
+      }
+    }
+  }
+
+  // Calculate streak from training days (optimized with Set)
   const trainedDates = (trainingDays || []).map((t: any) => t.fecha);
+  const trainedSet = new Set(trainedDates);
   let streak = 0;
   for (let i = 0; i < 365; i++) {
     const date = format(subDays(new Date(), i), 'yyyy-MM-dd');
-    if (trainedDates.includes(date)) {
+    if (trainedSet.has(date)) {
       streak++;
     } else if (i > 0) {
       break;
     }
   }
 
+  // Recalculate belt and points, update profile if changed
+  const { calculateGamification } = await import('@/lib/gamification');
+  const gamification = calculateGamification({
+    completedWeeks: completedWeekNumbers,
+    totalTrainingDays: trainedDates.length,
+    totalLessonsCompleted: actualLessonsCompleted,
+  });
+
+  const newBelt = gamification.newBelt;
+  const newPuntos = gamification.puntos;
+
+  // Update user profile if belt or points changed
+  if (
+    profile &&
+    (profile.cinturon_actual !== newBelt || profile.puntos !== newPuntos)
+  ) {
+    await supabase
+      .from('users')
+      .update({ cinturon_actual: newBelt, puntos: newPuntos })
+      .eq('id', user.id);
+
+    // Notify on belt advancement
+    if (profile.cinturon_actual !== newBelt) {
+      const { createNotification, BELT_NAMES } = await import('@/lib/notifications');
+      await createNotification(
+        user.id,
+        'belt',
+        `Nuevo cinturon: ${BELT_NAMES[newBelt] || newBelt}`,
+        `Felicitaciones! Avanzaste al cinturon ${BELT_NAMES[newBelt] || newBelt}. Segui entrenando!`
+      );
+    }
+  }
+
   return NextResponse.json({
-    profile: profile || { cinturon_actual: 'white', puntos: 0, nombre: 'Usuario' },
+    profile: {
+      ...(profile || { nombre: 'Usuario' }),
+      cinturon_actual: newBelt,
+      puntos: newPuntos,
+    },
     trainedDays: trainedDates,
     todayChecked: todayTask?.entreno_check ?? false,
-    lessonsCompleted: lessonsCompleted ?? 0,
+    lessonsCompleted: actualLessonsCompleted,
     unlockedModules: unlockedModules ?? 0,
-    completedLessonIds: (completedLessons || []).map((l: any) => l.lesson_id),
+    completedLessonIds,
+    completedWeekNumbers,
     streak,
     totalTrainingDays: trainedDates.length,
   });

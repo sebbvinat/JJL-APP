@@ -1,0 +1,418 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { format, subDays } from 'date-fns';
+import { es } from 'date-fns/locale';
+import { Save, CheckCircle, ChevronLeft, ChevronRight } from 'lucide-react';
+import Card from '@/components/ui/Card';
+import Button from '@/components/ui/Button';
+
+interface JournalEntry {
+  entreno_check: boolean;
+  fatiga: 'verde' | 'amarillo' | 'rojo' | null;
+  intensidad: 'baja' | 'media' | 'alta' | null;
+  objetivo: string;
+  objetivo_cumplido: boolean | null;
+  regla: string;
+  regla_cumplida: boolean | null;
+  puntaje: number | null;
+  observaciones: string;
+}
+
+interface HistoryEntry {
+  fecha: string;
+  entreno_check: boolean;
+  fatiga: string | null;
+  puntaje: number | null;
+  intensidad: string | null;
+  objetivo_cumplido: boolean | null;
+  regla_cumplida: boolean | null;
+}
+
+const EMPTY_ENTRY: JournalEntry = {
+  entreno_check: false,
+  fatiga: null,
+  intensidad: null,
+  objetivo: '',
+  objetivo_cumplido: null,
+  regla: '',
+  regla_cumplida: null,
+  puntaje: null,
+  observaciones: '',
+};
+
+const FATIGA_OPTIONS = [
+  { value: 'verde', label: 'Bien', emoji: '🟢', color: 'bg-green-500', desc: 'Recuperado, con energia' },
+  { value: 'amarillo', label: 'Normal', emoji: '🟡', color: 'bg-yellow-500', desc: 'Cansancio controlable' },
+  { value: 'rojo', label: 'Cansado', emoji: '🔴', color: 'bg-red-500', desc: 'Muy cargado, molestias' },
+] as const;
+
+const INTENSIDAD_OPTIONS = [
+  { value: 'baja', label: 'Baja', color: 'text-green-400 border-green-500/40 bg-green-500/10' },
+  { value: 'media', label: 'Media', color: 'text-yellow-400 border-yellow-500/40 bg-yellow-500/10' },
+  { value: 'alta', label: 'Alta', color: 'text-red-400 border-red-500/40 bg-red-500/10' },
+] as const;
+
+export default function JournalPage() {
+  const [fecha, setFecha] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [entry, setEntry] = useState<JournalEntry>(EMPTY_ENTRY);
+  const [history, setHistory] = useState<HistoryEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  const isToday = fecha === format(new Date(), 'yyyy-MM-dd');
+
+  useEffect(() => {
+    loadEntry();
+    loadHistory();
+  }, [fecha]);
+
+  async function loadEntry() {
+    setLoading(true);
+    setSaved(false);
+    try {
+      const res = await fetch(`/api/daily-task?fecha=${fecha}`);
+      if (res.ok) {
+        const { entry: data } = await res.json();
+        if (data) {
+          setEntry({
+            entreno_check: data.entreno_check ?? false,
+            fatiga: data.fatiga ?? null,
+            intensidad: data.intensidad ?? null,
+            objetivo: data.objetivo ?? '',
+            objetivo_cumplido: data.objetivo_cumplido ?? null,
+            regla: data.regla ?? '',
+            regla_cumplida: data.regla_cumplida ?? null,
+            puntaje: data.puntaje ?? null,
+            observaciones: data.observaciones ?? '',
+          });
+        } else {
+          setEntry(EMPTY_ENTRY);
+        }
+      }
+    } catch {}
+    setLoading(false);
+  }
+
+  async function loadHistory() {
+    try {
+      const res = await fetch('/api/daily-task?history=true');
+      if (res.ok) {
+        const data = await res.json();
+        setHistory(data.history || []);
+      }
+    } catch {}
+  }
+
+  async function handleSave() {
+    setSaving(true);
+    try {
+      const res = await fetch('/api/daily-task', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'journal', fecha, ...entry }),
+      });
+      if (res.ok) {
+        setSaved(true);
+        loadHistory();
+        setTimeout(() => setSaved(false), 3000);
+      }
+    } catch {}
+    setSaving(false);
+  }
+
+  function update<K extends keyof JournalEntry>(field: K, value: JournalEntry[K]) {
+    setEntry((prev) => ({ ...prev, [field]: value }));
+    setSaved(false);
+  }
+
+  function goDay(offset: number) {
+    const d = new Date(fecha + 'T12:00:00');
+    d.setDate(d.getDate() + offset);
+    const newDate = format(d, 'yyyy-MM-dd');
+    if (newDate <= format(new Date(), 'yyyy-MM-dd')) {
+      setFecha(newDate);
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="space-y-4 max-w-lg mx-auto animate-pulse">
+        <div className="h-12 bg-jjl-gray-light/50 rounded-xl" />
+        <div className="h-40 bg-jjl-gray-light/50 rounded-xl" />
+        <div className="h-32 bg-jjl-gray-light/50 rounded-xl" />
+        <div className="h-32 bg-jjl-gray-light/50 rounded-xl" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4 max-w-lg mx-auto pb-8">
+      {/* Date nav */}
+      <div className="flex items-center justify-between">
+        <button onClick={() => goDay(-1)} className="p-2 rounded-lg hover:bg-jjl-gray-light text-jjl-muted hover:text-white">
+          <ChevronLeft className="h-5 w-5" />
+        </button>
+        <div className="text-center">
+          <h1 className="text-lg font-bold">Diario de Entrenamiento</h1>
+          <p className="text-sm text-jjl-muted capitalize">
+            {isToday ? 'Hoy' : format(new Date(fecha + 'T12:00:00'), "EEEE d 'de' MMMM", { locale: es })}
+          </p>
+        </div>
+        <button
+          onClick={() => goDay(1)}
+          disabled={isToday}
+          className="p-2 rounded-lg hover:bg-jjl-gray-light text-jjl-muted hover:text-white disabled:opacity-20"
+        >
+          <ChevronRight className="h-5 w-5" />
+        </button>
+      </div>
+
+      {/* 1. Entrene hoy? */}
+      <Card>
+        <button
+          onClick={() => update('entreno_check', !entry.entreno_check)}
+          className={`w-full flex items-center gap-4 p-1 rounded-lg transition-all ${
+            entry.entreno_check ? '' : 'opacity-70'
+          }`}
+        >
+          <div className={`h-12 w-12 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
+            entry.entreno_check ? 'bg-green-500/20' : 'bg-jjl-gray-light'
+          }`}>
+            {entry.entreno_check ? (
+              <CheckCircle className="h-6 w-6 text-green-400" />
+            ) : (
+              <div className="h-6 w-6 rounded-full border-2 border-jjl-muted" />
+            )}
+          </div>
+          <div className="text-left">
+            <p className="font-bold text-lg">Entrene hoy?</p>
+            <p className="text-sm text-jjl-muted">
+              {entry.entreno_check ? 'Si! Registrado' : 'Toca para marcar'}
+            </p>
+          </div>
+        </button>
+      </Card>
+
+      {/* 2. Fatiga */}
+      <Card>
+        <h3 className="font-semibold mb-3">Como te sentis fisicamente?</h3>
+        <div className="grid grid-cols-3 gap-2">
+          {FATIGA_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => update('fatiga', entry.fatiga === opt.value ? null : opt.value)}
+              className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all ${
+                entry.fatiga === opt.value
+                  ? 'border-jjl-red bg-jjl-red/10 scale-105'
+                  : 'border-jjl-border hover:border-jjl-border/80 bg-jjl-gray-light/30'
+              }`}
+            >
+              <span className="text-2xl">{opt.emoji}</span>
+              <span className="text-sm font-medium">{opt.label}</span>
+              <span className="text-[10px] text-jjl-muted leading-tight text-center">{opt.desc}</span>
+            </button>
+          ))}
+        </div>
+      </Card>
+
+      {/* 3. Intensidad */}
+      <Card>
+        <h3 className="font-semibold mb-3">Intensidad planeada</h3>
+        <div className="flex gap-2">
+          {INTENSIDAD_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => update('intensidad', entry.intensidad === opt.value ? null : opt.value)}
+              className={`flex-1 py-2.5 rounded-lg border text-sm font-semibold transition-all ${
+                entry.intensidad === opt.value
+                  ? opt.color + ' border-2'
+                  : 'border-jjl-border text-jjl-muted bg-jjl-gray-light/30 hover:bg-jjl-gray-light/50'
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      </Card>
+
+      {/* 4. Objetivo */}
+      <Card>
+        <h3 className="font-semibold mb-1">Objetivo del entrenamiento</h3>
+        <p className="text-xs text-jjl-muted mb-3">Que queres trabajar hoy puntualmente?</p>
+        <textarea
+          value={entry.objetivo}
+          onChange={(e) => update('objetivo', e.target.value)}
+          placeholder="Ej: Mejorar timing en pasadas de guardia..."
+          rows={2}
+          className="w-full bg-jjl-gray-light border border-jjl-border rounded-lg px-3 py-2.5 text-sm text-white placeholder:text-jjl-muted/50 focus:outline-none focus:border-jjl-red resize-none"
+        />
+        {entry.objetivo.trim() && (
+          <div className="mt-3 flex items-center justify-between">
+            <span className="text-sm text-jjl-muted">Cumpliste el objetivo?</span>
+            <div className="flex gap-2">
+              {[true, false].map((val) => (
+                <button
+                  key={String(val)}
+                  onClick={() => update('objetivo_cumplido', entry.objetivo_cumplido === val ? null : val)}
+                  className={`px-4 py-1.5 rounded-lg text-sm font-medium border transition-all ${
+                    entry.objetivo_cumplido === val
+                      ? val
+                        ? 'bg-green-500/20 border-green-500/40 text-green-400'
+                        : 'bg-red-500/20 border-red-500/40 text-red-400'
+                      : 'border-jjl-border text-jjl-muted'
+                  }`}
+                >
+                  {val ? 'Si' : 'No'}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </Card>
+
+      {/* 5. Regla del dia */}
+      <Card>
+        <h3 className="font-semibold mb-1">Regla del dia</h3>
+        <p className="text-xs text-jjl-muted mb-3">Que NO vas a hacer hoy?</p>
+        <textarea
+          value={entry.regla}
+          onChange={(e) => update('regla', e.target.value)}
+          placeholder="Ej: No voy a hacer rondas sin foco..."
+          rows={2}
+          className="w-full bg-jjl-gray-light border border-jjl-border rounded-lg px-3 py-2.5 text-sm text-white placeholder:text-jjl-muted/50 focus:outline-none focus:border-jjl-red resize-none"
+        />
+        {entry.regla.trim() && (
+          <div className="mt-3 flex items-center justify-between">
+            <span className="text-sm text-jjl-muted">Cumpliste la regla?</span>
+            <div className="flex gap-2">
+              {[true, false].map((val) => (
+                <button
+                  key={String(val)}
+                  onClick={() => update('regla_cumplida', entry.regla_cumplida === val ? null : val)}
+                  className={`px-4 py-1.5 rounded-lg text-sm font-medium border transition-all ${
+                    entry.regla_cumplida === val
+                      ? val
+                        ? 'bg-green-500/20 border-green-500/40 text-green-400'
+                        : 'bg-red-500/20 border-red-500/40 text-red-400'
+                      : 'border-jjl-border text-jjl-muted'
+                  }`}
+                >
+                  {val ? 'Si' : 'No'}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </Card>
+
+      {/* 6. Puntaje */}
+      <Card>
+        <h3 className="font-semibold mb-3">Puntaje del dia</h3>
+        <div className="flex items-center gap-3">
+          <input
+            type="range"
+            min="1"
+            max="10"
+            value={entry.puntaje ?? 5}
+            onChange={(e) => update('puntaje', parseInt(e.target.value))}
+            className="flex-1 accent-jjl-red h-2"
+          />
+          <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-xl font-bold shrink-0 ${
+            (entry.puntaje ?? 0) >= 7
+              ? 'bg-green-500/20 text-green-400'
+              : (entry.puntaje ?? 0) >= 4
+                ? 'bg-yellow-500/20 text-yellow-400'
+                : 'bg-red-500/20 text-red-400'
+          }`}>
+            {entry.puntaje ?? '-'}
+          </div>
+        </div>
+        <div className="flex justify-between text-[10px] text-jjl-muted mt-1 px-1">
+          <span>Malo</span>
+          <span>Excelente</span>
+        </div>
+      </Card>
+
+      {/* 7. Observaciones */}
+      <Card>
+        <h3 className="font-semibold mb-1">Observaciones</h3>
+        <p className="text-xs text-jjl-muted mb-3">Problemas, logros, lo que quieras anotar</p>
+        <textarea
+          value={entry.observaciones}
+          onChange={(e) => update('observaciones', e.target.value)}
+          placeholder="Notas del dia..."
+          rows={3}
+          className="w-full bg-jjl-gray-light border border-jjl-border rounded-lg px-3 py-2.5 text-sm text-white placeholder:text-jjl-muted/50 focus:outline-none focus:border-jjl-red resize-none"
+        />
+      </Card>
+
+      {/* Save button */}
+      <Button
+        variant="primary"
+        size="lg"
+        className="w-full"
+        onClick={handleSave}
+        loading={saving}
+        disabled={saving}
+      >
+        {saved ? (
+          <>
+            <CheckCircle className="h-5 w-5 mr-2" />
+            Guardado!
+          </>
+        ) : (
+          <>
+            <Save className="h-5 w-5 mr-2" />
+            Guardar Diario
+          </>
+        )}
+      </Button>
+
+      {/* History */}
+      {history.length > 0 && (
+        <Card>
+          <h3 className="font-semibold mb-3">Ultimos dias</h3>
+          <div className="space-y-2">
+            {history.map((h) => {
+              const isSelected = h.fecha === fecha;
+              return (
+                <button
+                  key={h.fecha}
+                  onClick={() => setFecha(h.fecha)}
+                  className={`w-full flex items-center gap-3 p-2.5 rounded-lg text-left transition-all ${
+                    isSelected ? 'bg-jjl-red/10 border border-jjl-red/30' : 'hover:bg-jjl-gray-light/50'
+                  }`}
+                >
+                  <span className="text-lg">
+                    {h.fatiga === 'verde' ? '🟢' : h.fatiga === 'amarillo' ? '🟡' : h.fatiga === 'rojo' ? '🔴' : '⚪'}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium capitalize">
+                      {format(new Date(h.fecha + 'T12:00:00'), "EEE d MMM", { locale: es })}
+                    </p>
+                    <p className="text-xs text-jjl-muted">
+                      {h.entreno_check ? 'Entreno' : 'No entreno'}
+                      {h.intensidad ? ` · ${h.intensidad}` : ''}
+                    </p>
+                  </div>
+                  {h.puntaje && (
+                    <span className={`text-sm font-bold px-2 py-0.5 rounded ${
+                      h.puntaje >= 7 ? 'text-green-400' : h.puntaje >= 4 ? 'text-yellow-400' : 'text-red-400'
+                    }`}>
+                      {h.puntaje}/10
+                    </span>
+                  )}
+                  {h.objetivo_cumplido === true && h.regla_cumplida === true && (
+                    <CheckCircle className="h-4 w-4 text-green-400 shrink-0" />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </Card>
+      )}
+    </div>
+  );
+}
