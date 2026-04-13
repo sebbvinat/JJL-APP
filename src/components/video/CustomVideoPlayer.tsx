@@ -242,8 +242,18 @@ export default function CustomVideoPlayer({
         onMouseMove={handleMouseMove}
         onMouseLeave={() => isPlaying && setShowControls(false)}
       >
-        {/* YouTube player — completely hidden behind overlays */}
-        <div id={playerId} className="absolute inset-0 w-full h-full" style={{ pointerEvents: 'none' }} />
+        {/* YouTube player — scaled slightly larger to clip branding at edges */}
+        <div
+          id={playerId}
+          className="absolute w-full h-full"
+          style={{
+            pointerEvents: 'none',
+            top: '-5%',
+            left: '-2%',
+            width: '104%',
+            height: '110%',
+          }}
+        />
 
         {/* Full click-capture overlay — blocks ALL interaction with YouTube iframe */}
         <div
@@ -280,8 +290,6 @@ export default function CustomVideoPlayer({
             )}
           </div>
         )}
-
-        {/* intentionally removed: YouTube branding overlays not needed */}
 
         {/* Loading spinner — before API is ready */}
         {!playerReady && (
