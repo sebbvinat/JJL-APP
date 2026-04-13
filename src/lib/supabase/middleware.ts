@@ -43,8 +43,11 @@ export async function updateSession(request: NextRequest) {
   const publicRoutes = ['/', '/login', '/register'];
   const isPublicRoute = publicRoutes.includes(pathname);
 
+  // Allow /profile with reset param (password recovery flow)
+  const isPasswordReset = pathname === '/profile' && request.nextUrl.searchParams.get('reset') === '1';
+
   // If not authenticated and trying to access protected route
-  if (!user && !isPublicRoute) {
+  if (!user && !isPublicRoute && !isPasswordReset) {
     const url = request.nextUrl.clone();
     url.pathname = '/login';
     return NextResponse.redirect(url);
