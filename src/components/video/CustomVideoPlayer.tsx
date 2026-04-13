@@ -242,16 +242,16 @@ export default function CustomVideoPlayer({
         onMouseMove={handleMouseMove}
         onMouseLeave={() => isPlaying && setShowControls(false)}
       >
-        {/* YouTube player — scaled slightly larger to clip branding at edges */}
+        {/* YouTube player — scaled larger to clip branding (title bar top, watermark bottom-right) */}
         <div
           id={playerId}
-          className="absolute w-full h-full"
+          className="absolute"
           style={{
             pointerEvents: 'none',
-            top: '-5%',
-            left: '-2%',
-            width: '104%',
-            height: '110%',
+            top: '-10%',
+            left: '-3%',
+            width: '106%',
+            height: '120%',
           }}
         />
 
