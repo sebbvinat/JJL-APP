@@ -36,6 +36,7 @@ export default function CustomVideoPlayer({
   const [playerReady, setPlayerReady] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
   const [showThumbnail, setShowThumbnail] = useState(true);
+  const [hideBranding, setHideBranding] = useState(false);
 
   const playerRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -131,11 +132,16 @@ export default function CustomVideoPlayer({
     if (state === window.YT.PlayerState.PLAYING) {
       setIsPlaying(true);
       setHasStarted(true);
-      // YouTube shows branding overlay for ~3.5s. We fade out our thumbnail
-      // quickly but keep a top strip to hide the branding, then remove fully after 4s.
+      // YouTube shows branding overlay for ~3.5s on every play/resume.
+      // Show a gradient bar at the top to hide it, remove after 4s.
+      setHideBranding(true);
       setTimeout(() => {
-        if (mountedRef.current) setShowThumbnail(false);
+        if (mountedRef.current) setHideBranding(false);
       }, 4000);
+      // Remove full thumbnail on first play
+      if (!hasStarted) {
+        setShowThumbnail(false);
+      }
       startProgressTracking();
     } else if (state === window.YT.PlayerState.PAUSED) {
       setIsPlaying(false);
@@ -250,8 +256,8 @@ export default function CustomVideoPlayer({
           onClick={togglePlay}
         />
 
-        {/* Custom thumbnail overlay — covers YouTube's thumbnail+branding */}
-        {showThumbnail && !hasStarted && (
+        {/* Custom thumbnail overlay — before first play */}
+        {showThumbnail && (
           <div
             className="absolute inset-0 z-20 cursor-pointer bg-black"
             onClick={togglePlay}
@@ -280,8 +286,8 @@ export default function CustomVideoPlayer({
           </div>
         )}
 
-        {/* Top bar to hide YouTube branding while it fades (first 4s of playback) */}
-        {hasStarted && showThumbnail && (
+        {/* Top bar to hide YouTube branding on every play/resume (~4s) */}
+        {hideBranding && (
           <div className="absolute top-0 left-0 right-0 h-16 z-20 bg-gradient-to-b from-black via-black/80 to-transparent pointer-events-none" />
         )}
 
