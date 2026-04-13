@@ -27,6 +27,11 @@ export default function CustomVideoPlayer({
   onComplete,
 }: CustomVideoPlayerProps) {
   const [isCompleted, setIsCompleted] = useState(completed);
+
+  // Sync with prop when switching lessons
+  useEffect(() => {
+    setIsCompleted(completed);
+  }, [completed, youtubeId]);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [progress, setProgress] = useState(0);
