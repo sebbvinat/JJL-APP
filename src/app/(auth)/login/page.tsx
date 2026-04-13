@@ -2,8 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { Flame } from 'lucide-react';
+import Image from 'next/image';
 import { createClient } from '@/lib/supabase/client';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
@@ -40,9 +39,14 @@ export default function LoginPage() {
     <div className="w-full max-w-sm">
       {/* Logo */}
       <div className="flex flex-col items-center mb-8">
-        <div className="h-14 w-14 bg-jjl-red rounded-xl flex items-center justify-center mb-4">
-          <Flame className="h-8 w-8 text-white" />
-        </div>
+        <Image
+          src="/logo-jjl.png"
+          alt="JJL"
+          width={56}
+          height={56}
+          className="mb-4"
+          unoptimized
+        />
         <h1 className="text-2xl font-bold">JIU JITSU LATINO</h1>
         <p className="text-jjl-muted text-sm mt-1">Inicia sesion en tu cuenta</p>
       </div>
@@ -80,10 +84,7 @@ export default function LoginPage() {
       </form>
 
       <p className="text-center text-sm text-jjl-muted mt-6">
-        No tienes cuenta?{' '}
-        <Link href="/register" className="text-jjl-red hover:underline font-medium">
-          Registrate
-        </Link>
+        No tienes cuenta? Contacta a tu instructor para obtener acceso.
       </p>
     </div>
   );

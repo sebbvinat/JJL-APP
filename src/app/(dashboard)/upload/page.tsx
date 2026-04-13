@@ -47,7 +47,18 @@ export default function UploadPage() {
         body: formData,
       });
 
-      const data = await res.json();
+      // Handle non-JSON responses (e.g. "Request Entity Too Large")
+      const text = await res.text();
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        throw new Error(
+          res.status === 413
+            ? 'El archivo es demasiado grande. Limite: 50MB'
+            : text || 'Error al subir'
+        );
+      }
 
       if (!res.ok) {
         throw new Error(data.error || 'Error al subir');

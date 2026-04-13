@@ -1,11 +1,38 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createServerClient } from '@supabase/ssr';
 import { uploadToDrive } from '@/lib/google-drive';
 
 export async function POST(request: NextRequest) {
   try {
+    // Auth check — only authenticated users can upload
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return request.cookies.getAll();
+          },
+          setAll() {},
+        },
+      }
+    );
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
+    }
+
+    // Get real user name from DB (don't trust client)
+    const { data: profile } = await supabase
+      .from('users')
+      .select('nombre')
+      .eq('id', user.id)
+      .single();
+
     const formData = await request.formData();
     const file = formData.get('file') as File | null;
-    const userName = formData.get('userName') as string || 'Usuario';
+    const userName = (profile as { nombre: string } | null)?.nombre || 'Usuario';
     const titulo = formData.get('titulo') as string || '';
     const descripcion = formData.get('descripcion') as string || '';
 

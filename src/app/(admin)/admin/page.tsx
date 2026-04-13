@@ -69,39 +69,28 @@ export default function AdminPage() {
     setError('');
 
     try {
-      // Create auth user via Supabase Admin (using service role would be ideal,
-      // but from client we use signUp then the trigger creates the users row)
-      const supabase = createClient();
-
-      const { data, error: signUpError } = await supabase.auth.signUp({
-        email: newEmail,
-        password: newPassword,
-        options: {
-          data: { nombre: newName },
-        },
+      const res = await fetch('/api/admin/create-student', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: newEmail,
+          password: newPassword,
+          nombre: newName,
+        }),
       });
 
-      if (signUpError) {
-        setError(signUpError.message);
+      const result = await res.json();
+
+      if (!res.ok) {
+        setError(result.error || 'Error al crear alumno');
         setCreating(false);
         return;
-      }
-
-      if (data.user) {
-        // Ensure users row exists (trigger should handle this, but just in case)
-        await supabase.from('users').upsert({
-          id: data.user.id,
-          nombre: newName,
-          email: newEmail,
-          rol: 'alumno',
-        } as any);
       }
 
       setNewEmail('');
       setNewName('');
       setNewPassword('');
       setShowAddForm(false);
-      // Refresh list
       await fetchStudents();
     } catch {
       setError('Error al crear alumno');

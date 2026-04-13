@@ -8,13 +8,13 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Jiu Jitsu Latino",
-  description: "Plataforma de entrenamiento de Jiu Jitsu Latino — Programa High Ticket 1 a 1",
+  title: "JJL Elite",
+  description: "Programa Elite de Jiu Jitsu Latino — Entrenamiento High Ticket 1 a 1",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "JJL",
+    title: "JJL Elite",
   },
 };
 
