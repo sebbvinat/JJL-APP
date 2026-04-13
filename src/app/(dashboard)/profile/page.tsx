@@ -88,12 +88,14 @@ function ProfileContent() {
     if (profile?.avatar_url) setAvatarUrl(profile.avatar_url);
   }, [profile?.avatar_url]);
 
+  const [avatarError, setAvatarError] = useState('');
+
   async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setUploadingAvatar(true);
-    setError('');
+    setAvatarError('');
 
     const formData = new FormData();
     formData.append('avatar', file);
@@ -106,9 +108,12 @@ function ProfileContent() {
       setMessage('Foto actualizada');
       setTimeout(() => setMessage(''), 3000);
     } catch (err: any) {
-      setError(err.message || 'Error al subir imagen');
+      console.error('Avatar upload error:', err);
+      setAvatarError(err.message || 'Error al subir imagen');
     }
     setUploadingAvatar(false);
+    // Reset file input so same file can be re-selected
+    if (fileInputRef.current) fileInputRef.current.value = '';
   }
 
   async function handleChangePassword(e: React.FormEvent) {
@@ -215,26 +220,29 @@ function ProfileContent() {
       <Card className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-jjl-red/10 via-transparent to-transparent pointer-events-none" />
         <div className="relative flex flex-col sm:flex-row items-center gap-4">
-          <div className="relative group">
-            <Avatar src={avatarUrl} name={profile?.nombre || 'Usuario'} size="lg" />
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploadingAvatar}
-              className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-            >
-              {uploadingAvatar ? (
-                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              ) : (
-                <Camera className="h-5 w-5 text-white" />
-              )}
-            </button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              onChange={handleAvatarChange}
-              className="hidden"
-            />
+          <div className="flex flex-col items-center gap-1">
+            <div className="relative">
+              <Avatar src={avatarUrl} name={profile?.nombre || 'Usuario'} size="lg" />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadingAvatar}
+                className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-jjl-red flex items-center justify-center shadow-lg"
+              >
+                {uploadingAvatar ? (
+                  <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <Camera className="h-3.5 w-3.5 text-white" />
+                )}
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleAvatarChange}
+                className="hidden"
+              />
+            </div>
+            {avatarError && <p className="text-[11px] text-red-400 text-center">{avatarError}</p>}
           </div>
           <div className="text-center sm:text-left flex-1">
             <h1 className="text-xl font-bold">{profile?.nombre || 'Usuario'}</h1>
