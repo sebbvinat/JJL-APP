@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 
 import { LogOut, Settings, Menu, X, RefreshCw } from 'lucide-react';
@@ -10,13 +10,24 @@ import { NAV_ITEMS, ADMIN_NAV } from '@/lib/constants';
 import { usePathname } from 'next/navigation';
 import { clsx } from 'clsx';
 import { useUser } from '@/hooks/useUser';
+import { createClient } from '@/lib/supabase/client';
 
 export default function Topbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const pathname = usePathname();
-  const { profile, signOut } = useUser();
+  const { profile, authUser, signOut } = useUser();
   const isAdmin = profile?.rol === 'admin';
+
+  useEffect(() => {
+    if (!authUser) return;
+    const supabase = createClient();
+    supabase.from('users').select('avatar_url').eq('id', authUser.id).single()
+      .then(({ data }: { data: any }) => {
+        if (data?.avatar_url) setAvatarUrl(data.avatar_url);
+      });
+  }, [authUser]);
 
   return (
     <>
@@ -52,7 +63,7 @@ export default function Topbar() {
             onClick={() => setMenuOpen(!menuOpen)}
             className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-jjl-gray-light transition-colors"
           >
-            <Avatar src={profile?.avatar_url} name={profile?.nombre || 'Usuario'} size="sm" />
+            <Avatar src={avatarUrl || profile?.avatar_url} name={profile?.nombre || 'Usuario'} size="sm" />
           </button>
 
           {menuOpen && (

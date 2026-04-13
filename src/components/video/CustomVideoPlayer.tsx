@@ -222,22 +222,26 @@ export default function CustomVideoPlayer({
 
   // Lock body scroll and force landscape when CSS fullscreen is active
   useEffect(() => {
-    if (isCssFullscreen) {
-      document.body.style.overflow = 'hidden';
-      window.scrollTo(0, 0);
-      // Try native orientation lock first
-      try { (screen.orientation as any)?.lock?.('landscape').catch(() => {}); } catch {}
-      // Check if portrait — we'll rotate with CSS
-      const checkPortrait = () => setIsPortrait(window.innerHeight > window.innerWidth);
-      checkPortrait();
-      window.addEventListener('resize', checkPortrait);
-      return () => window.removeEventListener('resize', checkPortrait);
-    } else {
+    if (!isCssFullscreen) {
       document.body.style.overflow = '';
       setIsPortrait(false);
       try { (screen.orientation as any)?.unlock?.(); } catch {}
+      return;
     }
-    return () => { document.body.style.overflow = ''; };
+
+    document.body.style.overflow = 'hidden';
+    window.scrollTo(0, 0);
+    try { (screen.orientation as any)?.lock?.('landscape').catch(() => {}); } catch {}
+
+    // Check if portrait — rotate with CSS if so
+    const checkPortrait = () => setIsPortrait(window.innerHeight > window.innerWidth);
+    checkPortrait();
+    window.addEventListener('resize', checkPortrait);
+
+    return () => {
+      document.body.style.overflow = '';
+      window.removeEventListener('resize', checkPortrait);
+    };
   }, [isCssFullscreen]);
 
   const handleComplete = () => {
