@@ -14,6 +14,7 @@ import PostForm from '@/components/community/PostForm';
 interface Post {
   id: string;
   autor: string;
+  avatar_url: string | null;
   cinturon: string;
   titulo: string;
   contenido: string;
@@ -171,7 +172,7 @@ export default function CommunityPage() {
               <Link href={`/community/${post.id}`}>
                 <Card hover className="mb-0">
                   <div className="flex gap-3">
-                    <Avatar name={post.autor} />
+                    <Avatar src={post.avatar_url} name={post.autor} />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-semibold text-sm">{post.autor}</span>

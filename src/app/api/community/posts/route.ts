@@ -49,10 +49,10 @@ export async function GET(request: NextRequest) {
   const userIds = [...new Set(posts.map((p: any) => p.user_id))];
   const { data: users } = await supabase
     .from('users')
-    .select('id, nombre, cinturon_actual')
+    .select('id, nombre, cinturon_actual, avatar_url')
     .in('id', userIds);
 
-  const userMap: Record<string, { nombre: string; cinturon_actual: string }> = {};
+  const userMap: Record<string, { nombre: string; cinturon_actual: string; avatar_url: string | null }> = {};
   (users || []).forEach((u: any) => { userMap[u.id] = u; });
 
   // Check which posts the current user has liked + check if admin
@@ -72,6 +72,7 @@ export async function GET(request: NextRequest) {
   const formatted = posts.map((p: any) => ({
     id: p.id,
     autor: userMap[p.user_id]?.nombre || 'Usuario',
+    avatar_url: userMap[p.user_id]?.avatar_url || null,
     cinturon: userMap[p.user_id]?.cinturon_actual || 'white',
     titulo: p.titulo,
     contenido: p.contenido,

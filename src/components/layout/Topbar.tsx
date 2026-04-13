@@ -52,7 +52,7 @@ export default function Topbar() {
             onClick={() => setMenuOpen(!menuOpen)}
             className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-jjl-gray-light transition-colors"
           >
-            <Avatar name={profile?.nombre || 'Usuario'} size="sm" />
+            <Avatar src={profile?.avatar_url} name={profile?.nombre || 'Usuario'} size="sm" />
           </button>
 
           {menuOpen && (

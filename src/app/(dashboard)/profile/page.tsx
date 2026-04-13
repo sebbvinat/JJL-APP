@@ -90,15 +90,13 @@ function ProfileContent() {
     if (!authUser) return;
     const supabase = createClient();
     supabase.from('users').select('avatar_url').eq('id', authUser.id).single()
-      .then(({ data, error }) => {
-        console.log('[Avatar] DB fetch:', { avatar_url: data?.avatar_url, error: error?.message });
+      .then(({ data }) => {
         if (data?.avatar_url) setDbAvatarUrl(data.avatar_url);
       });
   }, [authUser]);
 
   // Use uploaded URL if just changed, then DB fetch, then profile from provider
   const avatarUrl = uploadedAvatarUrl || dbAvatarUrl || profile?.avatar_url || null;
-  console.log('[Avatar] resolved:', { uploadedAvatarUrl, dbAvatarUrl, profileUrl: profile?.avatar_url, final: avatarUrl });
 
   const [avatarError, setAvatarError] = useState('');
 
