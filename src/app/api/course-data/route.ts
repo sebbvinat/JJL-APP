@@ -54,6 +54,9 @@ export async function GET(request: NextRequest) {
       videoCount: Array.isArray(row.lessons)
         ? row.lessons.filter((l: any) => l.tipo !== 'reflection').length
         : 0,
+      lessons: Array.isArray(row.lessons)
+        ? row.lessons.map((l: any) => ({ id: l.id, tipo: l.tipo }))
+        : [],
     }));
 
     return NextResponse.json({ modules });

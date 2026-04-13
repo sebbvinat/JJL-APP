@@ -7,6 +7,11 @@ import { createClient } from '@/lib/supabase/client';
 import { useUser } from '@/hooks/useUser';
 import { MOCK_MODULES, MOCK_LESSONS } from '@/lib/mock-data';
 
+interface LessonBasic {
+  id: string;
+  tipo?: string;
+}
+
 interface ModuleInfo {
   id: string;
   semana_numero: number;
@@ -14,12 +19,14 @@ interface ModuleInfo {
   descripcion: string;
   lessonCount: number;
   videoCount: number;
+  lessons: LessonBasic[];
 }
 
 export default function ModulesPage() {
   const { authUser, loading: userLoading } = useUser();
   const [unlockedIds, setUnlockedIds] = useState<string[]>([]);
   const [allModules, setAllModules] = useState<ModuleInfo[]>([]);
+  const [completedIds, setCompletedIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
 
   // Load modules from course_data (Supabase), fallback to mock
@@ -47,6 +54,7 @@ export default function ModulesPage() {
             descripcion: mod.descripcion,
             lessonCount: lessons.length,
             videoCount: lessons.filter((l) => l.tipo !== 'reflection').length,
+            lessons: lessons.map((l) => ({ id: l.id, tipo: l.tipo })),
           };
         })
       );
@@ -54,6 +62,21 @@ export default function ModulesPage() {
 
     loadModules();
   }, []);
+
+  // Load user progress
+  useEffect(() => {
+    if (!authUser) return;
+    async function loadProgress() {
+      try {
+        const res = await fetch('/api/progress');
+        if (res.ok) {
+          const data = await res.json();
+          setCompletedIds(new Set(data.completedLessonIds || []));
+        }
+      } catch {}
+    }
+    loadProgress();
+  }, [authUser]);
 
   // Load unlocked modules for this user
   useEffect(() => {
@@ -112,18 +135,22 @@ export default function ModulesPage() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {visibleModules.map((mod) => (
-          <ModuleCard
-            key={mod.id}
-            id={mod.id}
-            semana={mod.semana_numero}
-            titulo={mod.titulo}
-            descripcion={mod.descripcion}
-            totalLessons={mod.lessonCount}
-            completedLessons={0}
-            unlocked={true}
-          />
-        ))}
+        {visibleModules.map((mod) => {
+          const videoLessons = mod.lessons.filter((l) => l.tipo !== 'reflection');
+          const completed = videoLessons.filter((l) => completedIds.has(l.id)).length;
+          return (
+            <ModuleCard
+              key={mod.id}
+              id={mod.id}
+              semana={mod.semana_numero}
+              titulo={mod.titulo}
+              descripcion={mod.descripcion}
+              totalLessons={videoLessons.length}
+              completedLessons={completed}
+              unlocked={true}
+            />
+          );
+        })}
       </div>
     </div>
   );
