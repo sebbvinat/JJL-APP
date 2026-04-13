@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { format, subDays } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Save, CheckCircle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Save, CheckCircle, ChevronLeft, ChevronRight, Target, ShieldAlert, ChevronDown, Eye } from 'lucide-react';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 
@@ -23,10 +23,13 @@ interface HistoryEntry {
   fecha: string;
   entreno_check: boolean;
   fatiga: string | null;
-  puntaje: number | null;
   intensidad: string | null;
+  objetivo: string | null;
   objetivo_cumplido: boolean | null;
+  regla: string | null;
   regla_cumplida: boolean | null;
+  puntaje: number | null;
+  observaciones: string | null;
 }
 
 const EMPTY_ENTRY: JournalEntry = {
@@ -60,6 +63,7 @@ export default function JournalPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [expandedDay, setExpandedDay] = useState<string | null>(null);
 
   const isToday = fecha === format(new Date(), 'yyyy-MM-dd');
 
@@ -168,6 +172,44 @@ export default function JournalPage() {
           <ChevronRight className="h-5 w-5" />
         </button>
       </div>
+
+      {/* Focus banner — shows today's objective & rule as reminder */}
+      {isToday && (entry.objetivo.trim() || entry.regla.trim()) && (
+        <div className="space-y-2">
+          {entry.objetivo.trim() && (
+            <div className={`flex items-start gap-3 px-4 py-3 rounded-xl border ${
+              entry.objetivo_cumplido === true
+                ? 'bg-green-500/10 border-green-500/30'
+                : entry.objetivo_cumplido === false
+                  ? 'bg-red-500/10 border-red-500/30'
+                  : 'bg-blue-500/10 border-blue-500/30'
+            }`}>
+              <Target className="h-4 w-4 mt-0.5 shrink-0 text-blue-400" />
+              <div className="flex-1 min-w-0">
+                <p className="text-[10px] uppercase tracking-wider text-jjl-muted font-semibold">Objetivo de hoy</p>
+                <p className="text-sm text-white mt-0.5">{entry.objetivo}</p>
+              </div>
+              {entry.objetivo_cumplido === true && <CheckCircle className="h-4 w-4 text-green-400 shrink-0 mt-0.5" />}
+            </div>
+          )}
+          {entry.regla.trim() && (
+            <div className={`flex items-start gap-3 px-4 py-3 rounded-xl border ${
+              entry.regla_cumplida === true
+                ? 'bg-green-500/10 border-green-500/30'
+                : entry.regla_cumplida === false
+                  ? 'bg-red-500/10 border-red-500/30'
+                  : 'bg-orange-500/10 border-orange-500/30'
+            }`}>
+              <ShieldAlert className="h-4 w-4 mt-0.5 shrink-0 text-orange-400" />
+              <div className="flex-1 min-w-0">
+                <p className="text-[10px] uppercase tracking-wider text-jjl-muted font-semibold">No voy a hacer</p>
+                <p className="text-sm text-white mt-0.5">{entry.regla}</p>
+              </div>
+              {entry.regla_cumplida === true && <CheckCircle className="h-4 w-4 text-green-400 shrink-0 mt-0.5" />}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* 1. Entrene hoy? */}
       <Card>
@@ -376,38 +418,91 @@ export default function JournalPage() {
           <h3 className="font-semibold mb-3">Ultimos dias</h3>
           <div className="space-y-2">
             {history.map((h) => {
+              const isExpanded = expandedDay === h.fecha;
               const isSelected = h.fecha === fecha;
               return (
-                <button
-                  key={h.fecha}
-                  onClick={() => setFecha(h.fecha)}
-                  className={`w-full flex items-center gap-3 p-2.5 rounded-lg text-left transition-all ${
-                    isSelected ? 'bg-jjl-red/10 border border-jjl-red/30' : 'hover:bg-jjl-gray-light/50'
-                  }`}
-                >
-                  <span className="text-lg">
-                    {h.fatiga === 'verde' ? '🟢' : h.fatiga === 'amarillo' ? '🟡' : h.fatiga === 'rojo' ? '🔴' : '⚪'}
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium capitalize">
-                      {format(new Date(h.fecha + 'T12:00:00'), "EEE d MMM", { locale: es })}
-                    </p>
-                    <p className="text-xs text-jjl-muted">
-                      {h.entreno_check ? 'Entreno' : 'No entreno'}
-                      {h.intensidad ? ` · ${h.intensidad}` : ''}
-                    </p>
-                  </div>
-                  {h.puntaje && (
-                    <span className={`text-sm font-bold px-2 py-0.5 rounded ${
-                      h.puntaje >= 7 ? 'text-green-400' : h.puntaje >= 4 ? 'text-yellow-400' : 'text-red-400'
-                    }`}>
-                      {h.puntaje}/10
+                <div key={h.fecha} className={`rounded-lg border transition-all ${
+                  isSelected ? 'border-jjl-red/30 bg-jjl-red/5' : 'border-jjl-border/30'
+                }`}>
+                  {/* Summary row */}
+                  <button
+                    onClick={() => setExpandedDay(isExpanded ? null : h.fecha)}
+                    className="w-full flex items-center gap-3 p-2.5 text-left"
+                  >
+                    <span className="text-lg">
+                      {h.fatiga === 'verde' ? '🟢' : h.fatiga === 'amarillo' ? '🟡' : h.fatiga === 'rojo' ? '🔴' : '⚪'}
                     </span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium capitalize">
+                        {format(new Date(h.fecha + 'T12:00:00'), "EEE d MMM", { locale: es })}
+                      </p>
+                      <p className="text-xs text-jjl-muted">
+                        {h.entreno_check ? 'Entreno' : 'No entreno'}
+                        {h.intensidad ? ` · ${h.intensidad}` : ''}
+                      </p>
+                    </div>
+                    {h.puntaje && (
+                      <span className={`text-sm font-bold px-2 py-0.5 rounded ${
+                        h.puntaje >= 7 ? 'text-green-400' : h.puntaje >= 4 ? 'text-yellow-400' : 'text-red-400'
+                      }`}>
+                        {h.puntaje}/10
+                      </span>
+                    )}
+                    <ChevronDown className={`h-4 w-4 text-jjl-muted shrink-0 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                  </button>
+
+                  {/* Expanded detail */}
+                  {isExpanded && (
+                    <div className="px-3 pb-3 space-y-2 border-t border-jjl-border/20 pt-2 ml-9">
+                      {h.objetivo && (
+                        <div className="flex items-start gap-2">
+                          <Target className="h-3.5 w-3.5 mt-0.5 text-blue-400 shrink-0" />
+                          <div className="min-w-0">
+                            <p className="text-[10px] text-jjl-muted uppercase">Objetivo</p>
+                            <p className="text-xs text-white">{h.objetivo}</p>
+                            <p className={`text-[10px] mt-0.5 ${
+                              h.objetivo_cumplido === true ? 'text-green-400' : h.objetivo_cumplido === false ? 'text-red-400' : 'text-jjl-muted'
+                            }`}>
+                              {h.objetivo_cumplido === true ? 'Cumplido' : h.objetivo_cumplido === false ? 'No cumplido' : 'Sin evaluar'}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                      {h.regla && (
+                        <div className="flex items-start gap-2">
+                          <ShieldAlert className="h-3.5 w-3.5 mt-0.5 text-orange-400 shrink-0" />
+                          <div className="min-w-0">
+                            <p className="text-[10px] text-jjl-muted uppercase">Regla</p>
+                            <p className="text-xs text-white">{h.regla}</p>
+                            <p className={`text-[10px] mt-0.5 ${
+                              h.regla_cumplida === true ? 'text-green-400' : h.regla_cumplida === false ? 'text-red-400' : 'text-jjl-muted'
+                            }`}>
+                              {h.regla_cumplida === true ? 'Cumplida' : h.regla_cumplida === false ? 'No cumplida' : 'Sin evaluar'}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                      {h.observaciones && (
+                        <div className="flex items-start gap-2">
+                          <Eye className="h-3.5 w-3.5 mt-0.5 text-jjl-muted shrink-0" />
+                          <div className="min-w-0">
+                            <p className="text-[10px] text-jjl-muted uppercase">Observaciones</p>
+                            <p className="text-xs text-white">{h.observaciones}</p>
+                          </div>
+                        </div>
+                      )}
+                      {!h.objetivo && !h.regla && !h.observaciones && (
+                        <p className="text-xs text-jjl-muted italic">Sin detalles registrados</p>
+                      )}
+                      <button
+                        onClick={() => setFecha(h.fecha)}
+                        className="text-xs text-jjl-red hover:text-jjl-red/80 mt-1"
+                      >
+                        Editar este dia
+                      </button>
+                    </div>
                   )}
-                  {h.objetivo_cumplido === true && h.regla_cumplida === true && (
-                    <CheckCircle className="h-4 w-4 text-green-400 shrink-0" />
-                  )}
-                </button>
+                </div>
               );
             })}
           </div>

@@ -29,11 +29,11 @@ export async function GET(request: NextRequest) {
   const fecha = request.nextUrl.searchParams.get('fecha') || format(new Date(), 'yyyy-MM-dd');
   const history = request.nextUrl.searchParams.get('history');
 
-  // Return last 7 entries for history view
+  // Return last 7 entries for history view (full data for detail view)
   if (history === 'true') {
     const { data } = await supabase
       .from('daily_tasks')
-      .select('fecha, entreno_check, fatiga, puntaje, intensidad, objetivo_cumplido, regla_cumplida')
+      .select('fecha, entreno_check, fatiga, intensidad, objetivo, objetivo_cumplido, regla, regla_cumplida, puntaje, observaciones')
       .eq('user_id', user.id)
       .order('fecha', { ascending: false })
       .limit(7);
