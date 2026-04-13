@@ -14,6 +14,6 @@ export const config = {
      * - favicon.ico, icons, manifest, sw
      * - api routes
      */
-    '/((?!_next/static|_next/image|favicon.ico|icons|manifest.json|sw.js|api).*)',
+    '/((?!_next/static|_next/image|favicon.ico|icons|manifest.json|sw.js|api|.*\\.png$|.*\\.svg$|.*\\.jpg$|.*\\.ico$).*)',
   ],
 };
