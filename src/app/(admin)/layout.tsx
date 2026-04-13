@@ -18,7 +18,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <header className="bg-jjl-gray border-b border-jjl-border sticky top-0 z-40">
         <div className="flex items-center justify-between px-6 h-16">
           <div className="flex items-center gap-3">
-            <img src="/logo-jjl.png" alt="JJL" width={36} height={36} className="rounded-lg" />
+            <div className="w-9 h-9 rounded-full bg-white p-1 flex items-center justify-center shrink-0">
+              <img src="/logo-jjl.png" alt="JJL" width={28} height={28} />
+            </div>
             <div>
               <h1 className="text-base font-bold leading-tight">ADMIN PANEL</h1>
               <p className="text-xs text-jjl-red tracking-widest uppercase -mt-0.5">Jiu Jitsu Latino</p>

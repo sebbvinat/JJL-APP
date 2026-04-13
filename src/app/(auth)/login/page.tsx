@@ -66,13 +66,14 @@ export default function LoginPage() {
       <div className="relative">
         {/* Logo */}
         <div className="flex flex-col items-center mb-8">
-          <img
-            src="/logo-jjl.png"
-            alt="JJL"
-            width={72}
-            height={72}
-            className="mb-4"
-          />
+          <div className="mb-4 w-[72px] h-[72px] rounded-full bg-white p-2 flex items-center justify-center">
+            <img
+              src="/logo-jjl.png"
+              alt="JJL"
+              width={56}
+              height={56}
+            />
+          </div>
           <h1 className="text-2xl font-bold">JIU JITSU LATINO</h1>
           <p className="text-jjl-muted text-sm mt-1">Inicia sesion en tu cuenta</p>
         </div>

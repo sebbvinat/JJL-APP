@@ -8,7 +8,9 @@ export default function LandingPage() {
       {/* Header */}
       <header className="flex items-center justify-between px-6 py-4 max-w-6xl mx-auto">
         <div className="flex items-center gap-2">
-          <Image src="/logo-jjl.png" alt="JJL" width={40} height={40} className="rounded-lg" unoptimized />
+          <div className="w-10 h-10 rounded-full bg-white p-1 flex items-center justify-center">
+            <Image src="/logo-jjl.png" alt="JJL" width={32} height={32} unoptimized />
+          </div>
           <div>
             <h1 className="text-lg font-bold leading-tight">JIU JITSU</h1>
             <p className="text-xs font-semibold text-jjl-red tracking-[0.2em] uppercase -mt-0.5">Latino</p>

@@ -166,7 +166,9 @@ function ProfileContent() {
       <div className="space-y-6 max-w-md mx-auto mt-12">
         <Card>
           <div className="text-center mb-6">
-            <img src="/logo-jjl.png" alt="JJL" width={48} height={48} className="mx-auto mb-3" />
+            <div className="w-12 h-12 rounded-full bg-white p-1 flex items-center justify-center mx-auto mb-3">
+              <img src="/logo-jjl.png" alt="JJL" width={40} height={40} />
+            </div>
             <h1 className="text-xl font-bold">Cambiar Contraseña</h1>
             <p className="text-sm text-jjl-muted mt-1">Ingresa tu nueva contraseña</p>
           </div>
