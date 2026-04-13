@@ -202,14 +202,22 @@ export default function CustomVideoPlayer({
 
   const isIOS = typeof navigator !== 'undefined' && /iPhone|iPad|iPod/.test(navigator.userAgent);
 
-  const [isPortrait, setIsPortrait] = useState(false);
+  const [needsRotation, setNeedsRotation] = useState(false);
 
   const handleFullscreen = useCallback(() => {
     if (!containerRef.current) return;
 
-    // iOS doesn't support Fullscreen API for iframes — use CSS fullscreen
     if (isIOS || !document.fullscreenEnabled) {
-      setIsCssFullscreen((prev) => !prev);
+      if (isCssFullscreen) {
+        // Exit fullscreen
+        setIsCssFullscreen(false);
+        setNeedsRotation(false);
+      } else {
+        // Enter fullscreen — check if we need to rotate
+        const portrait = window.innerHeight > window.innerWidth;
+        setNeedsRotation(portrait);
+        setIsCssFullscreen(true);
+      }
       return;
     }
 
@@ -218,30 +226,19 @@ export default function CustomVideoPlayer({
     } else {
       containerRef.current.requestFullscreen();
     }
-  }, [isIOS]);
+  }, [isIOS, isCssFullscreen]);
 
-  // Lock body scroll and force landscape when CSS fullscreen is active
+  // Lock body scroll when CSS fullscreen
   useEffect(() => {
-    if (!isCssFullscreen) {
+    if (isCssFullscreen) {
+      document.body.style.overflow = 'hidden';
+      window.scrollTo(0, 0);
+      try { (screen.orientation as any)?.lock?.('landscape').catch(() => {}); } catch {}
+    } else {
       document.body.style.overflow = '';
-      setIsPortrait(false);
       try { (screen.orientation as any)?.unlock?.(); } catch {}
-      return;
     }
-
-    document.body.style.overflow = 'hidden';
-    window.scrollTo(0, 0);
-    try { (screen.orientation as any)?.lock?.('landscape').catch(() => {}); } catch {}
-
-    // Check if portrait — rotate with CSS if so
-    const checkPortrait = () => setIsPortrait(window.innerHeight > window.innerWidth);
-    checkPortrait();
-    window.addEventListener('resize', checkPortrait);
-
-    return () => {
-      document.body.style.overflow = '';
-      window.removeEventListener('resize', checkPortrait);
-    };
+    return () => { document.body.style.overflow = ''; };
   }, [isCssFullscreen]);
 
   const handleComplete = () => {
@@ -281,9 +278,9 @@ export default function CustomVideoPlayer({
             : 'w-full aspect-video rounded-xl'
         }`}
         style={isCssFullscreen
-          ? isCssFullscreen && isPortrait
-            ? { position: 'fixed', top: 0, left: 0, width: '100dvh', height: '100vw', transform: 'rotate(90deg)', transformOrigin: 'top left', marginLeft: '100vw' }
-            : { position: 'fixed', inset: 0, width: '100vw', height: '100dvh' }
+          ? needsRotation
+            ? { position: 'fixed' as const, top: 0, left: 0, width: '100dvh', height: '100vw', transform: 'rotate(90deg)', transformOrigin: 'top left', marginLeft: '100vw', zIndex: 9999 }
+            : { position: 'fixed' as const, top: 0, left: 0, right: 0, bottom: 0, width: '100vw', height: '100dvh', zIndex: 9999 }
           : undefined
         }
         onContextMenu={preventContext}
