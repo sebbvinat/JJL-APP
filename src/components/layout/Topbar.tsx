@@ -5,7 +5,7 @@ import Link from 'next/link';
 
 import { LogOut, Settings, Menu, X } from 'lucide-react';
 import Avatar from '@/components/ui/Avatar';
-import { NAV_ITEMS } from '@/lib/constants';
+import { NAV_ITEMS, ADMIN_NAV } from '@/lib/constants';
 import { usePathname } from 'next/navigation';
 import { clsx } from 'clsx';
 import { useUser } from '@/hooks/useUser';
@@ -15,6 +15,7 @@ export default function Topbar() {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const pathname = usePathname();
   const { profile, signOut } = useUser();
+  const isAdmin = profile?.rol === 'admin';
 
   return (
     <>
@@ -85,6 +86,26 @@ export default function Topbar() {
                     isActive
                       ? 'bg-jjl-red/10 text-jjl-red border border-jjl-red/20'
                       : 'text-jjl-muted hover:text-white hover:bg-jjl-gray-light'
+                  )}
+                >
+                  <Icon className="h-5 w-5 shrink-0" />
+                  {item.label}
+                </Link>
+              );
+            })}
+            {isAdmin && ADMIN_NAV.map((item) => {
+              const isActive = pathname.startsWith(item.href);
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setMobileNavOpen(false)}
+                  className={clsx(
+                    'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors mt-2 border-t border-jjl-border pt-3',
+                    isActive
+                      ? 'bg-yellow-500/10 text-yellow-400 border-t border-jjl-border border-b-0 border-l-0 border-r-0'
+                      : 'text-yellow-500/70 hover:text-yellow-400 hover:bg-jjl-gray-light'
                   )}
                 >
                   <Icon className="h-5 w-5 shrink-0" />

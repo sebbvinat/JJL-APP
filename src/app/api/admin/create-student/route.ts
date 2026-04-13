@@ -78,12 +78,20 @@ export async function POST(request: NextRequest) {
 
     // 4. Ensure users row exists
     if (newUser.user) {
-      await adminClient.from('users').upsert({
+      const { error: upsertError } = await adminClient.from('users').upsert({
         id: newUser.user.id,
         nombre,
         email,
         rol: 'alumno',
       } as any);
+
+      if (upsertError) {
+        console.error('Users table upsert error:', upsertError);
+        return NextResponse.json(
+          { error: `Usuario creado en auth pero fallo la tabla users: ${upsertError.message}` },
+          { status: 500 }
+        );
+      }
     }
 
     return NextResponse.json({ success: true, userId: newUser.user?.id });
