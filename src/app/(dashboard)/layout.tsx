@@ -3,6 +3,7 @@ import Topbar from '@/components/layout/Topbar';
 import MobileNav from '@/components/layout/MobileNav';
 import { UserProvider } from '@/providers/UserProvider';
 import PushPrompt from '@/components/PushPrompt';
+import VersionCheck from '@/components/VersionCheck';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -17,6 +18,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
         <MobileNav />
         <PushPrompt />
+        <VersionCheck />
       </div>
     </UserProvider>
   );
