@@ -119,7 +119,7 @@ export default function CustomVideoPlayer({
         rel: 0,
         iv_load_policy: 3,
         disablekb: 1,
-        fs: 0,
+        fs: 1,
         cc_load_policy: 0,
         playsinline: 1,
         vq: 'hd1080',
@@ -136,6 +136,15 @@ export default function CustomVideoPlayer({
     if (!mountedRef.current) return;
     setPlayerReady(true);
     setDuration(event.target.getDuration());
+    // Ensure iframe allows fullscreen (needed for iOS)
+    try {
+      const iframe = event.target.getIframe();
+      if (iframe) {
+        iframe.setAttribute('allow', 'fullscreen; autoplay; encrypted-media');
+        iframe.setAttribute('allowfullscreen', 'true');
+        iframe.setAttribute('webkitallowfullscreen', 'true');
+      }
+    } catch {}
     // Force max quality
     try { event.target.setPlaybackQuality('hd1080'); } catch {}
   }
@@ -213,7 +222,29 @@ export default function CustomVideoPlayer({
   const handleFullscreen = useCallback(() => {
     if (!containerRef.current) return;
 
-    if (isIOS || !document.fullscreenEnabled) {
+    // On iOS: try to get the iframe's video element for native fullscreen (rotates automatically)
+    if (isIOS) {
+      try {
+        const iframe = containerRef.current.querySelector('iframe');
+        if (iframe) {
+          // Request fullscreen on the iframe itself — iOS Safari handles rotation
+          const el = iframe as any;
+          if (el.webkitRequestFullscreen) {
+            el.webkitRequestFullscreen();
+            return;
+          }
+          if (el.requestFullscreen) {
+            el.requestFullscreen();
+            return;
+          }
+        }
+      } catch {}
+      // Fallback to CSS fullscreen
+      setIsCssFullscreen((prev) => !prev);
+      return;
+    }
+
+    if (!document.fullscreenEnabled) {
       setIsCssFullscreen((prev) => !prev);
       return;
     }
