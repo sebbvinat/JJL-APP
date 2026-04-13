@@ -55,19 +55,19 @@ export async function GET(request: NextRequest) {
   const userMap: Record<string, { nombre: string; cinturon_actual: string }> = {};
   (users || []).forEach((u: any) => { userMap[u.id] = u; });
 
-  // Check which posts the current user has liked
+  // Check which posts the current user has liked + check if admin
   const postIds = posts.map((p: any) => p.id);
   let likedPostIds: string[] = [];
 
-  if (postIds.length > 0) {
-    const { data: likes } = await supabase
-      .from('post_likes')
-      .select('post_id')
-      .eq('user_id', user.id)
-      .in('post_id', postIds);
+  const [likesResult, profileResult] = await Promise.all([
+    postIds.length > 0
+      ? supabase.from('post_likes').select('post_id').eq('user_id', user.id).in('post_id', postIds)
+      : Promise.resolve({ data: [] }),
+    supabase.from('users').select('rol').eq('id', user.id).single(),
+  ]);
 
-    likedPostIds = (likes || []).map((l: any) => l.post_id);
-  }
+  likedPostIds = (likesResult.data || []).map((l: any) => l.post_id);
+  const isAdmin = profileResult.data?.rol === 'admin';
 
   const formatted = posts.map((p: any) => ({
     id: p.id,
@@ -80,10 +80,11 @@ export async function GET(request: NextRequest) {
     comments: p.comments_count || 0,
     liked: likedPostIds.includes(p.id),
     isOwner: p.user_id === user.id,
+    canDelete: p.user_id === user.id || isAdmin,
     createdAt: p.created_at,
   }));
 
-  return NextResponse.json({ posts: formatted });
+  return NextResponse.json({ posts: formatted, isAdmin });
 }
 
 // POST: Create a new post

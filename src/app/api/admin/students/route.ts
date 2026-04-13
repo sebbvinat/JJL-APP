@@ -43,11 +43,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
     }
 
-    // 3. Get all students
+    // 3. Get all users (students + admins)
     const { data: users } = await adminClient
       .from('users')
       .select('*')
-      .eq('rol', 'alumno')
       .order('created_at', { ascending: false });
 
     // 4. Get unlocked module counts

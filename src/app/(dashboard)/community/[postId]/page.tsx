@@ -30,6 +30,7 @@ interface Comment {
   cinturon: string;
   contenido: string;
   isOwner: boolean;
+  canDelete: boolean;
   createdAt: string;
 }
 
@@ -109,6 +110,17 @@ export default function PostDetailPage() {
     try {
       const res = await fetch(`/api/community/posts/${postId}`, { method: 'DELETE' });
       if (res.ok) router.push('/community');
+    } catch {}
+  }
+
+  async function handleDeleteComment(commentId: string) {
+    if (!confirm('Eliminar este comentario?')) return;
+    try {
+      const res = await fetch(`/api/community/comments/${commentId}`, { method: 'DELETE' });
+      if (res.ok) {
+        setComments((prev) => prev.filter((c) => c.id !== commentId));
+        setPost((p) => p ? { ...p, comments: p.comments - 1 } : p);
+      }
     } catch {}
   }
 
@@ -209,6 +221,15 @@ export default function PostDetailPage() {
                   </div>
                   <p className="text-sm text-jjl-muted mt-1">{comment.contenido}</p>
                 </div>
+                {comment.canDelete && (
+                  <button
+                    onClick={() => handleDeleteComment(comment.id)}
+                    className="text-jjl-muted hover:text-red-400 transition-colors p-1 shrink-0 self-start"
+                    title="Eliminar comentario"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                )}
               </div>
             ))}
           </div>

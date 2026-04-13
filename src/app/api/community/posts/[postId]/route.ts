@@ -59,15 +59,25 @@ export async function GET(
   const userMap: Record<string, { nombre: string; cinturon_actual: string }> = {};
   (users || []).forEach((u: any) => { userMap[u.id] = u; });
 
-  // Check if user liked this post
-  const { data: like } = await supabase
-    .from('post_likes')
-    .select('post_id')
-    .eq('user_id', user.id)
-    .eq('post_id', postId)
-    .maybeSingle();
+  // Check if user liked this post + check if admin
+  const [{ data: like }, { data: callerProfile }] = await Promise.all([
+    supabase
+      .from('post_likes')
+      .select('post_id')
+      .eq('user_id', user.id)
+      .eq('post_id', postId)
+      .maybeSingle(),
+    supabase
+      .from('users')
+      .select('rol')
+      .eq('id', user.id)
+      .single(),
+  ]);
+
+  const isAdmin = callerProfile?.rol === 'admin';
 
   return NextResponse.json({
+    isAdmin,
     post: {
       id: post.id,
       autor: userMap[post.user_id]?.nombre || 'Usuario',
@@ -78,7 +88,7 @@ export async function GET(
       likes: post.likes_count || 0,
       comments: post.comments_count || 0,
       liked: !!like,
-      isOwner: post.user_id === user.id,
+      isOwner: post.user_id === user.id || isAdmin,
       createdAt: post.created_at,
     },
     comments: (comments || []).map((c: any) => ({
@@ -87,12 +97,13 @@ export async function GET(
       cinturon: userMap[c.user_id]?.cinturon_actual || 'white',
       contenido: c.contenido,
       isOwner: c.user_id === user.id,
+      canDelete: c.user_id === user.id || isAdmin,
       createdAt: c.created_at,
     })),
   });
 }
 
-// DELETE: Delete own post
+// DELETE: Delete post (owner or admin)
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ postId: string }> }
@@ -104,6 +115,32 @@ export async function DELETE(
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
   }
 
+  // Check if admin
+  const { data: profile } = await supabase
+    .from('users')
+    .select('rol')
+    .eq('id', user.id)
+    .single();
+
+  const isAdmin = profile?.rol === 'admin';
+
+  if (isAdmin) {
+    // Admin can delete any post — use service role to bypass RLS
+    const { createClient } = await import('@supabase/supabase-js');
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (serviceRoleKey) {
+      const adminClient = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        serviceRoleKey,
+        { auth: { autoRefreshToken: false, persistSession: false } }
+      );
+      const { error } = await adminClient.from('posts').delete().eq('id', postId);
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json({ success: true });
+    }
+  }
+
+  // Non-admin: only delete own post
   const { error } = await supabase
     .from('posts')
     .delete()

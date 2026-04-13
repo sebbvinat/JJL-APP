@@ -22,6 +22,7 @@ interface Post {
   comments: number;
   liked: boolean;
   isOwner: boolean;
+  canDelete: boolean;
   createdAt: string;
 }
 

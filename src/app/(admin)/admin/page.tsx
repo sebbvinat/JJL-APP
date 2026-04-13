@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Users, ChevronRight, Plus } from 'lucide-react';
+import { Users, ChevronRight, Plus, Shield, ShieldOff } from 'lucide-react';
 import Card from '@/components/ui/Card';
 import Avatar from '@/components/ui/Avatar';
 import Badge from '@/components/ui/Badge';
@@ -74,6 +74,30 @@ export default function AdminPage() {
     }
 
     setCreating(false);
+  }
+
+  async function toggleAdmin(studentId: string, currentRol: string) {
+    const newRol = currentRol === 'admin' ? 'alumno' : 'admin';
+    const action = newRol === 'admin' ? 'hacer admin' : 'quitar admin';
+    if (!confirm(`Seguro que quieres ${action} a este usuario?`)) return;
+
+    try {
+      const res = await fetch('/api/admin/update-role', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: studentId, rol: newRol }),
+      });
+      if (res.ok) {
+        setStudents((prev) =>
+          prev.map((s) => s.id === studentId ? { ...s, rol: newRol } : s)
+        );
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Error al cambiar rol');
+      }
+    } catch {
+      alert('Error al cambiar rol');
+    }
   }
 
   if (loading) {
@@ -181,29 +205,50 @@ export default function AdminPage() {
         ) : (
           <div className="space-y-2">
             {students.map((student) => (
-              <Link
+              <div
                 key={student.id}
-                href={`/admin/${student.id}`}
                 className="flex items-center gap-4 p-4 rounded-lg hover:bg-jjl-gray-light transition-colors border border-transparent hover:border-jjl-border"
               >
-                <Avatar name={student.nombre} />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold">{student.nombre}</span>
-                    <Badge belt={student.cinturon_actual} />
+                <Link href={`/admin/${student.id}`} className="flex items-center gap-4 flex-1 min-w-0">
+                  <Avatar name={student.nombre} />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold">{student.nombre}</span>
+                      <Badge belt={student.cinturon_actual} />
+                      {student.rol === 'admin' && (
+                        <span className="text-xs bg-jjl-red/20 text-jjl-red px-2 py-0.5 rounded-full font-medium">
+                          Admin
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-sm text-jjl-muted">{student.email}</p>
                   </div>
-                  <p className="text-sm text-jjl-muted">{student.email}</p>
-                </div>
-                <div className="hidden sm:block text-right">
-                  <p className="text-sm">
-                    <span className={student.unlocked_count > 0 ? 'text-green-400' : 'text-jjl-muted'}>
-                      {student.unlocked_count} modulos
-                    </span>
-                  </p>
-                  <p className="text-xs text-jjl-muted">desbloqueados</p>
-                </div>
-                <ChevronRight className="h-5 w-5 text-jjl-muted shrink-0" />
-              </Link>
+                  <div className="hidden sm:block text-right">
+                    <p className="text-sm">
+                      <span className={student.unlocked_count > 0 ? 'text-green-400' : 'text-jjl-muted'}>
+                        {student.unlocked_count} modulos
+                      </span>
+                    </p>
+                    <p className="text-xs text-jjl-muted">desbloqueados</p>
+                  </div>
+                  <ChevronRight className="h-5 w-5 text-jjl-muted shrink-0" />
+                </Link>
+                <button
+                  onClick={() => toggleAdmin(student.id, student.rol || 'alumno')}
+                  className={`p-2 rounded-lg transition-colors shrink-0 ${
+                    student.rol === 'admin'
+                      ? 'text-jjl-red hover:bg-jjl-red/10'
+                      : 'text-jjl-muted hover:bg-jjl-gray-light hover:text-white'
+                  }`}
+                  title={student.rol === 'admin' ? 'Quitar admin' : 'Hacer admin'}
+                >
+                  {student.rol === 'admin' ? (
+                    <ShieldOff className="h-4 w-4" />
+                  ) : (
+                    <Shield className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
             ))}
           </div>
         )}
