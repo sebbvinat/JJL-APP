@@ -46,13 +46,22 @@ export async function POST(request: Request) {
   }
 
   const ext = file.name.split('.').pop() || 'jpg';
-  const filePath = `avatars/${user.id}.${ext}`;
+  const filePath = `${user.id}.${ext}`;
+
+  // Use service role for storage upload (bypasses RLS)
+  const { createClient } = await import('@supabase/supabase-js');
+  const adminClient = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  );
 
   // Upload to Supabase Storage
   const arrayBuffer = await file.arrayBuffer();
-  const { error: uploadError } = await supabase.storage
+  const buffer = Buffer.from(arrayBuffer);
+  const { error: uploadError } = await adminClient.storage
     .from('avatars')
-    .upload(filePath, arrayBuffer, {
+    .upload(filePath, buffer, {
       contentType: file.type,
       upsert: true,
     });
@@ -63,7 +72,7 @@ export async function POST(request: Request) {
   }
 
   // Get public URL
-  const { data: urlData } = supabase.storage
+  const { data: urlData } = adminClient.storage
     .from('avatars')
     .getPublicUrl(filePath);
 
