@@ -1,6 +1,7 @@
 'use client';
 
 import useSWR from 'swr';
+import Link from 'next/link';
 import { format } from 'date-fns';
 import { Flame, BookOpen, Trophy, Calendar, Upload, Users, ChevronRight, NotebookPen } from 'lucide-react';
 import Card from '@/components/ui/Card';
@@ -9,6 +10,7 @@ import StatCard from '@/components/dashboard/StatCard';
 import TaskDashboard from '@/components/dashboard/TaskDashboard';
 import TrainingCalendar from '@/components/dashboard/TrainingCalendar';
 import BeltProgress from '@/components/gamification/BeltProgress';
+import { DashboardSkeleton } from '@/components/ui/Skeleton';
 import { calculateGamification } from '@/lib/gamification';
 import { fetcher } from '@/lib/fetcher';
 import type { BeltLevel } from '@/lib/supabase/types';
@@ -41,22 +43,7 @@ export default function DashboardPage() {
   );
 
   if (loading && !data) {
-    return (
-      <div className="space-y-6 max-w-4xl animate-pulse">
-        {/* Welcome skeleton */}
-        <div className="bg-jjl-gray-light/50 border border-jjl-border rounded-xl p-6 h-24" />
-        {/* Task skeleton */}
-        <div className="bg-jjl-gray-light/50 border border-jjl-border rounded-xl p-6 h-20" />
-        {/* Stats skeleton */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {[...Array(4)].map((_, i) => (
-            <div key={i} className="bg-jjl-gray-light/50 border border-jjl-border rounded-xl p-4 h-24" />
-          ))}
-        </div>
-        {/* Belt skeleton */}
-        <div className="bg-jjl-gray-light/50 border border-jjl-border rounded-xl p-6 h-32" />
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   const profile = data?.profile || { cinturon_actual: 'white', puntos: 0, nombre: 'Guerrero', rol: 'alumno' };
@@ -187,17 +174,17 @@ export default function DashboardPage() {
           ].map((action) => {
             const Icon = action.icon;
             return (
-              <a
+              <Link
                 key={action.href}
                 href={action.href}
-                className="group flex flex-col items-center gap-2 p-4 rounded-lg bg-jjl-gray-light border border-jjl-border hover:border-jjl-red/40 transition-all duration-200 text-center relative"
+                className="group relative flex flex-col items-center gap-2.5 p-4 rounded-xl bg-white/[0.03] border border-jjl-border hover:border-jjl-red/40 hover:bg-white/[0.05] transition-all duration-200 text-center"
               >
-                <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-jjl-red/10">
-                  <Icon className="h-5 w-5 text-jjl-red" />
+                <div className="flex items-center justify-center w-11 h-11 rounded-xl bg-jjl-red/10 ring-1 ring-jjl-red/15 text-jjl-red group-hover:bg-jjl-red group-hover:text-white group-hover:ring-jjl-red transition-all">
+                  <Icon className="h-[18px] w-[18px]" strokeWidth={2.1} />
                 </div>
-                <span className="text-sm text-white font-medium">{action.label}</span>
-                <ChevronRight className="h-3.5 w-3.5 text-jjl-muted/40 absolute top-2 right-2 group-hover:text-jjl-red/60 transition-colors" />
-              </a>
+                <span className="text-[13px] text-white font-semibold">{action.label}</span>
+                <ChevronRight className="h-3.5 w-3.5 text-jjl-muted/30 absolute top-2 right-2 group-hover:text-jjl-red/60 group-hover:translate-x-0.5 transition-all" />
+              </Link>
             );
           })}
         </div>

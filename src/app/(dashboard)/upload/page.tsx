@@ -1,11 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { CheckCircle, ExternalLink } from 'lucide-react';
+import { CheckCircle, ExternalLink, Upload as UploadIcon } from 'lucide-react';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import UploadDropzone from '@/components/upload/UploadDropzone';
+import { useToast } from '@/components/ui/Toast';
+import { logger } from '@/lib/logger';
 
 export default function UploadPage() {
   const [file, setFile] = useState<File | null>(null);
@@ -16,6 +18,7 @@ export default function UploadPage() {
   const [progress, setProgress] = useState(0);
   const [result, setResult] = useState<{ fileName: string; webViewLink: string } | null>(null);
   const [error, setError] = useState('');
+  const toast = useToast();
 
   // Simulate progress animation
   useEffect(() => {
@@ -68,11 +71,15 @@ export default function UploadPage() {
       setTimeout(() => {
         setResult({ fileName: data.fileName, webViewLink: data.webViewLink });
         setUploading(false);
+        toast.success('Video subido', 'Listo en Google Drive');
       }, 500);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al subir el archivo');
+      const msg = err instanceof Error ? err.message : 'Error al subir el archivo';
+      setError(msg);
       setUploading(false);
       setProgress(0);
+      logger.error('upload.failed', { err, fileName: file.name, size: file.size });
+      toast.error(msg, 'Upload fallo');
     }
   };
 
@@ -114,9 +121,14 @@ export default function UploadPage() {
 
   return (
     <div className="space-y-6 max-w-2xl mx-auto">
-      <div>
-        <h1 className="text-2xl font-bold">Subir Video</h1>
-        <p className="text-jjl-muted mt-1">Subi tu video de lucha o entrenamiento</p>
+      <div className="flex items-center gap-3">
+        <div className="h-10 w-10 rounded-xl bg-jjl-red/10 ring-1 ring-jjl-red/25 text-jjl-red flex items-center justify-center">
+          <UploadIcon className="h-5 w-5" />
+        </div>
+        <div>
+          <h1 className="text-2xl font-black tracking-tight">Subir Video</h1>
+          <p className="text-sm text-jjl-muted mt-0.5">Para analisis con tu instructor</p>
+        </div>
       </div>
 
       {/* Dropzone */}
@@ -160,14 +172,16 @@ export default function UploadPage() {
           {/* Progress */}
           {uploading && (
             <Card>
-              <div className="space-y-2">
+              <div className="space-y-2.5">
                 <div className="flex justify-between text-sm">
                   <span className="text-jjl-muted">Subiendo a Google Drive...</span>
-                  <span className="text-jjl-red font-medium">{Math.round(progress)}%</span>
+                  <span className="text-jjl-red font-bold tabular-nums">
+                    {Math.round(progress)}%
+                  </span>
                 </div>
-                <div className="w-full bg-jjl-gray-light rounded-full h-2.5">
+                <div className="h-2 rounded-full bg-white/5 overflow-hidden">
                   <div
-                    className="bg-jjl-red h-2.5 rounded-full transition-all duration-300"
+                    className="h-full bg-gradient-to-r from-jjl-red to-orange-500 rounded-full transition-all duration-300 shadow-[0_0_12px_-2px_rgba(220,38,38,0.6)]"
                     style={{ width: `${progress}%` }}
                   />
                 </div>
@@ -176,7 +190,10 @@ export default function UploadPage() {
           )}
 
           {error && (
-            <div className="bg-red-900/30 border border-red-500/30 rounded-lg px-4 py-3 text-sm text-red-400">
+            <div className="bg-red-500/10 border border-red-500/30 rounded-lg px-4 py-3 text-sm text-red-400 flex items-start gap-2 animate-fade-in">
+              <div className="h-4 w-4 rounded-full bg-red-500/30 flex items-center justify-center shrink-0 mt-0.5">
+                <span className="text-red-300 text-[10px] font-bold">!</span>
+              </div>
               {error}
             </div>
           )}

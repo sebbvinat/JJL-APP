@@ -3,6 +3,8 @@
 import useSWR from 'swr';
 import { Lock } from 'lucide-react';
 import ModuleCard from '@/components/modules/ModuleCard';
+import EmptyState from '@/components/ui/EmptyState';
+import { SkeletonCard } from '@/components/ui/Skeleton';
 import { fetcher } from '@/lib/fetcher';
 import { MOCK_MODULES, MOCK_LESSONS } from '@/lib/mock-data';
 
@@ -60,8 +62,16 @@ export default function ModulesPage() {
 
   if (loading && !courseData && !progress) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="w-8 h-8 border-2 border-jjl-red border-t-transparent rounded-full animate-spin" />
+      <div className="space-y-6 max-w-4xl">
+        <div className="space-y-2">
+          <div className="skeleton h-7 w-40 rounded" />
+          <div className="skeleton h-4 w-72 rounded" />
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[0, 1, 2, 3, 4, 5].map((i) => (
+            <SkeletonCard key={i} />
+          ))}
+        </div>
       </div>
     );
   }
@@ -77,26 +87,41 @@ export default function ModulesPage() {
 
   if (visibleModules.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4 text-center">
-        <div className="h-20 w-20 bg-jjl-gray rounded-full flex items-center justify-center">
-          <Lock className="h-10 w-10 text-jjl-muted" />
-        </div>
-        <h2 className="text-xl font-bold">Sin modulos disponibles</h2>
-        <p className="text-jjl-muted max-w-sm">
-          Tu instructor aun no ha habilitado modulos para tu cuenta. Contactalo
-          para comenzar tu entrenamiento.
-        </p>
-      </div>
+      <EmptyState
+        icon={Lock}
+        title="Sin modulos disponibles"
+        description="Tu instructor aun no habilito modulos para tu cuenta. Contactalo para comenzar tu entrenamiento."
+        className="min-h-[60vh]"
+      />
     );
   }
 
+  const totalLessons = visibleModules.reduce((sum, m) => sum + m.lessons.length, 0);
+  const totalCompleted = visibleModules.reduce(
+    (sum, m) => sum + m.lessons.filter((l) => completedIds.has(l.id)).length,
+    0
+  );
+
   return (
-    <div className="space-y-6 max-w-4xl">
-      <div>
-        <h1 className="text-2xl font-bold">Tu Programa</h1>
-        <p className="text-jjl-muted mt-1">
-          Construyendo tu juego ideal entrenamiento a entrenamiento
-        </p>
+    <div className="space-y-6 max-w-5xl">
+      <div className="flex items-end justify-between flex-wrap gap-4">
+        <div>
+          <p className="text-[11px] uppercase tracking-[0.18em] text-jjl-muted font-semibold mb-1.5">
+            Curriculum
+          </p>
+          <h1 className="text-3xl font-black text-white tracking-tight">Tu Programa</h1>
+          <p className="text-sm text-jjl-muted mt-1.5">
+            Construyendo tu juego ideal, entrenamiento a entrenamiento.
+          </p>
+        </div>
+        <div className="flex items-baseline gap-2">
+          <span className="text-3xl font-black text-jjl-red tabular-nums leading-none">
+            {totalCompleted}
+          </span>
+          <span className="text-[11px] uppercase tracking-wider text-jjl-muted font-semibold">
+            / {totalLessons}<br />lecciones
+          </span>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

@@ -8,8 +8,10 @@ import Avatar from '@/components/ui/Avatar';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
+import { useToast } from '@/components/ui/Toast';
 import { useUser } from '@/hooks/useUser';
 import { createClient } from '@/lib/supabase/client';
+import { logger } from '@/lib/logger';
 
 export default function ProfilePage() {
   return (
@@ -99,6 +101,7 @@ function ProfileContent() {
   const avatarUrl = uploadedAvatarUrl || dbAvatarUrl || profile?.avatar_url || null;
 
   const [avatarError, setAvatarError] = useState('');
+  const toast = useToast();
 
   async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -115,15 +118,15 @@ function ProfileContent() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Error al subir imagen');
       setUploadedAvatarUrl(data.avatar_url);
-      setMessage('Foto actualizada. Recargando...');
-      // Reload page so topbar and all components get the new avatar
-      setTimeout(() => window.location.reload(), 1000);
-    } catch (err: any) {
-      console.error('Avatar upload error:', err);
-      setAvatarError(err.message || 'Error al subir imagen');
+      toast.success('Foto actualizada');
+      setTimeout(() => window.location.reload(), 800);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Error al subir imagen';
+      logger.error('profile.avatar.upload.failed', { err });
+      setAvatarError(msg);
+      toast.error(msg);
     }
     setUploadingAvatar(false);
-    // Reset file input so same file can be re-selected
     if (fileInputRef.current) fileInputRef.current.value = '';
   }
 
@@ -149,8 +152,10 @@ function ProfileContent() {
 
     if (updateError) {
       setError(updateError.message);
+      toast.error(updateError.message);
     } else {
       setMessage('Contraseña actualizada correctamente');
+      toast.success('Contraseña actualizada');
       setNewPassword('');
       setConfirmPassword('');
       setShowPasswordForm(false);
@@ -229,15 +234,22 @@ function ProfileContent() {
     <div className="space-y-6 max-w-3xl mx-auto">
       {/* Profile Header */}
       <Card className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-jjl-red/10 via-transparent to-transparent pointer-events-none" />
-        <div className="relative flex flex-col sm:flex-row items-center gap-4">
-          <div className="flex flex-col items-center gap-1">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -top-24 -right-16 h-64 w-64 rounded-full blur-3xl opacity-25"
+          style={{
+            background: 'radial-gradient(circle, rgba(220,38,38,0.6), transparent 70%)',
+          }}
+        />
+        <div className="relative flex flex-col sm:flex-row items-center gap-5">
+          <div className="flex flex-col items-center gap-1.5">
             <div className="relative">
               <Avatar src={avatarUrl} name={profile?.nombre || 'Usuario'} size="lg" />
               <button
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploadingAvatar}
-                className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-jjl-red flex items-center justify-center shadow-lg"
+                aria-label="Cambiar foto"
+                className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-jjl-red hover:bg-jjl-red-hover ring-2 ring-jjl-gray flex items-center justify-center shadow-[0_8px_20px_-4px_rgba(220,38,38,0.55)] transition-colors"
               >
                 {uploadingAvatar ? (
                   <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -253,18 +265,29 @@ function ProfileContent() {
                 className="hidden"
               />
             </div>
-            {avatarError && <p className="text-[11px] text-red-400 text-center">{avatarError}</p>}
+            {avatarError && (
+              <p className="text-[11px] text-red-400 text-center mt-1">{avatarError}</p>
+            )}
           </div>
-          <div className="text-center sm:text-left flex-1">
-            <h1 className="text-xl font-bold">{profile?.nombre || 'Usuario'}</h1>
-            <div className="flex items-center gap-2 mt-1 justify-center sm:justify-start">
+          <div className="text-center sm:text-left flex-1 min-w-0">
+            <p className="text-[11px] uppercase tracking-[0.18em] text-jjl-muted font-semibold mb-1">
+              Perfil
+            </p>
+            <h1 className="text-2xl font-black tracking-tight text-white truncate">
+              {profile?.nombre || 'Usuario'}
+            </h1>
+            <div className="flex items-center gap-2 mt-2 justify-center sm:justify-start flex-wrap">
               <Badge belt={profile?.cinturon_actual || 'white'} />
-              <span className="text-sm text-jjl-muted">{authUser?.email}</span>
+              <span className="text-xs text-jjl-muted truncate">{authUser?.email}</span>
             </div>
           </div>
-          <div className="text-center px-5 py-3 bg-jjl-red/10 rounded-xl shadow-sm shadow-jjl-red/10">
-            <p className="text-3xl font-bold text-jjl-red drop-shadow-[0_0_6px_rgba(220,38,38,0.3)]">{profile?.puntos || 0}</p>
-            <p className="text-xs text-jjl-muted">Puntos</p>
+          <div className="text-center px-5 py-3 rounded-xl bg-jjl-red/10 border border-jjl-red/20 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+            <p className="text-[28px] font-black text-jjl-red tabular-nums leading-none">
+              {profile?.puntos || 0}
+            </p>
+            <p className="text-[10px] text-jjl-muted mt-1 uppercase tracking-wider font-semibold">
+              Puntos
+            </p>
           </div>
         </div>
       </Card>

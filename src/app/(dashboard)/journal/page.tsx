@@ -9,6 +9,7 @@ import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import { fetcher } from '@/lib/fetcher';
 import { logger } from '@/lib/logger';
+import { useToast } from '@/components/ui/Toast';
 
 interface JournalEntry {
   entreno_check: boolean;
@@ -48,10 +49,31 @@ const EMPTY_ENTRY: JournalEntry = {
 };
 
 const FATIGA_OPTIONS = [
-  { value: 'verde', label: 'Bien', emoji: '🟢', color: 'bg-green-500', desc: 'Recuperado, con energia' },
-  { value: 'amarillo', label: 'Normal', emoji: '🟡', color: 'bg-yellow-500', desc: 'Cansancio controlable' },
-  { value: 'rojo', label: 'Cansado', emoji: '🔴', color: 'bg-red-500', desc: 'Muy cargado, molestias' },
+  {
+    value: 'verde',
+    label: 'Bien',
+    dotClass: 'bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.6)]',
+    desc: 'Recuperado, con energia',
+  },
+  {
+    value: 'amarillo',
+    label: 'Normal',
+    dotClass: 'bg-yellow-500 shadow-[0_0_10px_rgba(234,179,8,0.55)]',
+    desc: 'Cansancio controlable',
+  },
+  {
+    value: 'rojo',
+    label: 'Cansado',
+    dotClass: 'bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.55)]',
+    desc: 'Muy cargado, molestias',
+  },
 ] as const;
+
+const FATIGA_DOT_CLASS: Record<string, string> = {
+  verde: 'bg-green-500',
+  amarillo: 'bg-yellow-500',
+  rojo: 'bg-red-500',
+};
 
 const INTENSIDAD_OPTIONS = [
   { value: 'baja', label: 'Baja', color: 'text-green-400 border-green-500/40 bg-green-500/10' },
@@ -66,6 +88,7 @@ export default function JournalPage() {
   const [saved, setSaved] = useState(false);
   const [expandedDay, setExpandedDay] = useState<string | null>(null);
   const { mutate } = useSWRConfig();
+  const toast = useToast();
 
   const isToday = fecha === format(new Date(), 'yyyy-MM-dd');
 
@@ -119,12 +142,15 @@ export default function JournalPage() {
         setSaved(true);
         mutate(entryKey);
         mutate(historyKey);
+        toast.success('Diario guardado');
         setTimeout(() => setSaved(false), 3000);
       } else {
         logger.error('journal.save.badStatus', { status: res.status, fecha });
+        toast.error('No pudimos guardar el diario');
       }
     } catch (err) {
       logger.error('journal.save.failed', { err, fecha });
+      toast.error('Error de conexion');
     }
     setSaving(false);
   }
@@ -157,20 +183,27 @@ export default function JournalPage() {
   return (
     <div className="space-y-4 max-w-lg mx-auto pb-8">
       {/* Date nav */}
-      <div className="flex items-center justify-between">
-        <button onClick={() => goDay(-1)} className="p-2 rounded-lg hover:bg-jjl-gray-light text-jjl-muted hover:text-white">
+      <div className="flex items-center justify-between gap-2 bg-white/[0.02] border border-jjl-border rounded-xl px-2 py-1.5">
+        <button
+          onClick={() => goDay(-1)}
+          aria-label="Dia anterior"
+          className="h-9 w-9 flex items-center justify-center rounded-lg text-jjl-muted hover:text-white hover:bg-white/5 transition-colors"
+        >
           <ChevronLeft className="h-5 w-5" />
         </button>
-        <div className="text-center">
-          <h1 className="text-lg font-bold">Diario de Entrenamiento</h1>
-          <p className="text-sm text-jjl-muted capitalize">
-            {isToday ? 'Hoy' : format(new Date(fecha + 'T12:00:00'), "EEEE d 'de' MMMM", { locale: es })}
+        <div className="text-center min-w-0">
+          <p className="text-[10px] uppercase tracking-[0.18em] text-jjl-muted/70 font-semibold">
+            {isToday ? 'Hoy' : 'Diario del dia'}
+          </p>
+          <p className="text-[14px] font-bold text-white capitalize truncate">
+            {format(new Date(fecha + 'T12:00:00'), "EEEE d 'de' MMMM", { locale: es })}
           </p>
         </div>
         <button
           onClick={() => goDay(1)}
           disabled={isToday}
-          className="p-2 rounded-lg hover:bg-jjl-gray-light text-jjl-muted hover:text-white disabled:opacity-20"
+          aria-label="Dia siguiente"
+          className="h-9 w-9 flex items-center justify-center rounded-lg text-jjl-muted hover:text-white hover:bg-white/5 transition-colors disabled:opacity-20 disabled:hover:bg-transparent"
         >
           <ChevronRight className="h-5 w-5" />
         </button>
@@ -242,23 +275,32 @@ export default function JournalPage() {
 
       {/* 2. Fatiga */}
       <Card>
-        <h3 className="font-semibold mb-3">Como te sentis fisicamente?</h3>
+        <h3 className="font-semibold text-[15px] mb-3">Como te sentis fisicamente?</h3>
         <div className="grid grid-cols-3 gap-2">
-          {FATIGA_OPTIONS.map((opt) => (
-            <button
-              key={opt.value}
-              onClick={() => update('fatiga', entry.fatiga === opt.value ? null : opt.value)}
-              className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all ${
-                entry.fatiga === opt.value
-                  ? 'border-jjl-red bg-jjl-red/10 scale-105'
-                  : 'border-jjl-border hover:border-jjl-border/80 bg-jjl-gray-light/30'
-              }`}
-            >
-              <span className="text-2xl">{opt.emoji}</span>
-              <span className="text-sm font-medium">{opt.label}</span>
-              <span className="text-[10px] text-jjl-muted leading-tight text-center">{opt.desc}</span>
-            </button>
-          ))}
+          {FATIGA_OPTIONS.map((opt) => {
+            const active = entry.fatiga === opt.value;
+            return (
+              <button
+                key={opt.value}
+                onClick={() => update('fatiga', active ? null : opt.value)}
+                className={`flex flex-col items-center gap-2 p-3.5 rounded-xl border transition-all ${
+                  active
+                    ? 'border-jjl-red bg-jjl-red/10 -translate-y-0.5'
+                    : 'border-jjl-border hover:border-jjl-border-strong bg-white/[0.02] hover:bg-white/[0.04]'
+                }`}
+              >
+                <span
+                  className={`h-3 w-3 rounded-full ${opt.dotClass} ${
+                    active ? 'scale-110' : 'opacity-70'
+                  } transition-transform`}
+                />
+                <span className="text-[13px] font-semibold text-white">{opt.label}</span>
+                <span className="text-[10px] text-jjl-muted leading-tight text-center">
+                  {opt.desc}
+                </span>
+              </button>
+            );
+          })}
         </div>
       </Card>
 
@@ -430,11 +472,16 @@ export default function JournalPage() {
                   {/* Summary row */}
                   <button
                     onClick={() => setExpandedDay(isExpanded ? null : h.fecha)}
-                    className="w-full flex items-center gap-3 p-2.5 text-left"
+                    className="w-full flex items-center gap-3 p-3 text-left"
                   >
-                    <span className="text-lg">
-                      {h.fatiga === 'verde' ? '🟢' : h.fatiga === 'amarillo' ? '🟡' : h.fatiga === 'rojo' ? '🔴' : '⚪'}
-                    </span>
+                    <span
+                      aria-hidden
+                      className={`h-2.5 w-2.5 rounded-full shrink-0 ${
+                        h.fatiga
+                          ? FATIGA_DOT_CLASS[h.fatiga] || 'bg-white/20'
+                          : 'bg-white/15'
+                      }`}
+                    />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium capitalize">
                         {format(new Date(h.fecha + 'T12:00:00'), "EEE d MMM", { locale: es })}
