@@ -270,6 +270,21 @@ export default function JournalPage() {
     setEntry((prev) => ({ ...prev, [field]: value }));
   }
 
+  /**
+   * Append a timestamped entry to a free-text field without erasing what's
+   * already there. Prevents the "I typed 3 things today but only 1 saved"
+   * problem: users tended to replace the textarea contents.
+   */
+  function appendTimestamped(field: 'aprendizajes' | 'observaciones' | 'notas') {
+    const now = new Date();
+    const hhmm = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    setEntry((prev) => {
+      const current = (prev[field] || '').trim();
+      const next = current ? `${current}\n\n[${hhmm}] ` : `[${hhmm}] `;
+      return { ...prev, [field]: next };
+    });
+  }
+
   function goDay(offset: number) {
     const d = new Date(fecha + 'T12:00:00');
     d.setDate(d.getDate() + offset);
@@ -551,49 +566,73 @@ export default function JournalPage() {
         />
 
         <Card>
-          <label className="block">
-            <span className="block text-[11px] uppercase tracking-[0.12em] font-semibold text-jjl-muted mb-1.5">
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="block text-[11px] uppercase tracking-[0.12em] font-semibold text-jjl-muted">
               Que aprendiste hoy que quieras recordar
             </span>
-            <textarea
-              value={entry.aprendizajes}
-              onChange={(e) => update('aprendizajes', e.target.value)}
-              placeholder="Insights de las luchas, detalles tecnicos, patrones que notaste..."
-              rows={3}
-              className="w-full bg-white/[0.03] border border-jjl-border rounded-lg px-3 py-2.5 text-[13px] text-white placeholder:text-jjl-muted/50 focus:outline-none focus:border-jjl-red focus:ring-2 focus:ring-jjl-red/25 resize-none"
-            />
-          </label>
+            <button
+              type="button"
+              onClick={() => appendTimestamped('aprendizajes')}
+              className="text-[11px] text-jjl-red hover:text-jjl-red-hover font-semibold"
+            >
+              + Agregar nota
+            </button>
+          </div>
+          <textarea
+            value={entry.aprendizajes}
+            onChange={(e) => update('aprendizajes', e.target.value)}
+            placeholder="Insights de las luchas, detalles tecnicos, patrones que notaste..."
+            rows={4}
+            className="w-full bg-white/[0.03] border border-jjl-border rounded-lg px-3 py-2.5 text-[13px] text-white placeholder:text-jjl-muted/50 focus:outline-none focus:border-jjl-red focus:ring-2 focus:ring-jjl-red/25 resize-none"
+          />
+          <p className="text-[10px] text-jjl-muted/60 mt-1.5">
+            Tocá &quot;+ Agregar nota&quot; para sumar con hora sin borrar lo anterior.
+          </p>
         </Card>
 
         <Card>
-          <label className="block">
-            <span className="block text-[11px] uppercase tracking-[0.12em] font-semibold text-jjl-muted mb-1.5">
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="block text-[11px] uppercase tracking-[0.12em] font-semibold text-jjl-muted">
               Observaciones
             </span>
-            <textarea
-              value={entry.observaciones}
-              onChange={(e) => update('observaciones', e.target.value)}
-              placeholder="Problemas, logros, lo que quieras anotar"
-              rows={3}
-              className="w-full bg-white/[0.03] border border-jjl-border rounded-lg px-3 py-2.5 text-[13px] text-white placeholder:text-jjl-muted/50 focus:outline-none focus:border-jjl-red focus:ring-2 focus:ring-jjl-red/25 resize-none"
-            />
-          </label>
+            <button
+              type="button"
+              onClick={() => appendTimestamped('observaciones')}
+              className="text-[11px] text-jjl-red hover:text-jjl-red-hover font-semibold"
+            >
+              + Agregar nota
+            </button>
+          </div>
+          <textarea
+            value={entry.observaciones}
+            onChange={(e) => update('observaciones', e.target.value)}
+            placeholder="Problemas, logros, lo que quieras anotar"
+            rows={4}
+            className="w-full bg-white/[0.03] border border-jjl-border rounded-lg px-3 py-2.5 text-[13px] text-white placeholder:text-jjl-muted/50 focus:outline-none focus:border-jjl-red focus:ring-2 focus:ring-jjl-red/25 resize-none"
+          />
         </Card>
 
         <Card>
-          <label className="block">
-            <span className="flex items-center gap-1.5 text-[11px] uppercase tracking-[0.12em] font-semibold text-jjl-muted mb-1.5">
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="flex items-center gap-1.5 text-[11px] uppercase tracking-[0.12em] font-semibold text-jjl-muted">
               <LinkIcon className="h-3 w-3" />
               Notas + links
             </span>
-            <textarea
-              value={entry.notas}
-              onChange={(e) => update('notas', e.target.value)}
-              placeholder={'Recursos, videos, ideas — pega URLs y se convierten en links\nhttps://youtube.com/...'}
-              rows={4}
-              className="w-full bg-white/[0.03] border border-jjl-border rounded-lg px-3 py-2.5 text-[13px] text-white placeholder:text-jjl-muted/50 focus:outline-none focus:border-jjl-red focus:ring-2 focus:ring-jjl-red/25 resize-none"
-            />
-          </label>
+            <button
+              type="button"
+              onClick={() => appendTimestamped('notas')}
+              className="text-[11px] text-jjl-red hover:text-jjl-red-hover font-semibold"
+            >
+              + Agregar nota
+            </button>
+          </div>
+          <textarea
+            value={entry.notas}
+            onChange={(e) => update('notas', e.target.value)}
+            placeholder={'Recursos, videos, ideas — pega URLs y se convierten en links\nhttps://youtube.com/...'}
+            rows={4}
+            className="w-full bg-white/[0.03] border border-jjl-border rounded-lg px-3 py-2.5 text-[13px] text-white placeholder:text-jjl-muted/50 focus:outline-none focus:border-jjl-red focus:ring-2 focus:ring-jjl-red/25 resize-none"
+          />
           {entry.notas.trim() && (
             <div className="mt-3 p-3 rounded-lg bg-black/30 border border-jjl-border/50 text-[12px] text-jjl-muted whitespace-pre-wrap leading-relaxed">
               <p className="text-[10px] uppercase tracking-wider text-jjl-muted/60 font-semibold mb-1.5">
