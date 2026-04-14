@@ -3,63 +3,156 @@
 @theme inline {
   --color-jjl-red: #DC2626;
   --color-jjl-red-hover: #B91C1C;
+  --color-jjl-red-soft: #EF4444;
   --color-jjl-dark: #000000;
-  --color-jjl-gray: #1A1A1A;
-  --color-jjl-gray-light: #262626;
-  --color-jjl-muted: #B0B8C4;
-  --color-jjl-border: #333333;
+  --color-jjl-gray: #141414;
+  --color-jjl-gray-light: #1F1F1F;
+  --color-jjl-elevated: #262626;
+  --color-jjl-muted: #9CA3AF;
+  --color-jjl-muted-soft: #6B7280;
+  --color-jjl-border: #27272A;
+  --color-jjl-border-strong: #3F3F46;
   --color-belt-white: #FFFFFF;
   --color-belt-blue: #3B82F6;
   --color-belt-purple: #8B5CF6;
   --color-belt-brown: #92400E;
   --color-belt-black: #111111;
+
   --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+
+  --radius-card: 1rem;
+  --shadow-card: 0 1px 0 0 rgba(255,255,255,0.04) inset, 0 20px 40px -24px rgba(0,0,0,0.6);
+  --shadow-glow-red: 0 0 0 1px rgba(220,38,38,0.18), 0 12px 40px -10px rgba(220,38,38,0.35);
 }
 
 * {
   box-sizing: border-box;
 }
 
+html {
+  scroll-behavior: smooth;
+  -webkit-tap-highlight-color: transparent;
+}
+
 body {
-  background: #000000;
-  color: #FFFFFF;
+  background: #000;
+  color: #fff;
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
 }
 
-/* Scrollbar */
+/* ----------------------------------------------------------------
+   Scrollbars
+---------------------------------------------------------------- */
 ::-webkit-scrollbar {
-  width: 6px;
+  width: 8px;
+  height: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: #000000;
+  background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #333333;
-  border-radius: 3px;
+  background: #2a2a2a;
+  border-radius: 4px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #555555;
+  background: #3f3f3f;
+  background-clip: padding-box;
+  border: 2px solid transparent;
 }
 
-/* Smooth scroll */
-html {
-  scroll-behavior: smooth;
+/* ----------------------------------------------------------------
+   Selection + focus
+---------------------------------------------------------------- */
+::selection {
+  background: #DC2626;
+  color: #fff;
 }
 
-/* Pulse glow animation for CTAs */
+:focus-visible {
+  outline: 2px solid rgba(220, 38, 38, 0.65);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ----------------------------------------------------------------
+   Animations
+---------------------------------------------------------------- */
 @keyframes pulse-glow {
   0%, 100% {
-    box-shadow: 0 0 8px rgba(220, 38, 38, 0.25), 0 0 20px rgba(220, 38, 38, 0.1);
+    box-shadow: 0 0 8px rgba(220, 38, 38, 0.25), 0 0 20px rgba(220, 38, 38, 0.10);
   }
   50% {
     box-shadow: 0 0 16px rgba(220, 38, 38, 0.4), 0 0 32px rgba(220, 38, 38, 0.2);
   }
 }
 
-/* Selection */
-::selection {
-  background: #DC2626;
-  color: #FFFFFF;
+@keyframes shimmer {
+  0% { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slide-down {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slide-in-right {
+  from { opacity: 0; transform: translateX(20px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.96); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.animate-slide-up      { animation: slide-up 0.24s ease-out both; }
+.animate-slide-down    { animation: slide-down 0.24s ease-out both; }
+.animate-slide-in-right{ animation: slide-in-right 0.3s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.animate-scale-in      { animation: scale-in 0.2s ease-out both; }
+.animate-fade-in       { animation: fade-in 0.3s ease-out both; }
+
+/* ----------------------------------------------------------------
+   Skeleton shimmer utility
+---------------------------------------------------------------- */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.03) 0%,
+    rgba(255, 255, 255, 0.07) 50%,
+    rgba(255, 255, 255, 0.03) 100%
+  );
+  background-size: 400px 100%;
+  animation: shimmer 1.6s ease-in-out infinite;
+  border-radius: 8px;
+}
+
+/* ----------------------------------------------------------------
+   Reusable component classes
+---------------------------------------------------------------- */
+@utility surface-elevated {
+  background: linear-gradient(180deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0) 100%),
+              var(--color-jjl-gray);
+  border: 1px solid var(--color-jjl-border);
+  border-radius: var(--radius-card);
+}
+
+@utility text-balance {
+  text-wrap: balance;
 }
