@@ -2,35 +2,44 @@
 
 import { useEffect, useState } from 'react';
 import { RefreshCw } from 'lucide-react';
+import { logger } from '@/lib/logger';
 
 export default function VersionCheck() {
   const [updateAvailable, setUpdateAvailable] = useState(false);
 
   useEffect(() => {
     let initialBuildId: string | null = null;
+    let cancelled = false;
 
     async function checkVersion() {
       try {
-        const res = await fetch('/', { cache: 'no-store', headers: { Accept: 'text/html' } });
-        const html = await res.text();
-        const match = html.match(/"buildId":"([^"]+)"/);
-        const buildId = match?.[1] || null;
-
-        if (!buildId) return;
+        const res = await fetch('/api/version', { cache: 'no-store' });
+        if (!res.ok) return;
+        const { buildId } = (await res.json()) as { buildId?: string };
+        if (!buildId || cancelled) return;
 
         if (!initialBuildId) {
           initialBuildId = buildId;
         } else if (buildId !== initialBuildId) {
-          // Auto-reload after 2 seconds (gives SW time to activate)
           setUpdateAvailable(true);
           setTimeout(() => window.location.reload(), 2000);
         }
-      } catch {}
+      } catch (err) {
+        logger.debug('version.check.failed', { err });
+      }
     }
 
     checkVersion();
-    const interval = setInterval(checkVersion, 60000);
-    return () => clearInterval(interval);
+    const interval = setInterval(checkVersion, 60_000);
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') checkVersion();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
   }, []);
 
   if (!updateAvailable) return null;

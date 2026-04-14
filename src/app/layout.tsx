@@ -44,17 +44,17 @@ export default function RootLayout({
             __html: `
               if ('serviceWorker' in navigator) {
                 window.addEventListener('load', () => {
+                  var hadController = !!navigator.serviceWorker.controller;
                   navigator.serviceWorker.register('/sw.js').then(function(reg) {
-                    // Check for updates every 60s
                     setInterval(function() { reg.update(); }, 60000);
-                    // When new SW is found, it auto-activates (skipWaiting)
-                    // then reload to use the new version
+                    document.addEventListener('visibilitychange', function() {
+                      if (document.visibilityState === 'visible') reg.update();
+                    });
                     var refreshing = false;
                     navigator.serviceWorker.addEventListener('controllerchange', function() {
-                      if (!refreshing) {
-                        refreshing = true;
-                        window.location.reload();
-                      }
+                      if (!hadController || refreshing) return;
+                      refreshing = true;
+                      window.location.reload();
                     });
                   });
                 });

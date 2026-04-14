@@ -1,4 +1,4 @@
-const CACHE_NAME = 'jjl-v4';
+const CACHE_NAME = 'jjl-1776131657444';
 
 self.addEventListener('install', (event) => {
   // Skip waiting immediately — don't cache static assets (network-first)
