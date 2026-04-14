@@ -24,6 +24,8 @@ export interface User {
   planilla_id: string | null;
   created_at: string;
   updated_at: string;
+  onboarding_step: number;
+  onboarding_completed_at: string | null;
 }
 
 export interface Module {

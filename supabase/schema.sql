@@ -12,6 +12,8 @@ CREATE TABLE public.users (
   rol TEXT DEFAULT 'alumno' CHECK (rol IN ('admin', 'alumno')),
   avatar_url TEXT,
   planilla_id TEXT,
+  onboarding_step INTEGER DEFAULT 1 CHECK (onboarding_step BETWEEN 1 AND 5),
+  onboarding_completed_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -209,6 +211,7 @@ CREATE INDEX idx_notifications_user ON public.notifications(user_id, created_at 
 CREATE INDEX idx_notifications_unread ON public.notifications(user_id) WHERE leido = FALSE;
 CREATE INDEX idx_push_subscriptions_user ON public.push_subscriptions(user_id);
 CREATE INDEX idx_course_data_user ON public.course_data(user_id);
+CREATE INDEX idx_users_onboarding_pending ON public.users(id) WHERE onboarding_completed_at IS NULL;
 CREATE INDEX idx_course_data_user_semana ON public.course_data(user_id, semana_numero);
 
 -- ============================================
