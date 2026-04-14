@@ -420,12 +420,16 @@ export default function CustomVideoPlayer({
         onMouseMove={handleMouseMove}
         onMouseLeave={() => isPlaying && setShowControls(false)}
       >
-        {/* YouTube player */}
-        <div
-          id={playerId}
-          className="absolute inset-0 w-full h-full"
-          style={{ pointerEvents: 'none' }}
-        />
+        {/*
+          YouTube player mount point.
+          - Outer wrapper is React-controlled and stays stable.
+          - Inner div is the target that YT.Player replaces with an iframe.
+            We key it by youtubeId so React fully re-mounts it on lesson
+            switch, preventing stale-DOM bugs that caused 'audio only'.
+        */}
+        <div className="absolute inset-0 w-full h-full" style={{ pointerEvents: 'none' }}>
+          <div id={playerId} key={youtubeId} className="w-full h-full" />
+        </div>
 
         {/* Full click-capture overlay — blocks ALL interaction with YouTube iframe */}
         <div
