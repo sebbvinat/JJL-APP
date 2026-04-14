@@ -15,11 +15,18 @@ import {
   Eye,
   Filter,
   Download,
+  Pencil,
+  Trash2,
+  Save,
+  X,
 } from 'lucide-react';
 import Card from '@/components/ui/Card';
+import Button from '@/components/ui/Button';
 import EmptyState from '@/components/ui/EmptyState';
 import { SkeletonCard } from '@/components/ui/Skeleton';
+import { useToast } from '@/components/ui/Toast';
 import { fetcher } from '@/lib/fetcher';
+import { logger } from '@/lib/logger';
 import { TOPIC_LABELS, TOPIC_TONE, type LibraryTopic } from '@/lib/library-topics';
 
 type EntryKind = 'aprendizaje' | 'observacion' | 'nota';
@@ -95,11 +102,11 @@ export default function LibraryPage() {
   const [query, setQuery] = useState('');
   const [activeTopic, setActiveTopic] = useState<LibraryTopic | 'all'>('all');
 
-  const { data, isLoading } = useSWR<Response>(
-    `/api/library?months=${months}`,
-    fetcher,
-    { revalidateOnFocus: false, dedupingInterval: 60_000 }
-  );
+  const libraryKey = `/api/library?months=${months}`;
+  const { data, isLoading, mutate } = useSWR<Response>(libraryKey, fetcher, {
+    revalidateOnFocus: false,
+    dedupingInterval: 60_000,
+  });
 
   const q = query.trim().toLowerCase();
 
@@ -266,7 +273,7 @@ export default function LibraryPage() {
       ) : tab === 'links' ? (
         <LinksView links={filteredLinks} />
       ) : (
-        <EntriesView entries={filteredEntries} />
+        <EntriesView entries={filteredEntries} onChanged={() => mutate()} />
       )}
     </div>
   );
@@ -334,7 +341,7 @@ function LinksView({ links }: { links: LinkItem[] }) {
   );
 }
 
-function EntriesView({ entries }: { entries: Entry[] }) {
+function EntriesView({ entries, onChanged }: { entries: Entry[]; onChanged: () => void }) {
   if (entries.length === 0) {
     return (
       <EmptyState
@@ -364,40 +371,141 @@ function EntriesView({ entries }: { entries: Entry[] }) {
           </h3>
           <div className="space-y-2">
             {items.map((e, i) => (
-              <Card key={`${e.fecha}-${i}`}>
-                <div className="flex items-start gap-3">
-                  <div
-                    className={`h-8 w-8 rounded-lg flex items-center justify-center shrink-0 ${KIND_META[e.kind].tone} bg-current/10 ring-1 ring-current/15`}
-                  >
-                    {(() => {
-                      const Icon = KIND_META[e.kind].icon;
-                      return <Icon className="h-4 w-4" strokeWidth={2.1} />;
-                    })()}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <Link
-                        href={`/journal?d=${e.fecha}`}
-                        className="text-[12px] font-semibold text-white hover:text-jjl-red"
-                      >
-                        {format(parseISO(e.fecha), "EEE d 'de' MMM", { locale: es })}
-                      </Link>
-                      <span className="text-[10px] uppercase tracking-wider text-jjl-muted/70 font-semibold">
-                        · {KIND_META[e.kind].label}
-                      </span>
-                      <TopicBadge topic={e.topic} />
-                    </div>
-                    <p className="text-[13px] text-white mt-1.5 whitespace-pre-wrap leading-relaxed">
-                      {renderLinkified(e.text)}
-                    </p>
-                  </div>
-                </div>
-              </Card>
+              <EntryCard key={`${e.fecha}-${e.kind}-${i}`} entry={e} onChanged={onChanged} />
             ))}
           </div>
         </section>
       ))}
     </div>
+  );
+}
+
+function EntryCard({ entry, onChanged }: { entry: Entry; onChanged: () => void }) {
+  const [editing, setEditing] = useState(false);
+  const [text, setText] = useState(entry.text);
+  const [saving, setSaving] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const toast = useToast();
+  const Icon = KIND_META[entry.kind].icon;
+
+  async function save(newText: string) {
+    setSaving(true);
+    try {
+      const res = await fetch('/api/library/entry', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fecha: entry.fecha, kind: entry.kind, text: newText }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || 'No pudimos guardar');
+      }
+      toast.success(newText.trim() ? 'Entrada actualizada' : 'Entrada eliminada');
+      setEditing(false);
+      setConfirmDelete(false);
+      onChanged();
+    } catch (err) {
+      logger.error('library.entry.save.failed', { err });
+      toast.error('Error al guardar');
+    }
+    setSaving(false);
+  }
+
+  function cancel() {
+    setText(entry.text);
+    setEditing(false);
+    setConfirmDelete(false);
+  }
+
+  return (
+    <Card>
+      <div className="flex items-start gap-3">
+        <div
+          className={`h-8 w-8 rounded-lg flex items-center justify-center shrink-0 ${KIND_META[entry.kind].tone} bg-current/10 ring-1 ring-current/15`}
+        >
+          <Icon className="h-4 w-4" strokeWidth={2.1} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <Link
+              href={`/journal?d=${entry.fecha}`}
+              className="text-[12px] font-semibold text-white hover:text-jjl-red"
+            >
+              {format(parseISO(entry.fecha), "EEE d 'de' MMM", { locale: es })}
+            </Link>
+            <span className="text-[10px] uppercase tracking-wider text-jjl-muted/70 font-semibold">
+              · {KIND_META[entry.kind].label}
+            </span>
+            <TopicBadge topic={entry.topic} />
+          </div>
+
+          {editing ? (
+            <div className="mt-2 space-y-2">
+              <textarea
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                rows={Math.max(3, text.split('\n').length + 1)}
+                className="w-full bg-white/[0.03] border border-jjl-border rounded-lg px-3 py-2 text-[13px] text-white focus:outline-none focus:border-jjl-red focus:ring-2 focus:ring-jjl-red/25 resize-none"
+                autoFocus
+              />
+              <div className="flex gap-2">
+                <Button size="sm" variant="primary" onClick={() => save(text)} loading={saving}>
+                  <Save className="h-3.5 w-3.5" />
+                  Guardar
+                </Button>
+                <Button size="sm" variant="ghost" onClick={cancel}>
+                  <X className="h-3.5 w-3.5" />
+                  Cancelar
+                </Button>
+              </div>
+            </div>
+          ) : confirmDelete ? (
+            <div className="mt-2 rounded-lg border border-red-500/30 bg-red-500/[0.06] p-3">
+              <p className="text-[12px] text-white mb-2">Eliminar esta entrada del diario?</p>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  variant="danger"
+                  onClick={() => save('')}
+                  loading={saving}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Eliminar
+                </Button>
+                <Button size="sm" variant="ghost" onClick={cancel}>
+                  Cancelar
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <p className="text-[13px] text-white mt-1.5 whitespace-pre-wrap leading-relaxed">
+                {renderLinkified(entry.text)}
+              </p>
+              <div className="mt-2.5 flex gap-3 text-[11px]">
+                <button
+                  onClick={() => {
+                    setText(entry.text);
+                    setEditing(true);
+                  }}
+                  className="inline-flex items-center gap-1 text-jjl-muted hover:text-white font-semibold"
+                >
+                  <Pencil className="h-3 w-3" />
+                  Editar
+                </button>
+                <button
+                  onClick={() => setConfirmDelete(true)}
+                  className="inline-flex items-center gap-1 text-jjl-muted hover:text-red-400 font-semibold"
+                >
+                  <Trash2 className="h-3 w-3" />
+                  Eliminar
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </Card>
   );
 }
 
