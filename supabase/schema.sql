@@ -146,6 +146,22 @@ CREATE TABLE public.push_subscriptions (
   UNIQUE(user_id, endpoint)
 );
 
+-- 13. COURSE_DATA (curriculum personalizado por usuario)
+-- Cada fila es una semana/modulo asignado a un usuario, con sus lecciones
+-- como JSONB. module_id es TEXT (IDs provenientes de planillas.ts / mock-data.ts),
+-- NO una FK a public.modules.
+CREATE TABLE public.course_data (
+  user_id UUID REFERENCES public.users ON DELETE CASCADE NOT NULL,
+  module_id TEXT NOT NULL,
+  semana_numero INTEGER NOT NULL,
+  titulo TEXT NOT NULL,
+  descripcion TEXT,
+  lessons JSONB NOT NULL DEFAULT '[]'::jsonb,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  PRIMARY KEY (user_id, module_id)
+);
+
 -- ============================================
 -- INDICES
 -- ============================================
@@ -160,6 +176,8 @@ CREATE INDEX idx_video_uploads_user ON public.video_uploads(user_id);
 CREATE INDEX idx_notifications_user ON public.notifications(user_id, created_at DESC);
 CREATE INDEX idx_notifications_unread ON public.notifications(user_id) WHERE leido = FALSE;
 CREATE INDEX idx_push_subscriptions_user ON public.push_subscriptions(user_id);
+CREATE INDEX idx_course_data_user ON public.course_data(user_id);
+CREATE INDEX idx_course_data_user_semana ON public.course_data(user_id, semana_numero);
 
 -- ============================================
 -- ROW LEVEL SECURITY (RLS)
@@ -178,6 +196,7 @@ ALTER TABLE public.likes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.video_uploads ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.push_subscriptions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.course_data ENABLE ROW LEVEL SECURITY;
 
 -- Helper: verificar si el usuario es admin
 CREATE OR REPLACE FUNCTION public.is_admin()
@@ -297,6 +316,17 @@ CREATE POLICY "Users can manage own push subs" ON public.push_subscriptions
 -- Push subs read by service_role key only (server-side sends push)
 CREATE POLICY "Admins can read push subs" ON public.push_subscriptions
   FOR SELECT USING (user_id = auth.uid() OR public.is_admin());
+
+-- COURSE_DATA policies
+CREATE POLICY "Users can read own course data" ON public.course_data
+  FOR SELECT USING (user_id = auth.uid() OR public.is_admin());
+
+CREATE POLICY "Admin can manage course data" ON public.course_data
+  FOR ALL USING (public.is_admin());
+
+CREATE TRIGGER update_course_data_updated_at
+  BEFORE UPDATE ON public.course_data
+  FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
 
 -- ============================================
 -- TRIGGER: auto-create user profile on signup

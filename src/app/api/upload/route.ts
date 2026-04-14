@@ -1,40 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@supabase/ssr';
-import { uploadToDrive } from '@/lib/google-drive';
+import { Readable } from 'stream';
+import { uploadToDriveStream } from '@/lib/google-drive';
+import { getAuthedUser } from '@/lib/supabase/server';
+
+export const runtime = 'nodejs';
+export const maxDuration = 300;
+
+const MAX_UPLOAD_BYTES = 500 * 1024 * 1024;
 
 export async function POST(request: NextRequest) {
   try {
-    // Auth check — only authenticated users can upload
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() {
-            return request.cookies.getAll();
-          },
-          setAll() {},
-        },
-      }
-    );
-
-    const { data: { user } } = await supabase.auth.getUser();
+    const { user, supabase } = await getAuthedUser(request);
     if (!user) {
       return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
     }
 
-    // Get real user name from DB (don't trust client)
     const { data: profile } = await supabase
       .from('users')
       .select('nombre')
       .eq('id', user.id)
-      .single();
+      .single<{ nombre: string }>();
 
     const formData = await request.formData();
     const file = formData.get('file') as File | null;
-    const userName = (profile as { nombre: string } | null)?.nombre || 'Usuario';
-    const titulo = formData.get('titulo') as string || '';
-    const descripcion = formData.get('descripcion') as string || '';
+    const userName = profile?.nombre || 'Usuario';
+    const titulo = (formData.get('titulo') as string) || '';
+    const descripcion = (formData.get('descripcion') as string) || '';
 
     if (!file) {
       return NextResponse.json(
@@ -43,17 +34,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check file size (max 500MB)
-    if (file.size > 500 * 1024 * 1024) {
+    if (file.size > MAX_UPLOAD_BYTES) {
       return NextResponse.json(
         { error: 'El archivo excede el limite de 500MB' },
         { status: 400 }
       );
     }
 
-    // Check Google Drive is configured
     if (!process.env.GOOGLE_SERVICE_ACCOUNT_KEY) {
-      // Development mode: simulate upload
       return NextResponse.json({
         success: true,
         fileId: 'dev-' + Date.now(),
@@ -63,8 +51,18 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const buffer = Buffer.from(await file.arrayBuffer());
-    const result = await uploadToDrive(buffer, file.name, file.type, userName);
+    // Stream directly from the uploaded File to Google Drive without buffering
+    // the whole file in memory. Vercel Hobby has a 256MB RAM limit — a 500MB
+    // upload previously crashed the function.
+    const webStream = file.stream() as unknown as ReadableStream<Uint8Array>;
+    const nodeStream = Readable.fromWeb(webStream as any);
+
+    const result = await uploadToDriveStream(
+      nodeStream,
+      file.name,
+      file.type,
+      userName
+    );
 
     return NextResponse.json({
       success: true,
@@ -73,7 +71,7 @@ export async function POST(request: NextRequest) {
       descripcion,
     });
   } catch (error) {
-    console.error('Upload error:', error);
+    console.error('[upload] failed', error);
     return NextResponse.json(
       { error: 'Error al subir el archivo' },
       { status: 500 }

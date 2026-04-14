@@ -1,12 +1,19 @@
 import { createClient } from '@supabase/supabase-js';
 import webpush from 'web-push';
 
-const supabaseAdmin = () =>
-  createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { auth: { autoRefreshToken: false, persistSession: false } }
-  );
+const supabaseAdmin = () => {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !serviceKey) {
+    throw new Error(
+      '[notifications] Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY. ' +
+        'Service-role access is required to write notifications and read push subscriptions.'
+    );
+  }
+  return createClient(url, serviceKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+};
 
 type NotificationType = 'belt' | 'module' | 'streak' | 'achievement' | 'system';
 
@@ -57,13 +64,12 @@ async function sendPushToUser(userId: string, title: string, body: string, url?:
         },
         payload
       );
-    } catch (err: any) {
-      // Remove expired/invalid subscriptions
-      if (err.statusCode === 410 || err.statusCode === 404) {
-        await admin
-          .from('push_subscriptions')
-          .delete()
-          .eq('endpoint', sub.endpoint);
+    } catch (err) {
+      const statusCode = (err as { statusCode?: number }).statusCode;
+      if (statusCode === 410 || statusCode === 404) {
+        await admin.from('push_subscriptions').delete().eq('endpoint', sub.endpoint);
+      } else {
+        console.error('[push] sendNotification failed', { userId, statusCode, err });
       }
     }
   }

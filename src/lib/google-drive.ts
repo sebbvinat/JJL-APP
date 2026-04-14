@@ -1,5 +1,5 @@
 import { google } from 'googleapis';
-import { Readable } from 'stream';
+import type { Readable } from 'stream';
 
 function getAuth() {
   const keyJson = process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
@@ -14,8 +14,15 @@ function getAuth() {
   });
 }
 
-export async function uploadToDrive(
-  file: Buffer,
+function buildFinalName(fileName: string, userName: string) {
+  const date = new Date().toISOString().split('T')[0];
+  const ext = fileName.split('.').pop() || 'mp4';
+  const cleanName = userName.replace(/\s+/g, '_');
+  return `${cleanName}_${date}.${ext}`;
+}
+
+export async function uploadToDriveStream(
+  body: Readable,
   fileName: string,
   mimeType: string,
   userName: string
@@ -23,16 +30,7 @@ export async function uploadToDrive(
   const auth = getAuth();
   const drive = google.drive({ version: 'v3', auth });
   const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
-
-  // Rename: NombreUsuario_2026-04-12.mp4
-  const date = new Date().toISOString().split('T')[0];
-  const ext = fileName.split('.').pop() || 'mp4';
-  const cleanName = userName.replace(/\s+/g, '_');
-  const finalName = `${cleanName}_${date}.${ext}`;
-
-  const stream = new Readable();
-  stream.push(file);
-  stream.push(null);
+  const finalName = buildFinalName(fileName, userName);
 
   const response = await drive.files.create({
     requestBody: {
@@ -41,7 +39,7 @@ export async function uploadToDrive(
     },
     media: {
       mimeType,
-      body: stream,
+      body,
     },
     fields: 'id, name, webViewLink',
   });
