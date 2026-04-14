@@ -5,6 +5,7 @@ import Shell from './Shell';
 import Step1Welcome from './Step1Welcome';
 import Step2Program from './Step2Program';
 import Step3Journal from './Step3Journal';
+import Step4Notifications from './Step4Notifications';
 
 const TOTAL_STEPS = 5;
 
@@ -49,7 +50,11 @@ export default function Orchestrator({ initialStep, userName, userRole, userBelt
     return <Step3Journal onNext={() => advance(4)} onSkip={() => advance(4)} />;
   }
 
-  // Placeholder — real step components come in Tasks 8-9.
+  if (step === 4) {
+    return <Step4Notifications onNext={() => advance(5)} onSkip={() => advance(5)} />;
+  }
+
+  // Placeholder — real step components come in Task 9.
   return (
     <Shell
       step={step}
