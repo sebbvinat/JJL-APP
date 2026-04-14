@@ -9,6 +9,7 @@ export async function GET(request: NextRequest) {
   }
 
   const category = request.nextUrl.searchParams.get('category');
+  const mine = request.nextUrl.searchParams.get('mine') === '1';
 
   let query = supabase
     .from('posts')
@@ -18,6 +19,10 @@ export async function GET(request: NextRequest) {
 
   if (category && category !== 'all') {
     query = query.eq('categoria', category);
+  }
+
+  if (mine) {
+    query = query.eq('user_id', user.id);
   }
 
   const { data: posts, error } = await query;

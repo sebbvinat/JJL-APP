@@ -1,11 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import Shell from './Shell';
 import Step1Welcome from './Step1Welcome';
 import Step2Program from './Step2Program';
 import Step3Journal from './Step3Journal';
 import Step4Notifications from './Step4Notifications';
+import Step5Introduction from './Step5Introduction';
 
 const TOTAL_STEPS = 5;
 
@@ -54,18 +54,18 @@ export default function Orchestrator({ initialStep, userName, userRole, userBelt
     return <Step4Notifications onNext={() => advance(5)} onSkip={() => advance(5)} />;
   }
 
-  // Placeholder — real step components come in Task 9.
-  return (
-    <Shell
-      step={step}
-      total={TOTAL_STEPS}
-      title={`Paso ${step} — pendiente`}
-      subtitle={`Hola ${userName}. Rol: ${userRole}. Cinturon: ${userBelt}.`}
-      onPrimary={() =>
-        step < TOTAL_STEPS ? advance(step + 1) : advance(TOTAL_STEPS, { complete: true })
-      }
-    >
-      <p className="text-white/70 text-sm">Contenido del paso {step} llega en las proximas tareas.</p>
-    </Shell>
-  );
+  if (step === 5) {
+    return (
+      <Step5Introduction
+        userName={userName}
+        userBelt={userBelt}
+        isAdmin={userRole === 'admin'}
+        onComplete={() => advance(5, { complete: true })}
+      />
+    );
+  }
+
+  // Unknown step — should be impossible given the clamp; recover defensively.
+  void advance(1);
+  return null;
 }
