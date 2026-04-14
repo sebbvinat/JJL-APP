@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Shell from './Shell';
 import Step1Welcome from './Step1Welcome';
 import Step2Program from './Step2Program';
+import Step3Journal from './Step3Journal';
 
 const TOTAL_STEPS = 5;
 
@@ -44,7 +45,11 @@ export default function Orchestrator({ initialStep, userName, userRole, userBelt
     );
   }
 
-  // Placeholder — real step components come in Tasks 7-9.
+  if (step === 3) {
+    return <Step3Journal onNext={() => advance(4)} onSkip={() => advance(4)} />;
+  }
+
+  // Placeholder — real step components come in Tasks 8-9.
   return (
     <Shell
       step={step}
