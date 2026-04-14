@@ -16,7 +16,14 @@ import { fetcher } from '@/lib/fetcher';
 import type { BeltLevel } from '@/lib/supabase/types';
 
 interface DashboardData {
-  profile: { cinturon_actual: string; puntos: number; nombre: string; rol?: string };
+  profile: {
+    cinturon_actual: string;
+    puntos: number;
+    nombre: string;
+    rol?: string;
+    created_at?: string;
+    onboarding_completed_at?: string | null;
+  };
   trainedDays: string[];
   todayChecked: boolean;
   lessonsCompleted: number;
@@ -86,7 +93,21 @@ export default function DashboardPage() {
               {profile.nombre || 'Guerrero'}
             </h1>
             <p className="text-jjl-muted text-sm mt-2 max-w-md">
-              Tu camino en el Jiu Jitsu continua. Un dia mas de trabajo.
+              {(() => {
+                if (!profile.created_at) return 'Tu camino en el Jiu Jitsu continua. Un dia mas de trabajo.';
+                const start = new Date(profile.created_at);
+                const dayNumber = Math.max(
+                  1,
+                  Math.floor((Date.now() - start.getTime()) / (24 * 3600 * 1000)) + 1
+                );
+                const dateLabel = start.toLocaleDateString('es-AR', {
+                  day: 'numeric',
+                  month: 'long',
+                });
+                return dayNumber <= 180
+                  ? `Dia ${dayNumber} de 180 — empezaste el ${dateLabel}.`
+                  : 'Tu camino en el Jiu Jitsu continua. Un dia mas de trabajo.';
+              })()}
             </p>
           </div>
           <div className="flex items-center gap-2">

@@ -12,6 +12,8 @@ interface ProfileRow {
   puntos: number;
   nombre: string;
   rol: string;
+  created_at: string;
+  onboarding_completed_at: string | null;
 }
 interface CourseRow {
   module_id: string;
@@ -24,7 +26,7 @@ async function fetchCore(supabase: SupabaseClient, userId: string, today: string
     await Promise.all([
       supabase
         .from('users')
-        .select('cinturon_actual, puntos, nombre, rol')
+        .select('cinturon_actual, puntos, nombre, rol, created_at, onboarding_completed_at')
         .eq('id', userId)
         .single<ProfileRow>(),
       supabase
