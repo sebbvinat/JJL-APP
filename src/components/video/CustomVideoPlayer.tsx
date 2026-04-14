@@ -53,6 +53,7 @@ export default function CustomVideoPlayer({
     setShowControls(true);
     setPlaybackRate(1);
     setShowRateMenu(false);
+    setPlayerError(null);
   }, [completed, youtubeId]);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
@@ -66,6 +67,7 @@ export default function CustomVideoPlayer({
   const [isCssFullscreen, setIsCssFullscreen] = useState(false);
   const [playbackRate, setPlaybackRate] = useState(1);
   const [showRateMenu, setShowRateMenu] = useState(false);
+  const [playerError, setPlayerError] = useState<string | null>(null);
   const SEEK_STEP_SECONDS = 10;
   const RATES = [0.75, 1, 1.25, 1.5, 1.75, 2] as const;
 
@@ -151,35 +153,49 @@ export default function CustomVideoPlayer({
       events: {
         onReady: onPlayerReady,
         onStateChange: onPlayerStateChange,
+        onError: onPlayerError,
       },
     });
+  }
+
+  function fitIframe(iframe: HTMLIFrameElement | null | undefined) {
+    if (!iframe) return;
+    iframe.setAttribute('allow', 'fullscreen; autoplay; encrypted-media; picture-in-picture');
+    iframe.setAttribute('allowfullscreen', 'true');
+    iframe.setAttribute('webkitallowfullscreen', 'true');
+    iframe.setAttribute('width', '100%');
+    iframe.setAttribute('height', '100%');
+    iframe.style.position = 'absolute';
+    iframe.style.top = '0';
+    iframe.style.left = '0';
+    iframe.style.width = '100%';
+    iframe.style.height = '100%';
+    iframe.style.border = '0';
+    iframe.style.display = 'block';
+  }
+
+  function onPlayerError(event: { data: number }) {
+    if (!mountedRef.current) return;
+    // YT error codes: 2 invalid param, 5 HTML5 player error, 100 not found,
+    // 101 / 150 embedding disabled by owner.
+    const code = event.data;
+    const embedding = code === 101 || code === 150;
+    setPlayerError(
+      embedding
+        ? 'El dueño de este video bloqueó su reproducción fuera de YouTube.'
+        : code === 100
+          ? 'Video no encontrado o eliminado.'
+          : 'Error al cargar el video.'
+    );
   }
 
   function onPlayerReady(event: any) {
     if (!mountedRef.current) return;
     setPlayerReady(true);
     setDuration(event.target.getDuration());
-    // Ensure iframe allows fullscreen (needed for iOS) AND force it to fill
-    // the positioned container absolutely — the YT API injects inline
-    // width/height attributes that can otherwise leave the iframe smaller
-    // than the player shell (audio plays, video invisible).
     try {
-      const iframe = event.target.getIframe() as HTMLIFrameElement | null;
-      if (iframe) {
-        iframe.setAttribute('allow', 'fullscreen; autoplay; encrypted-media');
-        iframe.setAttribute('allowfullscreen', 'true');
-        iframe.setAttribute('webkitallowfullscreen', 'true');
-        iframe.removeAttribute('width');
-        iframe.removeAttribute('height');
-        iframe.style.position = 'absolute';
-        iframe.style.top = '0';
-        iframe.style.left = '0';
-        iframe.style.width = '100%';
-        iframe.style.height = '100%';
-        iframe.style.border = '0';
-      }
+      fitIframe(event.target.getIframe() as HTMLIFrameElement | null);
     } catch {}
-    // Force max quality
     try { event.target.setPlaybackQuality('hd1080'); } catch {}
   }
 
@@ -192,6 +208,9 @@ export default function CustomVideoPlayer({
       if (!hasStarted) {
         setShowThumbnail(false);
       }
+      // Re-apply iframe sizing defensively — some viewport changes or YT
+      // internal state transitions reset the inline attributes.
+      try { fitIframe(playerRef.current?.getIframe?.()); } catch {}
       startProgressTracking();
     } else if (state === window.YT.PlayerState.PAUSED) {
       setIsPlaying(false);
@@ -456,9 +475,28 @@ export default function CustomVideoPlayer({
         )}
 
         {/* Loading spinner — before API is ready */}
-        {!playerReady && (
+        {!playerReady && !playerError && (
           <div className="absolute inset-0 z-30 flex items-center justify-center bg-black">
             <div className="w-8 h-8 border-2 border-jjl-red border-t-transparent rounded-full animate-spin" />
+          </div>
+        )}
+
+        {/* Error overlay — video can't be embedded here */}
+        {playerError && (
+          <div className="absolute inset-0 z-40 flex flex-col items-center justify-center bg-black/95 px-6 text-center">
+            <div className="h-12 w-12 rounded-full bg-red-500/15 border border-red-500/30 flex items-center justify-center mb-3">
+              <span className="text-red-400 text-2xl font-bold">!</span>
+            </div>
+            <p className="text-white text-sm font-semibold mb-1">{playerError}</p>
+            <p className="text-jjl-muted text-xs mb-4">Podes verlo directo en YouTube.</p>
+            <a
+              href={`https://www.youtube.com/watch?v=${youtubeId}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 h-9 px-4 bg-jjl-red hover:bg-jjl-red-hover text-white text-sm font-semibold rounded-lg transition-colors"
+            >
+              Abrir en YouTube
+            </a>
           </div>
         )}
 
