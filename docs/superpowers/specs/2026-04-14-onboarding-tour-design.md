@@ -14,7 +14,7 @@ La primera vez que un alumno entra, en vez de caer al dashboard vacío, hace un 
 
 Al terminar, cae al dashboard con banner "Día 1 de 180 — empezaste el {fecha}".
 
-Los alumnos existentes también pasan por el tour la próxima vez que entren (genera presentaciones en el foro como side-effect).
+Los alumnos existentes **y los admins** también pasan por el tour la próxima vez que entren. Admin pasa para que el coach vea la experiencia tal cual la ve su alumno — además, su post de presentación siembra actividad en el foro antes del onboarding de los alumnos.
 
 ## Flujo del usuario
 
@@ -24,7 +24,7 @@ Los 5 pasos:
 
 | # | Paso | Qué ve | Acción requerida |
 |---|------|--------|------------------|
-| 1 | Bienvenida | Saludo del coach, "elegí tu nueva contraseña" | Password nuevo (min 8) |
+| 1 | Bienvenida | Mensaje que enmarca el desafío de 180 días + por qué compartir el progreso hace al alumno y al equipo más fuertes, seguido del cambio de contraseña | Password nuevo (min 8) |
 | 2 | Tu programa | Lista de sus módulos asignados | Siguiente |
 | 3 | Tu diario | Explicación de qué es y cómo funciona | Siguiente |
 | 4 | Notificaciones | Botón "Activar" | Click (o rechazar, no bloquea) |
@@ -35,8 +35,8 @@ Obligatorios: paso 1 siempre. Paso 5 es obligatorio para alumnos sin post previo
 **Persistencia:** cada paso completado escribe a DB inmediatamente. Si cierran el browser a mitad, al volver entran al paso donde quedaron.
 
 **Casos borde:**
-- Admin se crea → `onboarding_completed_at = NOW()` al crearlo. No ve tour.
-- Módulos no cargados todavía → paso 2 muestra "Tu instructor está armando tu programa. Te avisamos cuando esté listo." + Siguiente habilitado.
+- Admin sin módulos asignados → el paso 2 le muestra "Desde acá tus alumnos van a ver su programa" + Siguiente. No se equivoca pensando que falta algo.
+- Módulos no cargados todavía (alumno) → paso 2 muestra "Tu instructor está armando tu programa. Te avisamos cuando esté listo." + Siguiente habilitado.
 - Alumno rechaza permiso de notifs → el paso se da por visto, avanza al 5.
 - Usuario existente con post previo → paso 5 ofrece "Ya te presentaste. ¿Querés actualizar?" con skip explícito.
 
@@ -54,20 +54,22 @@ Dos columnas en `users`:
 - `onboarding_step` — dónde quedó (1-5).
 - `onboarding_completed_at` — NULL hasta terminar el paso 5.
 
-**Sin backfill automático.** Los alumnos existentes verán el tour la próxima vez que entren. Los admins son la excepción: se marcan como completados al crearse (cambio chico en `/api/admin/create-student`).
+**Sin backfill automático.** Todos los usuarios existentes (alumnos y admin) verán el tour la próxima vez que entren.
 
 ### Middleware (gate)
 
 En `src/lib/supabase/middleware.ts`, después del auth check ya existente:
 
 ```
-Si hay user autenticado Y users.onboarding_completed_at IS NULL Y user.rol != 'admin'
+Si hay user autenticado Y users.onboarding_completed_at IS NULL
    Y path != '/bienvenida' Y !path.startsWith('/auth/'):
   → redirect a /bienvenida
 
 Si está en /bienvenida Y onboarding_completed_at no es NULL:
   → redirect a /dashboard
 ```
+
+Admin no está exceptuado — pasa por el tour igual que los alumnos.
 
 Notas:
 - El matcher del middleware (`src/middleware.ts`) ya excluye `/api/*`, assets y archivos estáticos, así que no hace falta listarlos.
@@ -117,7 +119,6 @@ Pequeño cambio en `src/app/(dashboard)/dashboard/page.tsx`: si hay `users.onboa
 - 1 route nueva completa (`/bienvenida` con su layout).
 - 6 componentes nuevos en `src/components/onboarding/`.
 - 2 archivos existentes modificados: `middleware.ts` (gate) y `dashboard/page.tsx` (banner).
-- `admin/create-student/route.ts` marca admins como completados automáticamente.
 
 ## Lo que queda fuera del scope
 
