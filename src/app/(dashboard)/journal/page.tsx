@@ -323,7 +323,80 @@ export default function JournalPage() {
       </div>
 
       {/* =====================================================================
-          1. CHECK-IN DEL DIA — metricas cuantitativas
+          1. FOCO SEMANAL — objetivo + regla (primero y bien arriba)
+          =================================================================== */}
+      <section className="space-y-3">
+        <SectionHeading
+          icon={Target}
+          title="Foco de la semana"
+          subtitle={`Visible toda la semana · ${weekLabel(fecha)}`}
+        />
+
+        <Card>
+          <div className="flex items-start gap-3">
+            <div className="h-8 w-8 rounded-lg bg-blue-500/10 ring-1 ring-blue-500/25 text-blue-400 flex items-center justify-center shrink-0">
+              <Target className="h-4 w-4" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <label className="block">
+                <span className="block text-[11px] uppercase tracking-[0.12em] font-semibold text-jjl-muted mb-1">
+                  Que voy a practicar en la lucha
+                </span>
+                <textarea
+                  value={entry.objetivo}
+                  onChange={(e) => update('objetivo', e.target.value)}
+                  placeholder="Ej: Mejorar timing en pasadas de guardia"
+                  rows={2}
+                  className="w-full bg-white/[0.03] border border-jjl-border rounded-lg px-3 py-2 text-[13px] text-white placeholder:text-jjl-muted/50 focus:outline-none focus:border-jjl-red focus:ring-2 focus:ring-jjl-red/25 resize-none"
+                />
+              </label>
+              {entry.objetivo.trim() && (
+                <div className="mt-2 flex items-center justify-between gap-2">
+                  <span className="text-[12px] text-jjl-muted">Cumpliste?</span>
+                  <YesNo
+                    value={entry.objetivo_cumplido}
+                    onChange={(v) => update('objetivo_cumplido', v)}
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+        </Card>
+
+        <Card>
+          <div className="flex items-start gap-3">
+            <div className="h-8 w-8 rounded-lg bg-orange-500/10 ring-1 ring-orange-500/25 text-orange-400 flex items-center justify-center shrink-0">
+              <ShieldAlert className="h-4 w-4" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <label className="block">
+                <span className="block text-[11px] uppercase tracking-[0.12em] font-semibold text-jjl-muted mb-1">
+                  Que NO voy a hacer
+                </span>
+                <textarea
+                  value={entry.regla}
+                  onChange={(e) => update('regla', e.target.value)}
+                  placeholder="Ej: No voy a hacer rondas sin foco"
+                  rows={2}
+                  className="w-full bg-white/[0.03] border border-jjl-border rounded-lg px-3 py-2 text-[13px] text-white placeholder:text-jjl-muted/50 focus:outline-none focus:border-jjl-red focus:ring-2 focus:ring-jjl-red/25 resize-none"
+                />
+              </label>
+              {entry.regla.trim() && (
+                <div className="mt-2 flex items-center justify-between gap-2">
+                  <span className="text-[12px] text-jjl-muted">Cumpliste la regla?</span>
+                  <YesNo
+                    value={entry.regla_cumplida}
+                    onChange={(v) => update('regla_cumplida', v)}
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+        </Card>
+      </section>
+
+      {/* =====================================================================
+          2. CHECK-IN DEL DIA — metricas cuantitativas
           =================================================================== */}
       <section className="space-y-3">
         <SectionHeading
@@ -445,79 +518,6 @@ export default function JournalPage() {
             </div>
           </Card>
         </div>
-      </section>
-
-      {/* =====================================================================
-          2. FOCO SEMANAL — objetivo + regla (sync across the week)
-          =================================================================== */}
-      <section className="space-y-3">
-        <SectionHeading
-          icon={Target}
-          title="Foco de la semana"
-          subtitle={`Se aplica a toda la semana · ${weekLabel(fecha)}`}
-        />
-
-        <Card>
-          <div className="flex items-start gap-3">
-            <div className="h-8 w-8 rounded-lg bg-blue-500/10 ring-1 ring-blue-500/25 text-blue-400 flex items-center justify-center shrink-0">
-              <Target className="h-4 w-4" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <label className="block">
-                <span className="block text-[11px] uppercase tracking-[0.12em] font-semibold text-jjl-muted mb-1">
-                  Que voy a practicar en la lucha
-                </span>
-                <textarea
-                  value={entry.objetivo}
-                  onChange={(e) => update('objetivo', e.target.value)}
-                  placeholder="Ej: Mejorar timing en pasadas de guardia"
-                  rows={2}
-                  className="w-full bg-white/[0.03] border border-jjl-border rounded-lg px-3 py-2 text-[13px] text-white placeholder:text-jjl-muted/50 focus:outline-none focus:border-jjl-red focus:ring-2 focus:ring-jjl-red/25 resize-none"
-                />
-              </label>
-              {entry.objetivo.trim() && (
-                <div className="mt-2 flex items-center justify-between gap-2">
-                  <span className="text-[12px] text-jjl-muted">Cumpliste?</span>
-                  <YesNo
-                    value={entry.objetivo_cumplido}
-                    onChange={(v) => update('objetivo_cumplido', v)}
-                  />
-                </div>
-              )}
-            </div>
-          </div>
-        </Card>
-
-        <Card>
-          <div className="flex items-start gap-3">
-            <div className="h-8 w-8 rounded-lg bg-orange-500/10 ring-1 ring-orange-500/25 text-orange-400 flex items-center justify-center shrink-0">
-              <ShieldAlert className="h-4 w-4" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <label className="block">
-                <span className="block text-[11px] uppercase tracking-[0.12em] font-semibold text-jjl-muted mb-1">
-                  Que NO voy a hacer
-                </span>
-                <textarea
-                  value={entry.regla}
-                  onChange={(e) => update('regla', e.target.value)}
-                  placeholder="Ej: No voy a hacer rondas sin foco"
-                  rows={2}
-                  className="w-full bg-white/[0.03] border border-jjl-border rounded-lg px-3 py-2 text-[13px] text-white placeholder:text-jjl-muted/50 focus:outline-none focus:border-jjl-red focus:ring-2 focus:ring-jjl-red/25 resize-none"
-                />
-              </label>
-              {entry.regla.trim() && (
-                <div className="mt-2 flex items-center justify-between gap-2">
-                  <span className="text-[12px] text-jjl-muted">Cumpliste la regla?</span>
-                  <YesNo
-                    value={entry.regla_cumplida}
-                    onChange={(v) => update('regla_cumplida', v)}
-                  />
-                </div>
-              )}
-            </div>
-          </div>
-        </Card>
       </section>
 
       {/* =====================================================================
