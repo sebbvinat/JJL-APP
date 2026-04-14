@@ -38,7 +38,7 @@ export async function createNotification(
   await sendPushToUser(userId, titulo, mensaje, url);
 }
 
-async function sendPushToUser(userId: string, title: string, body: string, url?: string) {
+export async function sendPushToUser(userId: string, title: string, body: string, url?: string) {
   const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
   const privateKey = process.env.VAPID_PRIVATE_KEY;
   if (!publicKey || !privateKey) return;

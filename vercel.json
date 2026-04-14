@@ -13,5 +13,9 @@
         { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
       ]
     }
+  ],
+  "crons": [
+    { "path": "/api/cron/daily-reminder", "schedule": "0 0 * * *" },
+    { "path": "/api/cron/weekly-insight", "schedule": "0 23 * * 0" }
   ]
 }
