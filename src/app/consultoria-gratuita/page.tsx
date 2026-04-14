@@ -288,7 +288,7 @@ function Footer() {
 
 export default function ConsultoriaPage() {
   return (
-    <main id="top" className="min-h-screen bg-jjl-dark text-white font-sans">
+    <main id="top" className="min-h-screen bg-jjl-dark text-white font-sans overflow-x-hidden">
       <Topbar />
       <Hero />
       <Deliverables />

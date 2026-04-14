@@ -23,7 +23,7 @@ export default function CalendlyEmbed({ url }: CalendlyEmbedProps) {
     <div
       className="calendly-inline-widget"
       data-url={url}
-      style={{ minWidth: '320px', height: '640px', width: '100%' }}
+      style={{ height: '640px', width: '100%', maxWidth: '100%' }}
     />
   );
 }
