@@ -163,6 +163,12 @@ function weekLabel(fecha: string) {
 export default function JournalPage() {
   const [fecha, setFecha] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [entry, setEntry] = useState<JournalEntry>(EMPTY_ENTRY);
+  // New-note buffers — reset after each save so "Guardar diario" always
+  // appends the current textarea content instead of overwriting what was
+  // previously stored.
+  const [newAprendizajes, setNewAprendizajes] = useState('');
+  const [newObservaciones, setNewObservaciones] = useState('');
+  const [newNotas, setNewNotas] = useState('');
   const [saving, setSaving] = useState(false);
   const [expandedDay, setExpandedDay] = useState<string | null>(null);
   const [query, setQuery] = useState('');
@@ -242,15 +248,46 @@ export default function JournalPage() {
     }));
   }, [weeklyFocus, entryData]);
 
+  /**
+   * Join existing text with a new chunk, preserving both. Empty on either
+   * side is handled so we don't get leading/trailing blank lines.
+   */
+  function appendIfNew(existing: string, incoming: string): string {
+    const e = (existing || '').trim();
+    const n = (incoming || '').trim();
+    if (!n) return e;
+    if (!e) return n;
+    return `${e}\n\n${n}`;
+  }
+
   async function handleSave() {
     setSaving(true);
     try {
+      // Append any buffered new-note text to the stored value so "Guardar
+      // diario" never overwrites previous entries on the same day.
+      const payload = {
+        ...entry,
+        aprendizajes: appendIfNew(entry.aprendizajes, newAprendizajes),
+        observaciones: appendIfNew(entry.observaciones, newObservaciones),
+        notas: appendIfNew(entry.notas, newNotas),
+      };
       const res = await fetch('/api/daily-task', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'journal', fecha, ...entry }),
+        body: JSON.stringify({ action: 'journal', fecha, ...payload }),
       });
       if (res.ok) {
+        // Commit the merged text into local state, clear the buffers so the
+        // textareas start empty for the next note.
+        setEntry((prev) => ({
+          ...prev,
+          aprendizajes: payload.aprendizajes,
+          observaciones: payload.observaciones,
+          notas: payload.notas,
+        }));
+        setNewAprendizajes('');
+        setNewObservaciones('');
+        setNewNotas('');
         mutate(entryKey);
         mutate(weeklyKey);
         mutate((k: string) => typeof k === 'string' && k.startsWith('/api/daily-task?history'));
@@ -268,21 +305,6 @@ export default function JournalPage() {
 
   function update<K extends keyof JournalEntry>(field: K, value: JournalEntry[K]) {
     setEntry((prev) => ({ ...prev, [field]: value }));
-  }
-
-  /**
-   * Append a timestamped entry to a free-text field without erasing what's
-   * already there. Prevents the "I typed 3 things today but only 1 saved"
-   * problem: users tended to replace the textarea contents.
-   */
-  function appendTimestamped(field: 'aprendizajes' | 'observaciones' | 'notas') {
-    const now = new Date();
-    const hhmm = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-    setEntry((prev) => {
-      const current = (prev[field] || '').trim();
-      const next = current ? `${current}\n\n[${hhmm}] ` : `[${hhmm}] `;
-      return { ...prev, [field]: next };
-    });
   }
 
   function goDay(offset: number) {
@@ -566,81 +588,49 @@ export default function JournalPage() {
         />
 
         <Card>
-          <div className="flex items-center justify-between mb-1.5">
-            <span className="block text-[11px] uppercase tracking-[0.12em] font-semibold text-jjl-muted">
-              Que aprendiste hoy que quieras recordar
-            </span>
-            <button
-              type="button"
-              onClick={() => appendTimestamped('aprendizajes')}
-              className="text-[11px] text-jjl-red hover:text-jjl-red-hover font-semibold"
-            >
-              + Agregar nota
-            </button>
-          </div>
+          <span className="block text-[11px] uppercase tracking-[0.12em] font-semibold text-jjl-muted mb-1.5">
+            Que aprendiste hoy que quieras recordar
+          </span>
+          <SavedBlock value={entry.aprendizajes} />
           <textarea
-            value={entry.aprendizajes}
-            onChange={(e) => update('aprendizajes', e.target.value)}
+            value={newAprendizajes}
+            onChange={(e) => setNewAprendizajes(e.target.value)}
             placeholder="Insights de las luchas, detalles tecnicos, patrones que notaste..."
-            rows={4}
+            rows={3}
             className="w-full bg-white/[0.03] border border-jjl-border rounded-lg px-3 py-2.5 text-[13px] text-white placeholder:text-jjl-muted/50 focus:outline-none focus:border-jjl-red focus:ring-2 focus:ring-jjl-red/25 resize-none"
           />
           <p className="text-[10px] text-jjl-muted/60 mt-1.5">
-            Tocá &quot;+ Agregar nota&quot; para sumar con hora sin borrar lo anterior.
+            Al guardar el diario, esta nota se suma a lo de arriba sin pisar.
           </p>
         </Card>
 
         <Card>
-          <div className="flex items-center justify-between mb-1.5">
-            <span className="block text-[11px] uppercase tracking-[0.12em] font-semibold text-jjl-muted">
-              Observaciones
-            </span>
-            <button
-              type="button"
-              onClick={() => appendTimestamped('observaciones')}
-              className="text-[11px] text-jjl-red hover:text-jjl-red-hover font-semibold"
-            >
-              + Agregar nota
-            </button>
-          </div>
+          <span className="block text-[11px] uppercase tracking-[0.12em] font-semibold text-jjl-muted mb-1.5">
+            Observaciones
+          </span>
+          <SavedBlock value={entry.observaciones} />
           <textarea
-            value={entry.observaciones}
-            onChange={(e) => update('observaciones', e.target.value)}
+            value={newObservaciones}
+            onChange={(e) => setNewObservaciones(e.target.value)}
             placeholder="Problemas, logros, lo que quieras anotar"
-            rows={4}
+            rows={3}
             className="w-full bg-white/[0.03] border border-jjl-border rounded-lg px-3 py-2.5 text-[13px] text-white placeholder:text-jjl-muted/50 focus:outline-none focus:border-jjl-red focus:ring-2 focus:ring-jjl-red/25 resize-none"
           />
         </Card>
 
         <Card>
-          <div className="flex items-center justify-between mb-1.5">
-            <span className="flex items-center gap-1.5 text-[11px] uppercase tracking-[0.12em] font-semibold text-jjl-muted">
-              <LinkIcon className="h-3 w-3" />
-              Notas + links
-            </span>
-            <button
-              type="button"
-              onClick={() => appendTimestamped('notas')}
-              className="text-[11px] text-jjl-red hover:text-jjl-red-hover font-semibold"
-            >
-              + Agregar nota
-            </button>
-          </div>
+          <span className="flex items-center gap-1.5 text-[11px] uppercase tracking-[0.12em] font-semibold text-jjl-muted mb-1.5">
+            <LinkIcon className="h-3 w-3" />
+            Notas + links
+          </span>
+          <SavedBlock value={entry.notas} linkify />
           <textarea
-            value={entry.notas}
-            onChange={(e) => update('notas', e.target.value)}
+            value={newNotas}
+            onChange={(e) => setNewNotas(e.target.value)}
             placeholder={'Recursos, videos, ideas — pega URLs y se convierten en links\nhttps://youtube.com/...'}
-            rows={4}
+            rows={3}
             className="w-full bg-white/[0.03] border border-jjl-border rounded-lg px-3 py-2.5 text-[13px] text-white placeholder:text-jjl-muted/50 focus:outline-none focus:border-jjl-red focus:ring-2 focus:ring-jjl-red/25 resize-none"
           />
-          {entry.notas.trim() && (
-            <div className="mt-3 p-3 rounded-lg bg-black/30 border border-jjl-border/50 text-[12px] text-jjl-muted whitespace-pre-wrap leading-relaxed">
-              <p className="text-[10px] uppercase tracking-wider text-jjl-muted/60 font-semibold mb-1.5">
-                Vista previa
-              </p>
-              {renderLinkified(entry.notas)}
-            </div>
-          )}
         </Card>
       </section>
 
@@ -858,6 +848,19 @@ export default function JournalPage() {
 // ---------------------------------------------------------------------------
 // Sub-components
 // ---------------------------------------------------------------------------
+
+function SavedBlock({ value, linkify }: { value: string; linkify?: boolean }) {
+  const trimmed = (value || '').trim();
+  if (!trimmed) return null;
+  return (
+    <div className="mb-2 rounded-lg bg-black/25 border border-jjl-border/60 px-3 py-2.5 text-[12px] text-jjl-muted/90 whitespace-pre-wrap leading-relaxed">
+      <p className="text-[9px] uppercase tracking-[0.14em] text-jjl-muted/60 font-bold mb-1">
+        Lo que ya escribiste hoy
+      </p>
+      {linkify ? renderLinkified(trimmed) : trimmed}
+    </div>
+  );
+}
 
 function SectionHeading({
   icon: Icon,
