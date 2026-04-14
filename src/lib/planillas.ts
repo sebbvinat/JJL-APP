@@ -32,8 +32,8 @@ const FUNDAMENTOS: PlanillaWeek = {
   semana_numero: 0,
   titulo: 'Fundamentos',
   lessons: [
-    v('Llamado a guardia cerrada', 'dUxhJHQ54Gg'),
-    v('Apertura de guardia', 's4SPE-fe1jo'),
+    v('Llamado a guardia cerrada', 's4SPE-fe1jo'),
+    v('Apertura de guardia', 'dUxhJHQ54Gg'),
     v('Retención de guardia', 'yZFj0LE2LvA'),
     v('Concepto de pasaje', 'XnO6TeVky4s'),
   ],
