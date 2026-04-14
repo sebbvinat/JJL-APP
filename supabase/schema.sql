@@ -158,6 +158,22 @@ CREATE TABLE public.push_subscriptions (
   UNIQUE(user_id, endpoint)
 );
 
+-- 14. COMPETITIONS (calendario de torneos por alumno)
+CREATE TABLE public.competitions (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES public.users ON DELETE CASCADE NOT NULL,
+  nombre TEXT NOT NULL,
+  fecha DATE NOT NULL,
+  lugar TEXT,
+  categoria TEXT,
+  modalidad TEXT,
+  importancia TEXT DEFAULT 'normal' CHECK (importancia IN ('baja', 'normal', 'alta')),
+  resultado TEXT,
+  notas TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- 13. COURSE_DATA (curriculum personalizado por usuario)
 -- Cada fila es una semana/modulo asignado a un usuario, con sus lecciones
 -- como JSONB. module_id es TEXT (IDs provenientes de planillas.ts / mock-data.ts),
