@@ -73,6 +73,9 @@ export interface DailyTask {
   regla_cumplida: boolean | null;
   puntaje: number | null;
   observaciones: string | null;
+  aprendizajes: string | null;
+  notas: string | null;
+  meta_entreno: string | null;
   created_at: string;
 }
 

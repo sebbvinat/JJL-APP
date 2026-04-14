@@ -55,21 +55,33 @@ CREATE TABLE public.user_access (
   PRIMARY KEY (user_id, module_id)
 );
 
--- 6. DAILY_TASKS (check diario de entrenamiento)
+-- 6. DAILY_TASKS (diario de entrenamiento — persistente y revisable)
 CREATE TABLE public.daily_tasks (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID REFERENCES public.users ON DELETE CASCADE NOT NULL,
   fecha DATE DEFAULT CURRENT_DATE,
+
+  -- Check-in del dia (metricas cuantitativas)
   entreno_check BOOLEAN DEFAULT FALSE,
-  feedback_texto TEXT,
   fatiga TEXT CHECK (fatiga IN ('verde', 'amarillo', 'rojo')),
   intensidad TEXT CHECK (intensidad IN ('baja', 'media', 'alta')),
-  objetivo TEXT,
-  objetivo_cumplido BOOLEAN,
-  regla TEXT,
-  regla_cumplida BOOLEAN,
   puntaje INTEGER CHECK (puntaje >= 1 AND puntaje <= 10),
-  observaciones TEXT,
+
+  -- Foco semanal (se edita cualquier dia; la UI lo muestra por semana ISO)
+  objetivo TEXT,                 -- Que voy a practicar en la lucha
+  objetivo_cumplido BOOLEAN,
+  regla TEXT,                    -- Que NO voy a hacer
+  regla_cumplida BOOLEAN,
+
+  -- Meta de entrenamiento de mayor duracion (revisable)
+  meta_entreno TEXT,             -- Que quiero entrenar (semanas/meses)
+
+  -- Reflexion post-entreno (persistente, searchable)
+  aprendizajes TEXT,             -- Que aprendiste de tus luchas hoy
+  observaciones TEXT,            -- Notas del dia, problemas, logros
+  notas TEXT,                    -- Notas libres con links (recursos, ideas)
+
+  feedback_texto TEXT,           -- (legacy: feedback semanal via TaskDashboard)
   created_at TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE(user_id, fecha)
 );
