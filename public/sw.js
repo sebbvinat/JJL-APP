@@ -1,20 +1,15 @@
-const CACHE_NAME = 'jjl-v3';
-const STATIC_ASSETS = [
-  '/',
-  '/manifest.json',
-];
+const CACHE_NAME = 'jjl-v4';
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(STATIC_ASSETS))
-  );
+  // Skip waiting immediately — don't cache static assets (network-first)
   self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
+  // Delete ALL old caches
   event.waitUntil(
     caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
+      Promise.all(keys.map((k) => caches.delete(k)))
     )
   );
   self.clients.claim();
@@ -50,51 +45,9 @@ self.addEventListener('notificationclick', (event) => {
   );
 });
 
+// Network-first for everything — always serve fresh content
 self.addEventListener('fetch', (event) => {
-  const { request } = event;
-  const url = new URL(request.url);
-
-  // Network-first for API and auth
-  if (url.pathname.startsWith('/api') || url.pathname.startsWith('/auth')) {
-    event.respondWith(
-      fetch(request).catch(() => caches.match(request))
-    );
-    return;
-  }
-
-  // Network-first for images (avoid stale cache)
-  if (url.pathname.match(/\.(png|jpg|jpeg|svg|webp|ico)$/)) {
-    event.respondWith(
-      fetch(request).catch(() => caches.match(request))
-    );
-    return;
-  }
-
-  // Network-first for HTML pages and CSS (avoid stale styles)
-  if (request.headers.get('accept')?.includes('text/html') || url.pathname.match(/\.css$/)) {
-    event.respondWith(
-      fetch(request).then((response) => {
-        if (response.ok && request.method === 'GET') {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
-        }
-        return response;
-      }).catch(() => caches.match(request))
-    );
-    return;
-  }
-
-  // Cache-first for other static assets (JS, fonts)
   event.respondWith(
-    caches.match(request).then((cached) => {
-      if (cached) return cached;
-      return fetch(request).then((response) => {
-        if (response.ok && request.method === 'GET') {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
-        }
-        return response;
-      });
-    })
+    fetch(event.request).catch(() => new Response('Offline', { status: 503 }))
   );
 });
