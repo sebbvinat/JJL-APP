@@ -14,6 +14,7 @@ import {
   ExternalLink,
   Eye,
   Filter,
+  Download,
 } from 'lucide-react';
 import Card from '@/components/ui/Card';
 import EmptyState from '@/components/ui/EmptyState';
@@ -145,15 +146,31 @@ export default function LibraryPage() {
             Todo lo que anotaste en {months} meses — aprendizajes, notas y links.
           </p>
         </div>
-        <select
-          value={months}
-          onChange={(e) => setMonths(Number(e.target.value))}
-          className="h-9 px-3 bg-white/[0.03] border border-jjl-border rounded-lg text-[13px] text-white focus:outline-none focus:border-jjl-red"
-        >
-          <option value={3}>Ultimos 3 meses</option>
-          <option value={6}>Ultimos 6 meses</option>
-          <option value={12}>Ultimo año</option>
-        </select>
+        <div className="flex items-center gap-2">
+          <select
+            value={months}
+            onChange={(e) => setMonths(Number(e.target.value))}
+            className="h-9 px-3 bg-white/[0.03] border border-jjl-border rounded-lg text-[13px] text-white focus:outline-none focus:border-jjl-red"
+          >
+            <option value={3}>Ultimos 3 meses</option>
+            <option value={6}>Ultimos 6 meses</option>
+            <option value={12}>Ultimo año</option>
+          </select>
+          <Link
+            href={`/exportar/diario?from=${format(
+              (() => {
+                const d = new Date();
+                d.setMonth(d.getMonth() - months);
+                return d;
+              })(),
+              'yyyy-MM-dd'
+            )}`}
+            className="inline-flex items-center gap-2 h-9 px-3 bg-white/[0.03] border border-jjl-border hover:border-jjl-border-strong hover:text-white text-jjl-muted rounded-lg text-[13px] font-semibold transition-colors"
+          >
+            <Download className="h-4 w-4" />
+            Exportar PDF
+          </Link>
+        </div>
       </div>
 
       {/* Tabs */}

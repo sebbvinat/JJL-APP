@@ -637,11 +637,19 @@ export default function JournalPage() {
           6. HISTORIAL — search + expand
           =================================================================== */}
       <section className="space-y-3 pt-4">
-        <SectionHeading
-          icon={NotebookPen}
-          title="Historial"
-          subtitle="Hasta 120 dias · busca en aprendizajes, notas, observaciones"
-        />
+        <div className="flex items-start justify-between gap-3 flex-wrap">
+          <SectionHeading
+            icon={NotebookPen}
+            title="Historial"
+            subtitle="Hasta 120 dias · busca en aprendizajes, notas, observaciones"
+          />
+          <a
+            href="/exportar/diario"
+            className="inline-flex items-center gap-1.5 h-8 px-3 bg-white/[0.03] border border-jjl-border hover:border-jjl-border-strong hover:text-white text-jjl-muted rounded-lg text-[12px] font-semibold transition-colors"
+          >
+            Exportar PDF
+          </a>
+        </div>
 
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-jjl-muted pointer-events-none" />
