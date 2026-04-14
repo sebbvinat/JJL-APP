@@ -146,11 +146,13 @@ export default function CustomVideoPlayer({
     // node, so when YT replaces it with an iframe there's no reconciliation
     // conflict and no removeChild errors on lesson switch.
     const target = document.createElement('div');
+    const targetId = `yt-target-${Math.random().toString(36).slice(2)}`;
+    target.id = targetId;
     target.style.width = '100%';
     target.style.height = '100%';
     mount.appendChild(target);
 
-    playerRef.current = new window.YT.Player(target, {
+    playerRef.current = new window.YT.Player(targetId, {
       // Critical: explicit 100% so the iframe the API injects fills the
       // container. Without these, YT defaults to inline width=640 height=360
       // and certain layouts hide the visual while the audio keeps playing.
@@ -223,9 +225,7 @@ export default function CustomVideoPlayer({
     if (state === window.YT.PlayerState.PLAYING) {
       setIsPlaying(true);
       setHasStarted(true);
-      if (!hasStarted) {
-        setShowThumbnail(false);
-      }
+      setShowThumbnail(false);
       // Re-apply iframe sizing defensively — some viewport changes or YT
       // internal state transitions reset the inline attributes.
       try { fitIframe(playerRef.current?.getIframe?.()); } catch {}
