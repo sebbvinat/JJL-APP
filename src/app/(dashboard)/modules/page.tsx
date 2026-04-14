@@ -1,10 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import useSWR from 'swr';
 import { Lock } from 'lucide-react';
 import ModuleCard from '@/components/modules/ModuleCard';
-import { createClient } from '@/lib/supabase/client';
-import { useUser } from '@/hooks/useUser';
+import { fetcher } from '@/lib/fetcher';
 import { MOCK_MODULES, MOCK_LESSONS } from '@/lib/mock-data';
 
 interface LessonBasic {
@@ -22,86 +21,44 @@ interface ModuleInfo {
   lessons: LessonBasic[];
 }
 
+interface CourseDataResponse {
+  modules: ModuleInfo[];
+}
+
+interface ProgressResponse {
+  completedLessonIds: string[];
+  unlockedModuleIds: string[];
+}
+
+const FALLBACK_MODULES: ModuleInfo[] = MOCK_MODULES.map((mod) => {
+  const lessons = MOCK_LESSONS[mod.id] || [];
+  return {
+    id: mod.id,
+    semana_numero: mod.semana_numero,
+    titulo: mod.titulo,
+    descripcion: mod.descripcion,
+    lessonCount: lessons.length,
+    videoCount: lessons.filter((l) => l.tipo !== 'reflection').length,
+    lessons: lessons.map((l) => ({ id: l.id, tipo: l.tipo })),
+  };
+});
+
 export default function ModulesPage() {
-  const { authUser, loading: userLoading } = useUser();
-  const [unlockedIds, setUnlockedIds] = useState<string[]>([]);
-  const [allModules, setAllModules] = useState<ModuleInfo[]>([]);
-  const [completedIds, setCompletedIds] = useState<Set<string>>(new Set());
-  const [loading, setLoading] = useState(true);
+  const { data: courseData, isLoading: courseLoading } = useSWR<CourseDataResponse>(
+    '/api/course-data?all=true',
+    fetcher,
+    { revalidateOnFocus: true, dedupingInterval: 60_000 }
+  );
 
-  // Load modules from course_data (Supabase), fallback to mock
-  useEffect(() => {
-    async function loadModules() {
-      try {
-        const res = await fetch('/api/course-data?all=true');
-        if (res.ok) {
-          const data = await res.json();
-          if (data.modules && data.modules.length > 0) {
-            setAllModules(data.modules);
-            return;
-          }
-        }
-      } catch { /* fall through */ }
+  const { data: progress, isLoading: progressLoading } = useSWR<ProgressResponse>(
+    '/api/progress',
+    fetcher,
+    { revalidateOnFocus: true, dedupingInterval: 30_000 }
+  );
 
-      // Fallback to mock data
-      setAllModules(
-        MOCK_MODULES.map((mod) => {
-          const lessons = MOCK_LESSONS[mod.id] || [];
-          return {
-            id: mod.id,
-            semana_numero: mod.semana_numero,
-            titulo: mod.titulo,
-            descripcion: mod.descripcion,
-            lessonCount: lessons.length,
-            videoCount: lessons.filter((l) => l.tipo !== 'reflection').length,
-            lessons: lessons.map((l) => ({ id: l.id, tipo: l.tipo })),
-          };
-        })
-      );
-    }
+  const loading = courseLoading || progressLoading;
 
-    loadModules();
-  }, []);
-
-  // Load user progress
-  useEffect(() => {
-    if (!authUser) return;
-    async function loadProgress() {
-      try {
-        const res = await fetch('/api/progress');
-        if (res.ok) {
-          const data = await res.json();
-          setCompletedIds(new Set(data.completedLessonIds || []));
-        }
-      } catch {}
-    }
-    loadProgress();
-  }, [authUser]);
-
-  // Load unlocked modules for this user
-  useEffect(() => {
-    if (userLoading) return;
-    if (!authUser) {
-      setLoading(false);
-      return;
-    }
-
-    async function fetchAccess() {
-      const supabase = createClient();
-      const { data } = await supabase
-        .from('user_access')
-        .select('module_id')
-        .eq('user_id', authUser!.id)
-        .eq('is_unlocked', true);
-
-      setUnlockedIds((data as { module_id: string }[] | null)?.map((row) => row.module_id) || []);
-      setLoading(false);
-    }
-
-    fetchAccess();
-  }, [authUser, userLoading]);
-
-  if (userLoading || loading) {
+  if (loading && !courseData && !progress) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="w-8 h-8 border-2 border-jjl-red border-t-transparent rounded-full animate-spin" />
@@ -109,8 +66,14 @@ export default function ModulesPage() {
     );
   }
 
-  // Only show unlocked modules
-  const visibleModules = allModules.filter((mod) => unlockedIds.includes(mod.id));
+  const allModules =
+    courseData?.modules && courseData.modules.length > 0
+      ? courseData.modules
+      : FALLBACK_MODULES;
+  const completedIds = new Set(progress?.completedLessonIds || []);
+  const unlockedIds = new Set(progress?.unlockedModuleIds || []);
+
+  const visibleModules = allModules.filter((mod) => unlockedIds.has(mod.id));
 
   if (visibleModules.length === 0) {
     return (
@@ -120,8 +83,8 @@ export default function ModulesPage() {
         </div>
         <h2 className="text-xl font-bold">Sin modulos disponibles</h2>
         <p className="text-jjl-muted max-w-sm">
-          Tu instructor aun no ha habilitado modulos para tu cuenta.
-          Contactalo para comenzar tu entrenamiento.
+          Tu instructor aun no ha habilitado modulos para tu cuenta. Contactalo
+          para comenzar tu entrenamiento.
         </p>
       </div>
     );

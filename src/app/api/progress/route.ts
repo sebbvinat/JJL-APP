@@ -36,14 +36,24 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
   }
 
-  // If moduleId provided, return completed lesson IDs for that module's lessons
-  const { data } = await supabase
-    .from('user_progress')
-    .select('lesson_id')
-    .eq('user_id', user.id)
-    .eq('completado', true);
+  const [progressRes, accessRes] = await Promise.all([
+    supabase
+      .from('user_progress')
+      .select('lesson_id')
+      .eq('user_id', user.id)
+      .eq('completado', true),
+    supabase
+      .from('user_access')
+      .select('module_id')
+      .eq('user_id', user.id)
+      .eq('is_unlocked', true),
+  ]);
+
+  const completedRows = (progressRes.data as Array<{ lesson_id: string }> | null) || [];
+  const accessRows = (accessRes.data as Array<{ module_id: string }> | null) || [];
 
   return NextResponse.json({
-    completedLessonIds: (data || []).map((d: any) => d.lesson_id),
+    completedLessonIds: completedRows.map((d) => d.lesson_id),
+    unlockedModuleIds: accessRows.map((d) => d.module_id),
   });
 }

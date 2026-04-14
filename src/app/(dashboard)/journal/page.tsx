@@ -1,11 +1,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { format, subDays } from 'date-fns';
+import useSWR, { useSWRConfig } from 'swr';
+import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Save, CheckCircle, ChevronLeft, ChevronRight, Target, ShieldAlert, ChevronDown, Eye } from 'lucide-react';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
+import { fetcher } from '@/lib/fetcher';
+import { logger } from '@/lib/logger';
 
 interface JournalEntry {
   entreno_check: boolean;
@@ -59,55 +62,50 @@ const INTENSIDAD_OPTIONS = [
 export default function JournalPage() {
   const [fecha, setFecha] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [entry, setEntry] = useState<JournalEntry>(EMPTY_ENTRY);
-  const [history, setHistory] = useState<HistoryEntry[]>([]);
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [expandedDay, setExpandedDay] = useState<string | null>(null);
+  const { mutate } = useSWRConfig();
 
   const isToday = fecha === format(new Date(), 'yyyy-MM-dd');
 
+  const entryKey = `/api/daily-task?fecha=${fecha}`;
+  const historyKey = '/api/daily-task?history=true';
+
+  const { data: entryData, isLoading: entryLoading } = useSWR<{ entry: Partial<HistoryEntry> | null }>(
+    entryKey,
+    fetcher,
+    { revalidateOnFocus: false, dedupingInterval: 30_000 }
+  );
+
+  const { data: historyData } = useSWR<{ history: HistoryEntry[] }>(
+    historyKey,
+    fetcher,
+    { revalidateOnFocus: true, dedupingInterval: 60_000 }
+  );
+
+  const history = historyData?.history || [];
+  const loading = entryLoading && !entryData;
+
   useEffect(() => {
-    loadEntry();
-    loadHistory();
-  }, [fecha]);
-
-  async function loadEntry() {
-    setLoading(true);
+    const data = entryData?.entry;
     setSaved(false);
-    try {
-      const res = await fetch(`/api/daily-task?fecha=${fecha}`);
-      if (res.ok) {
-        const { entry: data } = await res.json();
-        if (data) {
-          setEntry({
-            entreno_check: data.entreno_check ?? false,
-            fatiga: data.fatiga ?? null,
-            intensidad: data.intensidad ?? null,
-            objetivo: data.objetivo ?? '',
-            objetivo_cumplido: data.objetivo_cumplido ?? null,
-            regla: data.regla ?? '',
-            regla_cumplida: data.regla_cumplida ?? null,
-            puntaje: data.puntaje ?? null,
-            observaciones: data.observaciones ?? '',
-          });
-        } else {
-          setEntry(EMPTY_ENTRY);
-        }
-      }
-    } catch {}
-    setLoading(false);
-  }
-
-  async function loadHistory() {
-    try {
-      const res = await fetch('/api/daily-task?history=true');
-      if (res.ok) {
-        const data = await res.json();
-        setHistory(data.history || []);
-      }
-    } catch {}
-  }
+    if (!data) {
+      setEntry(EMPTY_ENTRY);
+      return;
+    }
+    setEntry({
+      entreno_check: data.entreno_check ?? false,
+      fatiga: (data.fatiga as JournalEntry['fatiga']) ?? null,
+      intensidad: (data.intensidad as JournalEntry['intensidad']) ?? null,
+      objetivo: data.objetivo ?? '',
+      objetivo_cumplido: data.objetivo_cumplido ?? null,
+      regla: data.regla ?? '',
+      regla_cumplida: data.regla_cumplida ?? null,
+      puntaje: data.puntaje ?? null,
+      observaciones: data.observaciones ?? '',
+    });
+  }, [entryData]);
 
   async function handleSave() {
     setSaving(true);
@@ -119,10 +117,15 @@ export default function JournalPage() {
       });
       if (res.ok) {
         setSaved(true);
-        loadHistory();
+        mutate(entryKey);
+        mutate(historyKey);
         setTimeout(() => setSaved(false), 3000);
+      } else {
+        logger.error('journal.save.badStatus', { status: res.status, fecha });
       }
-    } catch {}
+    } catch (err) {
+      logger.error('journal.save.failed', { err, fecha });
+    }
     setSaving(false);
   }
 
