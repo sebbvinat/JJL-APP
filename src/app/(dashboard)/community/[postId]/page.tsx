@@ -28,6 +28,7 @@ interface Post {
 interface Comment {
   id: string;
   autor: string;
+  avatar_url: string | null;
   cinturon: string;
   contenido: string;
   isOwner: boolean;
@@ -214,7 +215,7 @@ export default function PostDetailPage() {
           <div className="space-y-4 mb-6">
             {comments.map((comment) => (
               <div key={comment.id} className="flex gap-3">
-                <Avatar name={comment.autor} size="sm" />
+                <Avatar src={comment.avatar_url} name={comment.autor} size="sm" />
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
                     <span className="font-semibold text-sm">{comment.autor}</span>

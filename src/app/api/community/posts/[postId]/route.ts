@@ -37,13 +37,17 @@ export async function GET(
   ];
   const uniqueUserIds = [...new Set(allUserIds)];
 
-  const { data: users } = await supabase
+  // Admin client bypasses the per-row RLS on users so we can load every
+  // author's public fields (name, belt, avatar), not just the caller's row.
+  const authorLookup = createAdminSupabaseClient();
+  const { data: users } = await authorLookup
     .from('users')
-    .select('id, nombre, cinturon_actual')
+    .select('id, nombre, cinturon_actual, avatar_url, rol')
     .in('id', uniqueUserIds);
 
-  const userMap: Record<string, { nombre: string; cinturon_actual: string }> = {};
+  const userMap: Record<string, { nombre: string; cinturon_actual: string; avatar_url: string | null; rol: string }> = {};
   (users || []).forEach((u: any) => { userMap[u.id] = u; });
+  const beltFor = (uid: string) => userMap[uid]?.rol === 'admin' ? 'black' : (userMap[uid]?.cinturon_actual || 'white');
 
   // Check if user liked this post + check if admin
   const [{ data: like }, { data: callerProfile }] = await Promise.all([
@@ -67,7 +71,8 @@ export async function GET(
     post: {
       id: post.id,
       autor: userMap[post.user_id]?.nombre || 'Usuario',
-      cinturon: userMap[post.user_id]?.cinturon_actual || 'white',
+      avatar_url: userMap[post.user_id]?.avatar_url || null,
+      cinturon: beltFor(post.user_id),
       titulo: post.titulo,
       contenido: post.contenido,
       categoria: post.categoria,
@@ -80,7 +85,8 @@ export async function GET(
     comments: (comments || []).map((c: any) => ({
       id: c.id,
       autor: userMap[c.user_id]?.nombre || 'Usuario',
-      cinturon: userMap[c.user_id]?.cinturon_actual || 'white',
+      avatar_url: userMap[c.user_id]?.avatar_url || null,
+      cinturon: beltFor(c.user_id),
       contenido: c.contenido,
       isOwner: c.user_id === user.id,
       canDelete: c.user_id === user.id || isAdmin,

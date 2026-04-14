@@ -36,14 +36,17 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ posts: [] });
   }
 
-  // Fetch user info for all post authors
+  // Fetch user info for all post authors. Uses admin client because RLS on
+  // public.users restricts SELECT to the caller's own row; without bypass,
+  // avatar_url / nombre of other authors comes back null.
   const userIds = [...new Set(posts.map((p: any) => p.user_id))];
-  const { data: users } = await supabase
+  const authorLookup = createAdminSupabaseClient();
+  const { data: users } = await authorLookup
     .from('users')
-    .select('id, nombre, cinturon_actual, avatar_url')
+    .select('id, nombre, cinturon_actual, avatar_url, rol')
     .in('id', userIds);
 
-  const userMap: Record<string, { nombre: string; cinturon_actual: string; avatar_url: string | null }> = {};
+  const userMap: Record<string, { nombre: string; cinturon_actual: string; avatar_url: string | null; rol: string }> = {};
   (users || []).forEach((u: any) => { userMap[u.id] = u; });
 
   // Check which posts the current user has liked + check if admin
@@ -64,7 +67,7 @@ export async function GET(request: NextRequest) {
     id: p.id,
     autor: userMap[p.user_id]?.nombre || 'Usuario',
     avatar_url: userMap[p.user_id]?.avatar_url || null,
-    cinturon: userMap[p.user_id]?.cinturon_actual || 'white',
+    cinturon: userMap[p.user_id]?.rol === 'admin' ? 'black' : (userMap[p.user_id]?.cinturon_actual || 'white'),
     titulo: p.titulo,
     contenido: p.contenido,
     categoria: p.categoria,
