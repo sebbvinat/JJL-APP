@@ -15,6 +15,7 @@ import {
   Save,
   BarChart3,
   Settings,
+  Video,
 } from 'lucide-react';
 import Card from '@/components/ui/Card';
 import Avatar from '@/components/ui/Avatar';
@@ -37,14 +38,23 @@ export default function AdminPage() {
   const [tab, setTab] = useState<Tab>('reportes');
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
-      <header>
-        <p className="text-[11px] uppercase tracking-[0.18em] text-amber-400/80 font-semibold mb-1.5">
-          Panel de Instructor
-        </p>
-        <h1 className="text-3xl font-black tracking-tight">Administracion</h1>
-        <p className="text-sm text-jjl-muted mt-1.5">
-          Seguimiento, alertas y gestion de tus alumnos.
-        </p>
+      <header className="flex items-end justify-between gap-4 flex-wrap">
+        <div>
+          <p className="text-[11px] uppercase tracking-[0.18em] text-amber-400/80 font-semibold mb-1.5">
+            Panel de Instructor
+          </p>
+          <h1 className="text-3xl font-black tracking-tight">Administracion</h1>
+          <p className="text-sm text-jjl-muted mt-1.5">
+            Seguimiento, alertas y gestion de tus alumnos.
+          </p>
+        </div>
+        <Link
+          href="/admin/videos"
+          className="inline-flex items-center gap-2 h-9 px-3 bg-white/[0.03] border border-jjl-border hover:border-jjl-border-strong hover:text-white text-jjl-muted rounded-lg text-[13px] font-semibold transition-colors"
+        >
+          <Video className="h-4 w-4" />
+          Editor de videos
+        </Link>
       </header>
 
       {/* Tabs */}
