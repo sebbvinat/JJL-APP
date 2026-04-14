@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useRef, useEffect, useId } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import {
   CheckCircle,
   Circle,
@@ -73,12 +73,10 @@ export default function CustomVideoPlayer({
 
   const playerRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const playerDivRef = useRef<HTMLDivElement>(null);
+  const mountRef = useRef<HTMLDivElement>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const hideTimerRef = useRef<NodeJS.Timeout | null>(null);
   const mountedRef = useRef(true);
-  const uniqueId = useId().replace(/:/g, '-');
-  const playerId = `yt-player-${uniqueId}`;
 
   // Load YouTube IFrame API
   useEffect(() => {
@@ -118,6 +116,13 @@ export default function CustomVideoPlayer({
         try { playerRef.current.destroy(); } catch {}
         playerRef.current = null;
       }
+      // Clear any leftover children (iframe) from the stable mount node so
+      // React never tries to removeChild on a node YT already replaced.
+      if (mountRef.current) {
+        while (mountRef.current.firstChild) {
+          try { mountRef.current.removeChild(mountRef.current.firstChild); } catch { break; }
+        }
+      }
     };
   }, [youtubeId]);
 
@@ -129,10 +134,23 @@ export default function CustomVideoPlayer({
       playerRef.current = null;
     }
 
-    const el = document.getElementById(playerId);
-    if (!el) return;
+    const mount = mountRef.current;
+    if (!mount) return;
 
-    playerRef.current = new window.YT.Player(playerId, {
+    // Clear any previous children (iframe from prior video).
+    while (mount.firstChild) {
+      try { mount.removeChild(mount.firstChild); } catch { break; }
+    }
+
+    // Create a fresh plain-DOM target for YT.Player. React never owns this
+    // node, so when YT replaces it with an iframe there's no reconciliation
+    // conflict and no removeChild errors on lesson switch.
+    const target = document.createElement('div');
+    target.style.width = '100%';
+    target.style.height = '100%';
+    mount.appendChild(target);
+
+    playerRef.current = new window.YT.Player(target, {
       // Critical: explicit 100% so the iframe the API injects fills the
       // container. Without these, YT defaults to inline width=640 height=360
       // and certain layouts hide the visual while the audio keeps playing.
@@ -427,9 +445,12 @@ export default function CustomVideoPlayer({
             We key it by youtubeId so React fully re-mounts it on lesson
             switch, preventing stale-DOM bugs that caused 'audio only'.
         */}
-        <div className="absolute inset-0 w-full h-full" style={{ pointerEvents: 'none' }}>
-          <div id={playerId} key={youtubeId} className="w-full h-full" />
-        </div>
+        <div
+          ref={mountRef}
+          className="absolute inset-0 w-full h-full"
+          style={{ pointerEvents: 'none' }}
+        />
+
 
         {/* Full click-capture overlay — blocks ALL interaction with YouTube iframe */}
         <div

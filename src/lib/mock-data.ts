@@ -56,7 +56,7 @@ export const MOCK_LESSONS: Record<string, MockLesson[]> = {
     { id: 'les-1-4', titulo: 'Toreos: conceptos', youtube_id: '54mccu1o81M', descripcion: '', orden: 4, duracion: '11:00', completed: false, tipo: 'video' },
     { id: 'les-1-5', titulo: 'Toreos Variante 1', youtube_id: 'ENySL6LZUkw', descripcion: '', orden: 5, duracion: '10:00', completed: false, tipo: 'video' },
     { id: 'les-1-6', titulo: 'Drill 1: Guardia cerrada', youtube_id: '_5cf4LGtmWo', descripcion: '', orden: 6, duracion: '8:00', completed: false, tipo: 'video' },
-    { id: 'les-1-7', titulo: 'Drill 2: Toreos', youtube_id: 'GvqXaIXzWAM', descripcion: '', orden: 7, duracion: '8:00', completed: false, tipo: 'video' },
+    { id: 'les-1-7', titulo: 'Drill 2: Toreos', youtube_id: '3jHMKpAyFwA', descripcion: '', orden: 7, duracion: '8:00', completed: false, tipo: 'video' },
     { id: 'les-1-8', titulo: 'Reflexion semanal', youtube_id: '', descripcion: 'Responde las preguntas de reflexion de la semana', orden: 8, duracion: '', completed: false, tipo: 'reflection' },
   ],
   'mod-2': [
@@ -80,9 +80,8 @@ export const MOCK_LESSONS: Record<string, MockLesson[]> = {
     { id: 'les-4-2', titulo: 'Toreos Variante 4', youtube_id: '', descripcion: '', orden: 2, duracion: '10:00', completed: false, tipo: 'video' },
     { id: 'les-4-3', titulo: 'Drill 1: Guardia cerrada', youtube_id: '', descripcion: '', orden: 3, duracion: '8:00', completed: false, tipo: 'video' },
     { id: 'les-4-4', titulo: 'Drill 2: Toreos', youtube_id: '', descripcion: '', orden: 4, duracion: '8:00', completed: false, tipo: 'video' },
-    { id: 'les-4-5', titulo: 'Drill en combinacion: Toreos', youtube_id: '0dGGXYtDqDw', descripcion: '', orden: 5, duracion: '10:00', completed: false, tipo: 'video' },
-    { id: 'les-4-6', titulo: 'Especifico de guardia cerrada', youtube_id: 'YXkwsg4Wy3g', descripcion: '', orden: 6, duracion: '12:00', completed: false, tipo: 'video' },
-    { id: 'les-4-7', titulo: 'Reflexion semanal', youtube_id: '', descripcion: 'Responde las preguntas de reflexion de la semana', orden: 7, duracion: '', completed: false, tipo: 'reflection' },
+    { id: 'les-4-6', titulo: 'Especifico de guardia cerrada', youtube_id: 'YXkwsg4Wy3g', descripcion: '', orden: 5, duracion: '12:00', completed: false, tipo: 'video' },
+    { id: 'les-4-7', titulo: 'Reflexion semanal', youtube_id: '', descripcion: 'Responde las preguntas de reflexion de la semana', orden: 6, duracion: '', completed: false, tipo: 'reflection' },
   ],
   'mod-5': [
     { id: 'les-5-1', titulo: 'Concepto de 100 KG', youtube_id: '', descripcion: '', orden: 1, duracion: '12:00', completed: false, tipo: 'video' },
