@@ -21,6 +21,8 @@ import { calculateGamification } from '@/lib/gamification';
 import { BELT_LABELS } from '@/lib/constants';
 import type { User } from '@/lib/supabase/types';
 import type { LessonData } from '@/lib/course-data';
+import StudentVideos from '@/components/admin/StudentVideos';
+import { Video as VideoIcon } from 'lucide-react';
 
 interface ModuleInfo {
   id: string;
@@ -42,7 +44,7 @@ interface Metrics {
   puntos: number;
 }
 
-type SectionType = 'metricas' | 'curso' | 'modulos';
+type SectionType = 'metricas' | 'videos' | 'curso' | 'modulos';
 
 export default function AdminStudentPage() {
   const params = useParams();
@@ -336,6 +338,7 @@ export default function AdminStudentPage() {
       <div className="flex gap-1 bg-jjl-gray rounded-lg p-1">
         {([
           { key: 'metricas' as SectionType, label: 'Metricas', icon: TrendingUp },
+          { key: 'videos' as SectionType, label: 'Videos', icon: VideoIcon },
           { key: 'curso' as SectionType, label: 'Curso', icon: FileSpreadsheet },
           { key: 'modulos' as SectionType, label: 'Modulos', icon: BookOpen },
         ]).map(({ key, label, icon: Icon }) => (
@@ -491,6 +494,9 @@ export default function AdminStudentPage() {
           </Card>
         </>
       )}
+
+      {/* ========== VIDEOS ========== */}
+      {activeSection === 'videos' && <StudentVideos userId={userId} />}
 
       {/* ========== CURSO ========== */}
       {activeSection === 'curso' && (

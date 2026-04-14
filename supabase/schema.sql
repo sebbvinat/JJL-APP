@@ -123,7 +123,7 @@ CREATE TABLE public.likes (
   UNIQUE(user_id, comment_id)
 );
 
--- 10. VIDEO_UPLOADS (registro de videos subidos a Drive)
+-- 10. VIDEO_UPLOADS (registro de videos subidos a Drive + loop de revision)
 CREATE TABLE public.video_uploads (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID REFERENCES public.users ON DELETE CASCADE NOT NULL,
@@ -133,6 +133,10 @@ CREATE TABLE public.video_uploads (
   drive_url TEXT,
   tags TEXT[],
   file_size BIGINT,
+  status TEXT DEFAULT 'pendiente' CHECK (status IN ('pendiente', 'revisado', 'para_rehacer')),
+  feedback_texto TEXT,
+  feedback_at TIMESTAMPTZ,
+  reviewed_by UUID REFERENCES public.users(id),
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 

@@ -64,6 +64,22 @@ export async function POST(request: NextRequest) {
       userName
     );
 
+    // Persist the upload so the coach sees pending reviews and the alumno
+    // sees history + feedback. Failure here is logged but doesn't fail the
+    // upload — the file already made it to Drive.
+    const { error: insertError } = await supabase.from('video_uploads').insert({
+      user_id: user.id,
+      titulo: titulo || (result.fileName as string) || file.name,
+      descripcion: descripcion || null,
+      drive_file_id: result.fileId || null,
+      drive_url: result.webViewLink || null,
+      file_size: file.size,
+      status: 'pendiente',
+    });
+    if (insertError) {
+      console.error('[upload] video_uploads insert failed', insertError);
+    }
+
     return NextResponse.json({
       success: true,
       ...result,
