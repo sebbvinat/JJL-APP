@@ -17,13 +17,22 @@ export async function POST(request: NextRequest) {
 
   const body = await request.json().catch(() => null);
   if (!body) return NextResponse.json({ error: 'JSON invalido' }, { status: 400 });
-  const { module_id, lesson_id, youtube_id } = body as {
+  const { module_id, lesson_id, youtube_id, titulo, descripcion } = body as {
     module_id?: string;
     lesson_id?: string;
     youtube_id?: string;
+    titulo?: string;
+    descripcion?: string;
   };
-  if (!module_id || !lesson_id || typeof youtube_id !== 'string') {
-    return NextResponse.json({ error: 'module_id, lesson_id y youtube_id son requeridos' }, { status: 400 });
+  if (!module_id || !lesson_id) {
+    return NextResponse.json({ error: 'module_id y lesson_id son requeridos' }, { status: 400 });
+  }
+  const patch: Record<string, string> = {};
+  if (typeof youtube_id === 'string') patch.youtube_id = youtube_id;
+  if (typeof titulo === 'string') patch.titulo = titulo;
+  if (typeof descripcion === 'string') patch.descripcion = descripcion;
+  if (Object.keys(patch).length === 0) {
+    return NextResponse.json({ error: 'Nada para actualizar' }, { status: 400 });
   }
 
   // Fetch every course_data row that has this module and has the lesson
@@ -39,16 +48,19 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: readErr.message }, { status: 500 });
   }
 
-  type LessonJSON = { id: string; youtube_id?: string; [k: string]: unknown };
+  type LessonJSON = { id: string; youtube_id?: string; titulo?: string; descripcion?: string; [k: string]: unknown };
   let updated = 0;
 
   for (const row of (rows as Array<{ user_id: string; module_id: string; lessons: unknown }> | null) || []) {
     const lessons = Array.isArray(row.lessons) ? (row.lessons as LessonJSON[]) : [];
     let changed = false;
     const next = lessons.map((l) => {
-      if (l && typeof l === 'object' && l.id === lesson_id && l.youtube_id !== youtube_id) {
-        changed = true;
-        return { ...l, youtube_id };
+      if (l && typeof l === 'object' && l.id === lesson_id) {
+        const diff = Object.entries(patch).some(([k, v]) => (l as Record<string, unknown>)[k] !== v);
+        if (diff) {
+          changed = true;
+          return { ...l, ...patch };
+        }
       }
       return l;
     });

@@ -169,6 +169,10 @@ function LessonRow({ moduleId, lesson }: { moduleId: string; lesson: MockLesson 
 
   const [currentId, setCurrentId] = useState<string>(lesson.youtube_id || '');
   const [pendingId, setPendingId] = useState<string>(lesson.youtube_id || '');
+  const [titulo, setTitulo] = useState<string>(lesson.titulo || '');
+  const [descripcion, setDescripcion] = useState<string>(lesson.descripcion || '');
+  const [originalTitulo, setOriginalTitulo] = useState<string>(lesson.titulo || '');
+  const [originalDescripcion, setOriginalDescripcion] = useState<string>(lesson.descripcion || '');
   const [query, setQuery] = useState<string>('');
   const [inspectMeta, setInspectMeta] = useState<VideoMetadata | null>(null);
   const [searchHits, setSearchHits] = useState<SearchHit[] | null>(null);
@@ -183,8 +187,12 @@ function LessonRow({ moduleId, lesson }: { moduleId: string; lesson: MockLesson 
   const reqIdRef = useRef(0);
   const blurCloseRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const changed = pendingId !== currentId;
-  const canSave = changed && !!pendingId && !!inspectMeta && inspectMeta.embeddable && !saving;
+  const idChanged = pendingId !== currentId;
+  const tituloChanged = titulo.trim() !== originalTitulo;
+  const descripcionChanged = descripcion !== originalDescripcion;
+  const changed = idChanged || tituloChanged || descripcionChanged;
+  const idValidForSave = !idChanged || (!!pendingId && !!inspectMeta && inspectMeta.embeddable) || pendingId === '';
+  const canSave = changed && idValidForSave && !!titulo.trim() && !saving;
 
   // On mount: fetch metadata for the currently-saved ID so the preview
   // card shows the user what's stored today.
@@ -305,17 +313,21 @@ function LessonRow({ moduleId, lesson }: { moduleId: string; lesson: MockLesson 
   }
 
   async function save() {
-    if (!canSave || !inspectMeta) return;
+    if (!canSave) return;
     setSaving(true);
     try {
+      const payload: Record<string, string> = {
+        module_id: moduleId,
+        lesson_id: lesson.id,
+      };
+      if (idChanged) payload.youtube_id = pendingId;
+      if (tituloChanged) payload.titulo = titulo.trim();
+      if (descripcionChanged) payload.descripcion = descripcion;
+
       const res = await fetch('/api/admin/update-lesson-video', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          module_id: moduleId,
-          lesson_id: lesson.id,
-          youtube_id: pendingId,
-        }),
+        body: JSON.stringify(payload),
       });
       const body = await res.json();
       if (!res.ok) throw new Error(body?.error || 'Error al guardar');
@@ -324,7 +336,9 @@ function LessonRow({ moduleId, lesson }: { moduleId: string; lesson: MockLesson 
           ? `Actualizado en ${body.updated} alumno${body.updated === 1 ? '' : 's'}`
           : 'Guardado (nadie tiene este modulo asignado todavia)'
       );
-      setCurrentId(pendingId);
+      if (idChanged) setCurrentId(pendingId);
+      if (tituloChanged) setOriginalTitulo(titulo.trim());
+      if (descripcionChanged) setOriginalDescripcion(descripcion);
     } catch (err) {
       logger.error('admin.videos.save.failed', { err, moduleId, lessonId: lesson.id });
       toast.error(err instanceof Error ? err.message : 'Error al guardar');
@@ -340,7 +354,14 @@ function LessonRow({ moduleId, lesson }: { moduleId: string; lesson: MockLesson 
   return (
     <div className="rounded-lg bg-white/[0.02] border border-jjl-border/60 p-3 space-y-2.5">
       <div className="flex items-start justify-between gap-2">
-        <p className="text-[13px] font-semibold text-white">{lesson.titulo}</p>
+        <input
+          type="text"
+          value={titulo}
+          onChange={(e) => setTitulo(e.target.value)}
+          maxLength={200}
+          className="flex-1 text-[13px] font-semibold text-white bg-transparent border-b border-transparent hover:border-jjl-border focus:border-jjl-red focus:outline-none py-0.5"
+          placeholder="Titulo de la leccion"
+        />
         {currentId && YT_ID_RE.test(currentId) && (
           <a
             href={`https://www.youtube.com/watch?v=${currentId}`}
@@ -434,6 +455,14 @@ function LessonRow({ moduleId, lesson }: { moduleId: string; lesson: MockLesson 
       )}
 
       {inspectMeta && <PreviewCard meta={inspectMeta} warning={titleSimilarityWarn} />}
+
+      <textarea
+        value={descripcion}
+        onChange={(e) => setDescripcion(e.target.value)}
+        placeholder="Descripcion (opcional)"
+        rows={2}
+        className="w-full px-3 py-2 bg-black/30 border border-jjl-border rounded-md text-[12px] text-white placeholder:text-jjl-muted/50 focus:outline-none focus:border-jjl-red focus:ring-2 focus:ring-jjl-red/25 resize-y"
+      />
 
       <div className="flex items-center justify-end">
         <Button

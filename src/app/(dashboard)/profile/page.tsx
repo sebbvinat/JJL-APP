@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Key, LogOut, Eye, EyeOff, Camera } from 'lucide-react';
+import { Key, LogOut, Eye, EyeOff, Camera, User } from 'lucide-react';
 import Card from '@/components/ui/Card';
 import Avatar from '@/components/ui/Avatar';
 import Badge from '@/components/ui/Badge';
@@ -102,6 +102,36 @@ function ProfileContent() {
 
   const [avatarError, setAvatarError] = useState('');
   const toast = useToast();
+
+  const [showNameForm, setShowNameForm] = useState(false);
+  const [newName, setNewName] = useState('');
+  const [savingName, setSavingName] = useState(false);
+
+  useEffect(() => { if (profile?.nombre) setNewName(profile.nombre); }, [profile?.nombre]);
+
+  async function handleChangeName(e: React.FormEvent) {
+    e.preventDefault();
+    const trimmed = newName.trim();
+    if (!trimmed) { toast.error('Ingresa un nombre'); return; }
+    setSavingName(true);
+    try {
+      const res = await fetch('/api/profile/name', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nombre: trimmed }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Error al guardar');
+      toast.success('Nombre actualizado');
+      setShowNameForm(false);
+      setTimeout(() => window.location.reload(), 600);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Error al guardar');
+    }
+    setSavingName(false);
+  }
+
+  const displayBelt = profile?.rol === 'admin' ? 'black' : (profile?.cinturon_actual || 'white');
 
   async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -277,7 +307,7 @@ function ProfileContent() {
               {profile?.nombre || 'Usuario'}
             </h1>
             <div className="flex items-center gap-2 mt-2 justify-center sm:justify-start flex-wrap">
-              <Badge belt={profile?.cinturon_actual || 'white'} />
+              <Badge belt={displayBelt} />
               <span className="text-xs text-jjl-muted truncate">{authUser?.email}</span>
             </div>
           </div>
@@ -296,6 +326,32 @@ function ProfileContent() {
       <Card>
         <h2 className="text-lg font-semibold mb-4">Configuracion</h2>
         <div className="space-y-3 divide-y divide-jjl-border/50 [&>*:not(:first-child)]:pt-3">
+          {/* Change Name */}
+          <button
+            onClick={() => setShowNameForm(!showNameForm)}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg bg-jjl-gray-light/50 hover:bg-jjl-gray-light transition-colors text-left"
+          >
+            <User className="h-5 w-5 text-jjl-muted" />
+            <div className="flex-1">
+              <p className="text-sm font-medium">Cambiar nombre</p>
+              <p className="text-xs text-jjl-muted">Actualiza como aparece tu nombre</p>
+            </div>
+          </button>
+          {showNameForm && (
+            <form onSubmit={handleChangeName} className="ml-8 space-y-3 p-4 bg-jjl-gray-light/30 rounded-lg">
+              <Input
+                id="nombre"
+                label="Nombre"
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                maxLength={80}
+              />
+              <Button type="submit" size="sm" loading={savingName} disabled={savingName}>
+                Guardar nombre
+              </Button>
+            </form>
+          )}
+
           {/* Change Password */}
           <button
             onClick={() => { setShowPasswordForm(!showPasswordForm); setError(''); setMessage(''); }}
