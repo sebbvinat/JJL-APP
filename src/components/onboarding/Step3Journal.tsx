@@ -1,6 +1,6 @@
 'use client';
 
-import { Activity, Sparkles, Search } from 'lucide-react';
+import { Activity, Sparkles, Search, Library, Plus } from 'lucide-react';
 import Shell from './Shell';
 
 interface Props {
@@ -30,14 +30,22 @@ export default function Step3Journal({ onNext, onSkip }: Props) {
           {
             icon: Sparkles,
             tone: 'bg-yellow-500/10 ring-yellow-500/25 text-yellow-400',
-            title: 'Reflexion que persiste',
-            body: 'Que aprendiste hoy, notas sueltas, links utiles. Todo se guarda 120 dias.',
+            title: 'Aprendizajes, observaciones y notas que perduran',
+            body:
+              'Todo lo que escribas en estos tres campos queda guardado y no se pisa. Para sumar una segunda nota el mismo dia toca "+ Agregar nota" y se te agrega con hora sin borrar lo anterior.',
+          },
+          {
+            icon: Library,
+            tone: 'bg-blue-500/10 ring-blue-500/25 text-blue-400',
+            title: 'Todo vive en la Biblioteca',
+            body:
+              'En el menu de la izquierda tenes "Biblioteca" — ahi aparece cada aprendizaje, observacion y link que escribiste en los ultimos meses. Filtrable por tema (guardia, pasajes, submissions) y con buscador.',
           },
           {
             icon: Search,
-            tone: 'bg-blue-500/10 ring-blue-500/25 text-blue-400',
-            title: 'Revisable en cualquier momento',
-            body: 'Buscas en la Biblioteca por tema (guardia, pasajes, submissions) o por palabras.',
+            tone: 'bg-purple-500/10 ring-purple-500/25 text-purple-400',
+            title: 'Buscable cuando lo necesitas',
+            body: 'Escribi "de la riva" o "fatiga" y saltan todas las entradas donde aparece esa palabra, ordenadas por fecha.',
           },
         ].map((row, i) => {
           const Icon = row.icon;
@@ -60,11 +68,13 @@ export default function Step3Journal({ onNext, onSkip }: Props) {
         })}
 
         <div className="rounded-xl border border-jjl-red/25 bg-jjl-red/[0.05] p-4 text-[12px] text-white/80 leading-relaxed">
-          <span className="uppercase tracking-[0.14em] text-jjl-red font-bold text-[10px] block mb-1">
-            Tip
+          <span className="uppercase tracking-[0.14em] text-jjl-red font-bold text-[10px] flex items-center gap-1.5 mb-1">
+            <Plus className="h-3 w-3" />
+            Tip importante
           </span>
-          Los domingos a la noche hacemos el <em>ritual</em> — revisas tu semana, fijas foco para la
-          siguiente. Te vamos a notificar cuando toque.
+          Para sumar aprendizajes, observaciones o notas el mismo dia sin perder lo que ya escribiste,
+          usa el boton <strong>+ Agregar nota</strong> en cada campo — arma un registro con hora.
+          Los domingos a la noche el <em>ritual</em> te pregunta que aprendiste de la semana.
         </div>
       </div>
     </Shell>

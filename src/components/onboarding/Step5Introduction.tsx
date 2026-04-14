@@ -16,7 +16,8 @@ interface Props {
 }
 
 export default function Step5Introduction({ userName, userBelt, isAdmin, onComplete }: Props) {
-  const [horario, setHorario] = useState('');
+  const [cinturon, setCinturon] = useState(BELT_LABELS[userBelt] || userBelt || '');
+  const [tiempoEntrenando, setTiempoEntrenando] = useState('');
   const [objetivo, setObjetivo] = useState('');
   const [desafio, setDesafio] = useState('');
   const [working, setWorking] = useState(false);
@@ -41,8 +42,8 @@ export default function Step5Introduction({ userName, userBelt, isAdmin, onCompl
 
   const contenido = [
     `Hola, soy ${userName}${isAdmin ? ' — instructor de JJL' : ''}.`,
-    isAdmin ? '' : `Cinturon ${BELT_LABELS[userBelt] || userBelt}.`,
-    horario ? `Entreno ${horario}.` : '',
+    !isAdmin && cinturon ? `Cinturon ${cinturon}.` : '',
+    !isAdmin && tiempoEntrenando ? `Hace ${tiempoEntrenando} que entreno.` : '',
     objetivo ? `Mi objetivo en JJL: ${objetivo}.` : '',
     desafio ? `Mi desafio actual: ${desafio}.` : '',
     '¡Vamos!',
@@ -111,12 +112,22 @@ export default function Step5Introduction({ userName, userBelt, isAdmin, onCompl
       ) : (
         <div className="space-y-4">
           <div className="rounded-xl border border-jjl-border bg-white/[0.02] p-4 space-y-3">
-            <Input
-              label="Cuando entrenas"
-              placeholder="Martes y jueves 19h, sabados manana"
-              value={horario}
-              onChange={(e) => setHorario(e.target.value)}
-            />
+            {!isAdmin && (
+              <>
+                <Input
+                  label="Que cinturon sos"
+                  placeholder="Blanco con 2 grados"
+                  value={cinturon}
+                  onChange={(e) => setCinturon(e.target.value)}
+                />
+                <Input
+                  label="Hace cuanto entrenas"
+                  placeholder="2 años, desde 2022, 6 meses..."
+                  value={tiempoEntrenando}
+                  onChange={(e) => setTiempoEntrenando(e.target.value)}
+                />
+              </>
+            )}
             <Input
               label="Tu objetivo en JJL"
               placeholder="Cerrar mi juego de guardia, competir en azul"
