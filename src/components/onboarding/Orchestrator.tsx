@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Shell from './Shell';
 import Step1Welcome from './Step1Welcome';
+import Step2Program from './Step2Program';
 
 const TOTAL_STEPS = 5;
 
@@ -33,7 +34,17 @@ export default function Orchestrator({ initialStep, userName, userRole, userBelt
     return <Step1Welcome userName={userName} onNext={() => advance(2)} />;
   }
 
-  // Placeholder — real step components come in Tasks 6-9.
+  if (step === 2) {
+    return (
+      <Step2Program
+        isAdmin={userRole === 'admin'}
+        onNext={() => advance(3)}
+        onSkip={() => advance(3)}
+      />
+    );
+  }
+
+  // Placeholder — real step components come in Tasks 7-9.
   return (
     <Shell
       step={step}
