@@ -481,22 +481,14 @@ export default function CustomVideoPlayer({
           </div>
         )}
 
-        {/* Error overlay — video can't be embedded here */}
+        {/* Error overlay — video can't be loaded */}
         {playerError && (
           <div className="absolute inset-0 z-40 flex flex-col items-center justify-center bg-black/95 px-6 text-center">
             <div className="h-12 w-12 rounded-full bg-red-500/15 border border-red-500/30 flex items-center justify-center mb-3">
               <span className="text-red-400 text-2xl font-bold">!</span>
             </div>
-            <p className="text-white text-sm font-semibold mb-1">{playerError}</p>
-            <p className="text-jjl-muted text-xs mb-4">Podes verlo directo en YouTube.</p>
-            <a
-              href={`https://www.youtube.com/watch?v=${youtubeId}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 h-9 px-4 bg-jjl-red hover:bg-jjl-red-hover text-white text-sm font-semibold rounded-lg transition-colors"
-            >
-              Abrir en YouTube
-            </a>
+            <p className="text-white text-sm font-semibold">{playerError}</p>
+            <p className="text-jjl-muted text-xs mt-2">Avisale a tu instructor para que lo revise.</p>
           </div>
         )}
 
