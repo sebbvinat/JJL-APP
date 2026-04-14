@@ -65,10 +65,19 @@ export default function TrainingCalendar({ trainedDays = [], weeks = 13 }: Train
   return (
     <Card>
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold">Calendario de Entrenamiento</h2>
-        <div className="flex items-center gap-2">
-          <span className="text-2xl font-bold text-orange-400">{streak}</span>
-          <span className="text-xs text-jjl-muted">dias<br />seguidos</span>
+        <div>
+          <h2 className="text-[15px] font-semibold text-white">Calendario de Entrenamiento</h2>
+          <p className="text-[11px] text-jjl-muted mt-0.5 uppercase tracking-[0.12em]">
+            Ultimas {weeks} semanas
+          </p>
+        </div>
+        <div className="flex items-baseline gap-1.5">
+          <span className="text-[28px] font-black text-orange-400 tabular-nums leading-none">
+            {streak}
+          </span>
+          <span className="text-[10px] text-jjl-muted uppercase tracking-wider font-semibold">
+            dias<br />seguidos
+          </span>
         </div>
       </div>
 
@@ -77,7 +86,7 @@ export default function TrainingCalendar({ trainedDays = [], weeks = 13 }: Train
         <div className="flex flex-col gap-1 mr-1">
           {dayLabels.map((d) => (
             <div key={d} className="h-[14px] flex items-center">
-              <span className="text-xs text-jjl-muted leading-none">{d}</span>
+              <span className="text-[10px] text-jjl-muted/60 leading-none font-semibold">{d}</span>
             </div>
           ))}
         </div>
@@ -88,16 +97,16 @@ export default function TrainingCalendar({ trainedDays = [], weeks = 13 }: Train
             {week.map((cell, di) => (
               <div
                 key={di}
-                className={`h-[14px] rounded-sm transition-colors ${
+                className={`h-[14px] rounded-[3px] transition-colors ${
                   !cell
                     ? 'bg-transparent'
                     : cell.dateStr === todayStr
-                    ? cell.trained
-                      ? 'bg-green-400 ring-1 ring-green-300'
-                      : 'bg-jjl-border ring-1 ring-jjl-muted/50'
-                    : cell.trained
-                    ? 'bg-green-500/70 hover:bg-green-500'
-                    : 'bg-jjl-gray-light hover:bg-jjl-border'
+                      ? cell.trained
+                        ? 'bg-green-400 ring-1 ring-green-300 ring-offset-1 ring-offset-jjl-gray'
+                        : 'bg-white/10 ring-1 ring-jjl-red/60'
+                      : cell.trained
+                        ? 'bg-green-500/75 hover:bg-green-500'
+                        : 'bg-white/5 hover:bg-white/10'
                 }`}
                 title={cell ? format(cell.date, 'EEEE dd MMM', { locale: es }) : ''}
               />
@@ -107,17 +116,17 @@ export default function TrainingCalendar({ trainedDays = [], weeks = 13 }: Train
       </div>
 
       {/* Legend */}
-      <div className="flex items-center gap-4 mt-3 text-xs text-jjl-muted">
+      <div className="flex items-center gap-4 mt-4 text-[11px] text-jjl-muted">
         <div className="flex items-center gap-1.5">
-          <div className="h-3 w-3 rounded-sm bg-jjl-gray-light" />
+          <div className="h-3 w-3 rounded-[3px] bg-white/5" />
           No entreno
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="h-3 w-3 rounded-sm bg-green-500/70" />
+          <div className="h-3 w-3 rounded-[3px] bg-green-500/75" />
           Entreno
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="h-3 w-3 rounded-sm bg-jjl-border ring-1 ring-jjl-muted/50" />
+          <div className="h-3 w-3 rounded-[3px] bg-white/10 ring-1 ring-jjl-red/60" />
           Hoy
         </div>
       </div>
