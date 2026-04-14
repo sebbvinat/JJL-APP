@@ -1,29 +1,10 @@
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
 import { NextResponse, type NextRequest } from 'next/server';
-
-function getSupabase(cookieStore: Awaited<ReturnType<typeof cookies>>) {
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() { return cookieStore.getAll(); },
-        setAll(cookiesToSet) {
-          try { cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options)); } catch {}
-        },
-      },
-    }
-  );
-}
+import { getAuthedUser } from '@/lib/supabase/server';
 
 // GET: list notifications (latest 20, unread count)
-export async function GET() {
-  const cookieStore = await cookies();
-  const supabase = getSupabase(cookieStore);
-
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+export async function GET(request: NextRequest) {
+  const { user, supabase } = await getAuthedUser(request);
+  if (!user) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
 
   const [{ data: notifications }, { count: unreadCount }] = await Promise.all([
     supabase
@@ -47,11 +28,8 @@ export async function GET() {
 
 // PATCH: mark notifications as read
 export async function PATCH(request: NextRequest) {
-  const cookieStore = await cookies();
-  const supabase = getSupabase(cookieStore);
-
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+  const { user, supabase } = await getAuthedUser(request);
+  if (!user) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
 
   const body = await request.json();
 

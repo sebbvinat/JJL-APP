@@ -1,25 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@supabase/ssr';
-
-function getSupabase(request: NextRequest) {
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() { return request.cookies.getAll(); },
-        setAll() {},
-      },
-    }
-  );
-}
+import { getAuthedUser, createAdminSupabaseClient } from '@/lib/supabase/server';
 
 // GET: List posts (optionally filter by category)
 export async function GET(request: NextRequest) {
-  const supabase = getSupabase(request);
-  const { data: { user } } = await supabase.auth.getUser();
+  const { user, supabase } = await getAuthedUser(request);
   if (!user) {
-    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
   }
 
   const category = request.nextUrl.searchParams.get('category');
@@ -90,10 +76,9 @@ export async function GET(request: NextRequest) {
 
 // POST: Create a new post
 export async function POST(request: NextRequest) {
-  const supabase = getSupabase(request);
-  const { data: { user } } = await supabase.auth.getUser();
+  const { user, supabase } = await getAuthedUser(request);
   if (!user) {
-    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
   }
 
   const { titulo, contenido, categoria } = await request.json();
@@ -126,12 +111,7 @@ export async function POST(request: NextRequest) {
       .eq('id', user.id)
       .single();
 
-    const { createClient } = await import('@supabase/supabase-js');
-    const admin = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      { auth: { autoRefreshToken: false, persistSession: false } }
-    );
+    const admin = createAdminSupabaseClient();
 
     // Get all users except the author
     const { data: allUsers } = await admin

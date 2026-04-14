@@ -1,6 +1,15 @@
 export type BeltLevel = 'white' | 'blue' | 'purple' | 'brown' | 'black';
 export type UserRole = 'admin' | 'alumno';
-export type PostCategory = 'question' | 'technique' | 'progress' | 'discussion' | 'competition';
+export type PostCategory =
+  | 'question'
+  | 'technique'
+  | 'progress'
+  | 'discussion'
+  | 'competition'
+  | 'offtopic';
+export type NotificationType = 'belt' | 'module' | 'streak' | 'achievement' | 'system';
+export type FatigaLevel = 'verde' | 'amarillo' | 'rojo';
+export type IntensidadLevel = 'baja' | 'media' | 'alta';
 
 // ---- Row types (what you get from a SELECT) ----
 
@@ -56,6 +65,14 @@ export interface DailyTask {
   fecha: string;
   entreno_check: boolean;
   feedback_texto: string | null;
+  fatiga: FatigaLevel | null;
+  intensidad: IntensidadLevel | null;
+  objetivo: string | null;
+  objetivo_cumplido: boolean | null;
+  regla: string | null;
+  regla_cumplida: boolean | null;
+  puntaje: number | null;
+  observaciones: string | null;
   created_at: string;
 }
 
@@ -101,6 +118,44 @@ export interface VideoUpload {
   tags: string[] | null;
   file_size: number | null;
   created_at: string;
+}
+
+export interface Notification {
+  id: string;
+  user_id: string;
+  tipo: NotificationType;
+  titulo: string;
+  mensaje: string;
+  leido: boolean;
+  created_at: string;
+}
+
+export interface PushSubscription {
+  id: string;
+  user_id: string;
+  endpoint: string;
+  keys_p256dh: string;
+  keys_auth: string;
+  created_at: string;
+}
+
+export interface CourseLessonJSON {
+  id: string;
+  tipo?: string;
+  titulo?: string;
+  youtube_id?: string;
+  orden?: number;
+}
+
+export interface CourseData {
+  user_id: string;
+  module_id: string;
+  semana_numero: number;
+  titulo: string;
+  descripcion: string | null;
+  lessons: CourseLessonJSON[];
+  created_at: string;
+  updated_at: string;
 }
 
 // ---- Database type for Supabase client ----
@@ -157,6 +212,24 @@ export interface Database {
         Row: VideoUpload;
         Insert: Omit<VideoUpload, 'id' | 'created_at'>;
         Update: Partial<Omit<VideoUpload, 'id'>>;
+      };
+      notifications: {
+        Row: Notification;
+        Insert: Omit<Notification, 'id' | 'created_at' | 'leido'> & { leido?: boolean };
+        Update: Partial<Omit<Notification, 'id'>>;
+      };
+      push_subscriptions: {
+        Row: PushSubscription;
+        Insert: Omit<PushSubscription, 'id' | 'created_at'>;
+        Update: Partial<Omit<PushSubscription, 'id'>>;
+      };
+      course_data: {
+        Row: CourseData;
+        Insert: Omit<CourseData, 'created_at' | 'updated_at'> & {
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Omit<CourseData, 'user_id' | 'module_id'>>;
       };
     };
     Functions: {

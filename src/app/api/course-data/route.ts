@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-import { createServerClient } from '@supabase/ssr';
+import { getAuthedUser, createAdminSupabaseClient } from '@/lib/supabase/server';
 
 // GET: Load course data for the logged-in user
 // ?all=true → all modules for this user (listing page)
@@ -9,29 +8,18 @@ export async function GET(request: NextRequest) {
   const moduleId = request.nextUrl.searchParams.get('moduleId');
   const all = request.nextUrl.searchParams.get('all');
 
-  // Get logged-in user
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() { return request.cookies.getAll(); },
-        setAll() {},
-      },
-    }
-  );
-
-  const { data: { user } } = await supabase.auth.getUser();
+  const { user, supabase } = await getAuthedUser(request);
   if (!user) {
     return NextResponse.json({ module: null, modules: [] });
   }
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-
-  const adminClient = createClient(supabaseUrl, supabaseKey, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  });
+  // Prefer service role client to bypass RLS; fall back to session client.
+  let adminClient: ReturnType<typeof createAdminSupabaseClient> | typeof supabase;
+  try {
+    adminClient = createAdminSupabaseClient();
+  } catch {
+    adminClient = supabase;
+  }
 
   // Return all modules for this user
   if (all === 'true') {

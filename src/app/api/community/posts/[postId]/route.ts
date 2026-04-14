@@ -1,18 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@supabase/ssr';
-
-function getSupabase(request: NextRequest) {
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() { return request.cookies.getAll(); },
-        setAll() {},
-      },
-    }
-  );
-}
+import { getAuthedUser, createAdminSupabaseClient } from '@/lib/supabase/server';
 
 // GET: Single post with comments
 export async function GET(
@@ -20,10 +7,9 @@ export async function GET(
   { params }: { params: Promise<{ postId: string }> }
 ) {
   const { postId } = await params;
-  const supabase = getSupabase(request);
-  const { data: { user } } = await supabase.auth.getUser();
+  const { user, supabase } = await getAuthedUser(request);
   if (!user) {
-    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
   }
 
   // Fetch post
@@ -109,10 +95,9 @@ export async function DELETE(
   { params }: { params: Promise<{ postId: string }> }
 ) {
   const { postId } = await params;
-  const supabase = getSupabase(request);
-  const { data: { user } } = await supabase.auth.getUser();
+  const { user, supabase } = await getAuthedUser(request);
   if (!user) {
-    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
   }
 
   // Check if admin
@@ -126,17 +111,13 @@ export async function DELETE(
 
   if (isAdmin) {
     // Admin can delete any post — use service role to bypass RLS
-    const { createClient } = await import('@supabase/supabase-js');
-    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    if (serviceRoleKey) {
-      const adminClient = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        serviceRoleKey,
-        { auth: { autoRefreshToken: false, persistSession: false } }
-      );
+    try {
+      const adminClient = createAdminSupabaseClient();
       const { error } = await adminClient.from('posts').delete().eq('id', postId);
       if (error) return NextResponse.json({ error: error.message }, { status: 500 });
       return NextResponse.json({ success: true });
+    } catch {
+      // Fall through to non-admin path if service role not configured
     }
   }
 

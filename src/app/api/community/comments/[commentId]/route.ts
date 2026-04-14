@@ -1,19 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@supabase/ssr';
-import { createClient } from '@supabase/supabase-js';
-
-function getSupabase(request: NextRequest) {
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() { return request.cookies.getAll(); },
-        setAll() {},
-      },
-    }
-  );
-}
+import { getAuthedUser, createAdminSupabaseClient } from '@/lib/supabase/server';
 
 // DELETE: Delete a comment (owner or admin)
 export async function DELETE(
@@ -21,10 +7,9 @@ export async function DELETE(
   { params }: { params: Promise<{ commentId: string }> }
 ) {
   const { commentId } = await params;
-  const supabase = getSupabase(request);
-  const { data: { user } } = await supabase.auth.getUser();
+  const { user, supabase } = await getAuthedUser(request);
   if (!user) {
-    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
   }
 
   // Check if user is admin
@@ -54,15 +39,7 @@ export async function DELETE(
 
   // Use service role if admin deleting someone else's comment
   if (isAdmin && comment.user_id !== user.id) {
-    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    if (!serviceRoleKey) {
-      return NextResponse.json({ error: 'No service role key' }, { status: 500 });
-    }
-    const adminClient = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      serviceRoleKey,
-      { auth: { autoRefreshToken: false, persistSession: false } }
-    );
+    const adminClient = createAdminSupabaseClient();
     await adminClient.from('comments').delete().eq('id', commentId);
     await adminClient.rpc('decrement_comments', { p_post_id: comment.post_id }).maybeSingle();
   } else {

@@ -62,13 +62,13 @@ export async function updateSession(request: NextRequest) {
 
   // ADMIN ROUTE PROTECTION — server-side role check
   if (user && pathname.startsWith('/admin')) {
-    const { data: profile } = await supabase
+    const { data } = await supabase
       .from('users')
       .select('rol')
       .eq('id', user.id)
-      .single();
+      .single<{ rol: string }>();
 
-    if ((profile as { rol: string } | null)?.rol !== 'admin') {
+    if (data?.rol !== 'admin') {
       const url = request.nextUrl.clone();
       url.pathname = '/dashboard';
       return NextResponse.redirect(url);

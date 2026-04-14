@@ -1,30 +1,11 @@
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
 import { NextResponse, type NextRequest } from 'next/server';
 import { format } from 'date-fns';
-
-function getSupabase(cookieStore: Awaited<ReturnType<typeof cookies>>) {
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() { return cookieStore.getAll(); },
-        setAll(cookiesToSet) {
-          try { cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options)); } catch {}
-        },
-      },
-    }
-  );
-}
+import { getAuthedUser } from '@/lib/supabase/server';
 
 // GET: load journal entry for a date
 export async function GET(request: NextRequest) {
-  const cookieStore = await cookies();
-  const supabase = getSupabase(cookieStore);
-
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+  const { user, supabase } = await getAuthedUser(request);
+  if (!user) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
 
   const fecha = request.nextUrl.searchParams.get('fecha') || format(new Date(), 'yyyy-MM-dd');
   const history = request.nextUrl.searchParams.get('history');
@@ -53,12 +34,9 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const cookieStore = await cookies();
-  const supabase = getSupabase(cookieStore);
-
-  const { data: { user } } = await supabase.auth.getUser();
+  const { user, supabase } = await getAuthedUser(request);
   if (!user) {
-    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
   }
 
   const body = await request.json();
