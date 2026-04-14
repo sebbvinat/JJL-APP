@@ -113,6 +113,11 @@ export default function CustomVideoPlayer({
     if (!el) return;
 
     playerRef.current = new window.YT.Player(playerId, {
+      // Critical: explicit 100% so the iframe the API injects fills the
+      // container. Without these, YT defaults to inline width=640 height=360
+      // and certain layouts hide the visual while the audio keeps playing.
+      width: '100%',
+      height: '100%',
       videoId: youtubeId,
       playerVars: {
         controls: 0,
@@ -136,13 +141,24 @@ export default function CustomVideoPlayer({
     if (!mountedRef.current) return;
     setPlayerReady(true);
     setDuration(event.target.getDuration());
-    // Ensure iframe allows fullscreen (needed for iOS)
+    // Ensure iframe allows fullscreen (needed for iOS) AND force it to fill
+    // the positioned container absolutely — the YT API injects inline
+    // width/height attributes that can otherwise leave the iframe smaller
+    // than the player shell (audio plays, video invisible).
     try {
-      const iframe = event.target.getIframe();
+      const iframe = event.target.getIframe() as HTMLIFrameElement | null;
       if (iframe) {
         iframe.setAttribute('allow', 'fullscreen; autoplay; encrypted-media');
         iframe.setAttribute('allowfullscreen', 'true');
         iframe.setAttribute('webkitallowfullscreen', 'true');
+        iframe.removeAttribute('width');
+        iframe.removeAttribute('height');
+        iframe.style.position = 'absolute';
+        iframe.style.top = '0';
+        iframe.style.left = '0';
+        iframe.style.width = '100%';
+        iframe.style.height = '100%';
+        iframe.style.border = '0';
       }
     } catch {}
     // Force max quality

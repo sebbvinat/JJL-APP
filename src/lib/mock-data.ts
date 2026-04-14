@@ -44,8 +44,8 @@ export interface MockLesson {
 
 export const MOCK_LESSONS: Record<string, MockLesson[]> = {
   'mod-0': [
-    { id: 'les-0-1', titulo: 'Llamado a guardia cerrada', youtube_id: 'dUxhJHQ54Gg', descripcion: '', orden: 1, duracion: '10:00', completed: false, tipo: 'video' },
-    { id: 'les-0-2', titulo: 'Apertura de guardia', youtube_id: 's4SPE-fe1jo', descripcion: '', orden: 2, duracion: '10:00', completed: false, tipo: 'video' },
+    { id: 'les-0-1', titulo: 'Llamado a guardia cerrada', youtube_id: 's4SPE-fe1jo', descripcion: '', orden: 1, duracion: '10:00', completed: false, tipo: 'video' },
+    { id: 'les-0-2', titulo: 'Apertura de guardia', youtube_id: 'dUxhJHQ54Gg', descripcion: '', orden: 2, duracion: '10:00', completed: false, tipo: 'video' },
     { id: 'les-0-3', titulo: 'Retencion de guardia', youtube_id: 'yZFj0LE2LvA', descripcion: '', orden: 3, duracion: '10:00', completed: false, tipo: 'video' },
     { id: 'les-0-4', titulo: 'Concepto de Pasaje', youtube_id: 'XnO6TeVky4s', descripcion: '', orden: 4, duracion: '10:00', completed: false, tipo: 'video' },
   ],
