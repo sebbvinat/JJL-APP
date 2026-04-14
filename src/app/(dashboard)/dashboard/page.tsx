@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import useSWR from 'swr';
 import { format } from 'date-fns';
-import { Flame, BookOpen, Trophy, Calendar, Upload, Users, User, ChevronRight, NotebookPen } from 'lucide-react';
+import { Flame, BookOpen, Trophy, Calendar, Upload, Users, ChevronRight, NotebookPen } from 'lucide-react';
 import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import StatCard from '@/components/dashboard/StatCard';
@@ -10,7 +10,7 @@ import TaskDashboard from '@/components/dashboard/TaskDashboard';
 import TrainingCalendar from '@/components/dashboard/TrainingCalendar';
 import BeltProgress from '@/components/gamification/BeltProgress';
 import { calculateGamification } from '@/lib/gamification';
-import { MOCK_MODULES } from '@/lib/mock-data';
+import { fetcher } from '@/lib/fetcher';
 import type { BeltLevel } from '@/lib/supabase/types';
 
 interface DashboardData {
@@ -29,25 +29,18 @@ interface DashboardData {
 }
 
 export default function DashboardPage() {
-  const [data, setData] = useState<DashboardData | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    async function load() {
-      try {
-        const today = format(new Date(), 'yyyy-MM-dd');
-        const res = await fetch(`/api/dashboard-stats?today=${today}`);
-        if (res.ok) {
-          const json = await res.json();
-          setData(json);
-        }
-      } catch {}
-      setLoading(false);
+  const today = format(new Date(), 'yyyy-MM-dd');
+  const { data, isLoading: loading } = useSWR<DashboardData>(
+    `/api/dashboard-stats?today=${today}`,
+    fetcher,
+    {
+      revalidateOnFocus: true,
+      revalidateIfStale: true,
+      dedupingInterval: 30_000,
     }
-    load();
-  }, []);
+  );
 
-  if (loading) {
+  if (loading && !data) {
     return (
       <div className="space-y-6 max-w-4xl animate-pulse">
         {/* Welcome skeleton */}
@@ -78,7 +71,7 @@ export default function DashboardPage() {
   // Belt and points come from API (already resolved: max of calculated vs admin-set)
   const currentBelt = (profile.cinturon_actual || 'white') as BeltLevel;
   const points = profile.puntos || 0;
-  const totalModules = MOCK_MODULES.length;
+  const totalModules = data?.totalWeeks ?? 0;
 
   // Calculate progress to next belt from the profile belt
   const completedWeekNumbers = data?.completedWeekNumbers || [];
@@ -91,15 +84,27 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6 max-w-4xl">
       {/* Welcome */}
-      <div className="bg-gradient-to-r from-jjl-red/20 to-transparent border border-jjl-red/20 rounded-xl p-6">
-        <div className="flex items-center justify-between flex-wrap gap-4">
+      <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-jjl-red/15 via-jjl-gray/40 to-transparent p-6">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -top-24 -right-10 h-64 w-64 rounded-full blur-3xl opacity-30"
+          style={{ background: 'radial-gradient(circle, rgba(220,38,38,0.5), transparent 70%)' }}
+        />
+        <div className="relative flex items-center justify-between flex-wrap gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-white">Bienvenido, {profile.nombre || 'Guerrero'}</h1>
-            <p className="text-jjl-muted mt-1">Tu camino en el Jiu Jitsu continua. Sigue adelante.</p>
+            <p className="text-[11px] uppercase tracking-[0.2em] text-jjl-muted font-semibold mb-1.5">
+              {isAdmin ? 'Panel de Instructor' : 'Bienvenido'}
+            </p>
+            <h1 className="text-3xl font-black text-white tracking-tight">
+              {profile.nombre || 'Guerrero'}
+            </h1>
+            <p className="text-jjl-muted text-sm mt-2 max-w-md">
+              Tu camino en el Jiu Jitsu continua. Un dia mas de trabajo.
+            </p>
           </div>
           <div className="flex items-center gap-2">
             {isAdmin && (
-              <span className="px-2.5 py-1 rounded-lg bg-yellow-500/20 border border-yellow-500/30 text-yellow-400 text-xs font-bold uppercase tracking-wider">
+              <span className="px-2.5 py-1 rounded-lg bg-yellow-500/15 border border-yellow-500/30 text-yellow-400 text-[10px] font-bold uppercase tracking-[0.15em]">
                 Admin
               </span>
             )}
@@ -127,7 +132,7 @@ export default function DashboardPage() {
         />
         <StatCard
           label="Modulos Activos"
-          value={`${unlockedModules}/${totalModules}`}
+          value={totalModules > 0 ? `${unlockedModules}/${totalModules}` : `${unlockedModules}`}
           icon={BookOpen}
           color="text-blue-400"
         />

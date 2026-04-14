@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Bell } from 'lucide-react';
+import { logger } from '@/lib/logger';
 
 export default function PushPrompt() {
   const [showPrompt, setShowPrompt] = useState(false);
@@ -35,7 +36,9 @@ export default function PushPrompt() {
         applicationServerKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
       });
       await saveSubscription(subscription);
-    } catch {}
+    } catch (err) {
+      logger.warn('push.subscribeQuietly.failed', { err });
+    }
   }
 
   async function handleEnable() {
@@ -50,17 +53,24 @@ export default function PushPrompt() {
         applicationServerKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
       });
       await saveSubscription(subscription);
-    } catch {}
+    } catch (err) {
+      logger.error('push.handleEnable.failed', { err });
+    }
   }
 
   async function saveSubscription(subscription: PushSubscription) {
     try {
-      await fetch('/api/push/subscribe', {
+      const res = await fetch('/api/push/subscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ subscription: subscription.toJSON() }),
       });
-    } catch {}
+      if (!res.ok) {
+        logger.error('push.saveSubscription.badStatus', { status: res.status });
+      }
+    } catch (err) {
+      logger.error('push.saveSubscription.failed', { err });
+    }
   }
 
   if (!showPrompt) return null;
