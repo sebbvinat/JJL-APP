@@ -60,19 +60,45 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // ADMIN ROUTE PROTECTION — server-side role check
-  if (user && pathname.startsWith('/admin')) {
+  // SINGLE DB READ: admin-gate + onboarding-gate reuse the same row.
+  let profile: { rol: string; onboarding_completed_at: string | null } | null = null;
+  if (user && !isPublicRoute) {
     const { data } = await supabase
       .from('users')
-      .select('rol')
+      .select('rol, onboarding_completed_at')
       .eq('id', user.id)
-      .single<{ rol: string }>();
+      .single<{ rol: string; onboarding_completed_at: string | null }>();
+    profile = data;
+  }
 
-    if (data?.rol !== 'admin') {
+  // ADMIN ROUTE PROTECTION — server-side role check
+  if (user && pathname.startsWith('/admin')) {
+    if (profile?.rol !== 'admin') {
       const url = request.nextUrl.clone();
       url.pathname = '/dashboard';
       return NextResponse.redirect(url);
     }
+  }
+
+  // ONBOARDING GATE — force the /bienvenida flow until completed.
+  // /auth/* is excluded so OAuth callbacks and password-reset flows work.
+  if (
+    user &&
+    profile &&
+    profile.onboarding_completed_at === null &&
+    pathname !== '/bienvenida' &&
+    !pathname.startsWith('/auth/')
+  ) {
+    const url = request.nextUrl.clone();
+    url.pathname = '/bienvenida';
+    return NextResponse.redirect(url);
+  }
+
+  // Already-completed users visiting /bienvenida directly go to dashboard.
+  if (user && profile && profile.onboarding_completed_at !== null && pathname === '/bienvenida') {
+    const url = request.nextUrl.clone();
+    url.pathname = '/dashboard';
+    return NextResponse.redirect(url);
   }
 
   return supabaseResponse;
