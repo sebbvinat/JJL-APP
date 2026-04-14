@@ -60,26 +60,32 @@ export default function LoginPage() {
 
   return (
     <div className="relative w-full max-w-sm">
-      {/* Subtle background radial gradient */}
-      <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_center,_var(--color-jjl-red)_0%,_transparent_70%)] opacity-[0.05] pointer-events-none" />
-
       <div className="relative">
         {/* Logo */}
         <div className="flex flex-col items-center mb-8">
-          <div className="mb-4 w-[72px] h-[72px] rounded-full bg-white p-2 flex items-center justify-center">
+          <div className="relative mb-4 w-[88px] h-[88px] rounded-full bg-white p-2.5 flex items-center justify-center shadow-xl shadow-jjl-red/20 ring-1 ring-white/10">
+            <div
+              aria-hidden
+              className="absolute inset-0 rounded-full blur-lg opacity-40"
+              style={{ background: 'radial-gradient(circle, rgba(220,38,38,0.9), transparent 70%)' }}
+            />
             <img
               src="/logo-jjl.png"
               alt="JJL"
-              width={56}
-              height={56}
+              width={64}
+              height={64}
+              className="relative z-10"
             />
           </div>
-          <h1 className="text-2xl font-bold">JIU JITSU LATINO</h1>
-          <p className="text-jjl-muted text-sm mt-1">Inicia sesion en tu cuenta</p>
+          <h1 className="text-[22px] font-extrabold tracking-[0.18em] leading-none">
+            JIU JITSU LATINO
+          </h1>
+          <div className="mt-2 h-px w-10 bg-gradient-to-r from-transparent via-jjl-red to-transparent" />
+          <p className="text-jjl-muted text-xs mt-2 tracking-wide uppercase">Elite Coaching</p>
         </div>
 
         {/* Form card with glow border */}
-        <div className="rounded-2xl border border-jjl-border bg-jjl-gray/60 p-6 shadow-lg shadow-black/40 ring-1 ring-jjl-red/[0.08]">
+        <div className="rounded-2xl border border-white/10 bg-gradient-to-b from-white/[0.04] to-white/[0.02] backdrop-blur-sm p-6 shadow-[0_20px_60px_-20px_rgba(0,0,0,0.8)] ring-1 ring-jjl-red/10">
           <form onSubmit={handleLogin} className="space-y-4">
             <Input
               id="email"
