@@ -4,25 +4,20 @@ import { getAuthedUser } from '@/lib/supabase/server';
 import { classifyTopic, extractLinks, hostOf, type LibraryTopic } from '@/lib/library-topics';
 
 /**
- * Library endpoint — flatten months of journal entries into searchable
- * items grouped by topic.
+ * Library view — reads from journal_entries. Each row becomes one library
+ * entry (tagged with its classified topic). Links are extracted from every
+ * entry's text and surfaced in a separate `links` array.
  *
- *   ?months=6   → how far back to look (default 6, cap 12).
- *
- * Returns two views built from the same dataset:
- *   - entries[]  : every non-empty aprendizajes/observaciones/notas, each
- *                  tagged with its classified topic.
- *   - links[]    : URLs extracted from notas (and aprendizajes/
- *                  observaciones too, cheap enough), each with host and
- *                  the fecha it came from.
- *   - byTopic    : counts per topic for the filter chips.
+ *   ?months=6 (default, cap 12) → how far back to include. Standalone
+ *                                  entries (fecha = NULL) are always included.
  */
 
-interface TaskRow {
-  fecha: string;
-  aprendizajes: string | null;
-  observaciones: string | null;
-  notas: string | null;
+interface RowJE {
+  id: string;
+  kind: 'aprendizaje' | 'observacion' | 'nota';
+  text: string;
+  fecha: string | null;
+  created_at: string;
 }
 
 export async function GET(request: NextRequest) {
@@ -34,23 +29,24 @@ export async function GET(request: NextRequest) {
   const from = format(subMonths(new Date(), months), 'yyyy-MM-dd');
 
   const { data } = await supabase
-    .from('daily_tasks')
-    .select('fecha, aprendizajes, observaciones, notas')
+    .from('journal_entries')
+    .select('id, kind, text, fecha, created_at')
     .eq('user_id', user.id)
-    .gte('fecha', from)
-    .or('aprendizajes.not.is.null,observaciones.not.is.null,notas.not.is.null')
-    .order('fecha', { ascending: false });
+    .or(`fecha.gte.${from},fecha.is.null`)
+    .order('created_at', { ascending: false })
+    .limit(500);
 
-  const rows = (data as TaskRow[] | null) || [];
+  const rows = (data as RowJE[] | null) || [];
 
-  type EntryKind = 'aprendizaje' | 'observacion' | 'nota';
   interface Entry {
+    id: string;
     fecha: string;
-    kind: EntryKind;
+    kind: RowJE['kind'];
     text: string;
     topic: LibraryTopic;
   }
   interface Link {
+    id: string;
     fecha: string;
     url: string;
     host: string;
@@ -73,39 +69,40 @@ export async function GET(request: NextRequest) {
     otro: 0,
   };
 
-  function pushEntry(fecha: string, kind: EntryKind, text: string | null) {
-    if (!text) return;
-    const trimmed = text.trim();
-    if (!trimmed) return;
-    const topic = classifyTopic(trimmed);
-    entries.push({ fecha, kind, text: trimmed, topic });
+  for (const row of rows) {
+    const topic = classifyTopic(row.text);
+    // Use created_at date for standalone entries so they sort into the
+    // library timeline naturally.
+    const effectiveFecha = row.fecha || row.created_at.slice(0, 10);
+    entries.push({
+      id: row.id,
+      fecha: effectiveFecha,
+      kind: row.kind,
+      text: row.text,
+      topic,
+    });
     byTopic[topic]++;
 
-    for (const url of extractLinks(trimmed)) {
-      // Context: 60 chars before the URL, trimmed to a clean word boundary.
-      const idx = trimmed.indexOf(url);
-      const before = trimmed.slice(Math.max(0, idx - 80), idx).trim();
-      const after = trimmed
-        .slice(idx + url.length, idx + url.length + 80)
-        .trim();
+    for (const url of extractLinks(row.text)) {
+      const idx = row.text.indexOf(url);
+      const before = row.text.slice(Math.max(0, idx - 80), idx).trim();
+      const after = row.text.slice(idx + url.length, idx + url.length + 80).trim();
       const context = (before + (after ? ' … ' + after : '')).trim();
-      links.push({ fecha, url, host: hostOf(url), context, topic });
+      links.push({
+        id: row.id,
+        fecha: effectiveFecha,
+        url,
+        host: hostOf(url),
+        context,
+        topic,
+      });
     }
-  }
-
-  for (const row of rows) {
-    pushEntry(row.fecha, 'aprendizaje', row.aprendizajes);
-    pushEntry(row.fecha, 'observacion', row.observaciones);
-    pushEntry(row.fecha, 'nota', row.notas);
   }
 
   return NextResponse.json({
     months,
     from,
-    counts: {
-      entries: entries.length,
-      links: links.length,
-    },
+    counts: { entries: entries.length, links: links.length },
     byTopic,
     entries,
     links,

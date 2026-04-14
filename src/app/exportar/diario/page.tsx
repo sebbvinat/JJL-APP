@@ -26,7 +26,13 @@ interface Entry {
 interface Response {
   profile: { nombre: string; cinturon_actual: string } | null;
   range: { from: string; to: string };
+  /** Daily tasks rows in the range. Legacy name kept for compatibility. */
   entries: Entry[];
+  /** New journal_entries rows indexed by fecha. */
+  entriesByFecha?: Record<
+    string,
+    { aprendizajes: string[]; observaciones: string[]; notas: string[] }
+  >;
 }
 
 const FATIGA_LABEL: Record<string, string> = {
@@ -188,7 +194,11 @@ function ExportView() {
         ) : (
           <div className="space-y-6">
             {data.entries.map((e) => (
-              <EntryBlock key={e.fecha} entry={e} />
+              <EntryBlock
+                key={e.fecha}
+                entry={e}
+                extras={data.entriesByFecha?.[e.fecha]}
+              />
             ))}
           </div>
         )}
@@ -269,7 +279,13 @@ function renderLinkified(text: string) {
   );
 }
 
-function EntryBlock({ entry }: { entry: Entry }) {
+function EntryBlock({
+  entry,
+  extras,
+}: {
+  entry: Entry;
+  extras?: { aprendizajes: string[]; observaciones: string[]; notas: string[] };
+}) {
   const date = parseISO(entry.fecha);
   const badges: Array<{ label: string; value: string }> = [];
   if (entry.entreno_check) badges.push({ label: 'Entreno', value: 'Si' });
@@ -327,28 +343,38 @@ function EntryBlock({ entry }: { entry: Entry }) {
         {entry.meta_entreno && (
           <Field label="Meta de entrenamiento" value={entry.meta_entreno} className="md:col-span-2" />
         )}
-        {entry.aprendizajes && (
+        {(extras?.aprendizajes.length ?? 0) > 0 && (
           <Field
             label="Aprendizajes"
-            value={entry.aprendizajes}
+            value={(extras!.aprendizajes).join('\n\n')}
             className="md:col-span-2"
             highlighted
           />
         )}
-        {entry.observaciones && (
+        {(extras?.observaciones.length ?? 0) > 0 && (
           <Field
             label="Observaciones"
-            value={entry.observaciones}
+            value={(extras!.observaciones).join('\n\n')}
             className="md:col-span-2"
           />
         )}
-        {entry.notas && (
+        {(extras?.notas.length ?? 0) > 0 && (
           <Field
             label="Notas / links"
-            value={entry.notas}
+            value={(extras!.notas).join('\n\n')}
             className="md:col-span-2"
             linkify
           />
+        )}
+        {/* Legacy compat — only shown if a row hadn't been migrated yet */}
+        {!extras && entry.aprendizajes && (
+          <Field label="Aprendizajes" value={entry.aprendizajes} className="md:col-span-2" highlighted />
+        )}
+        {!extras && entry.observaciones && (
+          <Field label="Observaciones" value={entry.observaciones} className="md:col-span-2" />
+        )}
+        {!extras && entry.notas && (
+          <Field label="Notas / links" value={entry.notas} className="md:col-span-2" linkify />
         )}
       </div>
     </article>

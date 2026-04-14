@@ -32,9 +32,6 @@ interface TaskRow {
   regla: string | null;
   regla_cumplida: boolean | null;
   meta_entreno: string | null;
-  aprendizajes: string | null;
-  observaciones: string | null;
-  notas: string | null;
 }
 
 function summarize(rows: TaskRow[]) {
@@ -95,17 +92,29 @@ export async function GET(request: NextRequest) {
   const lastFrom = startOfWeek(subWeeks(anchor, 1), { weekStartsOn: 1 });
   const lastTo = endOfWeek(subWeeks(anchor, 1), { weekStartsOn: 1 });
 
-  const { data } = await supabase
-    .from('daily_tasks')
-    .select(
-      'fecha, entreno_check, fatiga, intensidad, puntaje, objetivo, objetivo_cumplido, regla, regla_cumplida, meta_entreno, aprendizajes, observaciones, notas'
-    )
-    .eq('user_id', user.id)
-    .gte('fecha', format(lastFrom, 'yyyy-MM-dd'))
-    .lte('fecha', format(thisTo, 'yyyy-MM-dd'))
-    .order('fecha', { ascending: true });
+  // Structured daily data (metrics, foco, meta) lives in daily_tasks.
+  // Free-text reflection (aprendizajes/observaciones/notas) lives in
+  // journal_entries — one row per entry.
+  const [tasksRes, entriesRes] = await Promise.all([
+    supabase
+      .from('daily_tasks')
+      .select(
+        'fecha, entreno_check, fatiga, intensidad, puntaje, objetivo, objetivo_cumplido, regla, regla_cumplida, meta_entreno'
+      )
+      .eq('user_id', user.id)
+      .gte('fecha', format(lastFrom, 'yyyy-MM-dd'))
+      .lte('fecha', format(thisTo, 'yyyy-MM-dd'))
+      .order('fecha', { ascending: true }),
+    supabase
+      .from('journal_entries')
+      .select('fecha, kind, text, created_at')
+      .eq('user_id', user.id)
+      .gte('fecha', format(thisFrom, 'yyyy-MM-dd'))
+      .lte('fecha', format(thisTo, 'yyyy-MM-dd'))
+      .order('created_at', { ascending: true }),
+  ]);
 
-  const rows = ((data as TaskRow[] | null) || []).slice();
+  const rows = ((tasksRes.data as TaskRow[] | null) || []).slice();
   const thisWeekRows = rows.filter(
     (r) => r.fecha >= format(thisFrom, 'yyyy-MM-dd') && r.fecha <= format(thisTo, 'yyyy-MM-dd')
   );
@@ -113,22 +122,37 @@ export async function GET(request: NextRequest) {
     (r) => r.fecha >= format(lastFrom, 'yyyy-MM-dd') && r.fecha <= format(lastTo, 'yyyy-MM-dd')
   );
 
+  const weekEntries = (entriesRes.data as Array<{
+    fecha: string;
+    kind: 'aprendizaje' | 'observacion' | 'nota';
+    text: string;
+    created_at: string;
+  }> | null) || [];
+
+  const entriesByDay = new Map<string, typeof weekEntries>();
+  for (const e of weekEntries) {
+    const list = entriesByDay.get(e.fecha) || [];
+    list.push(e);
+    entriesByDay.set(e.fecha, list);
+  }
+
   const days = eachDayOfInterval({ start: thisFrom, end: thisTo }).map((d) => {
     const key = format(d, 'yyyy-MM-dd');
     const row = thisWeekRows.find((r) => r.fecha === key);
+    const dayEntries = entriesByDay.get(key) || [];
     return {
       fecha: key,
       entrenado: !!row?.entreno_check,
       fatiga: row?.fatiga ?? null,
       intensidad: row?.intensidad ?? null,
       puntaje: row?.puntaje ?? null,
-      hasReflection: !!(row?.aprendizajes || row?.observaciones),
+      hasReflection: dayEntries.some((e) => e.kind === 'aprendizaje' || e.kind === 'observacion'),
     };
   });
 
-  const aprendizajes = thisWeekRows
-    .filter((r) => r.aprendizajes && r.aprendizajes.trim())
-    .map((r) => ({ fecha: r.fecha, text: (r.aprendizajes as string).trim() }));
+  const aprendizajes = weekEntries
+    .filter((e) => e.kind === 'aprendizaje')
+    .map((e) => ({ fecha: e.fecha, text: e.text }));
 
   return NextResponse.json({
     week: {

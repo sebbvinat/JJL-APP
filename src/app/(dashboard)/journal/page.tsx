@@ -23,6 +23,7 @@ import {
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import EmptyState from '@/components/ui/EmptyState';
+import EntryField from '@/components/journal/EntryField';
 import { fetcher } from '@/lib/fetcher';
 import { logger } from '@/lib/logger';
 import { useToast } from '@/components/ui/Toast';
@@ -164,12 +165,6 @@ function weekLabel(fecha: string) {
 export default function JournalPage() {
   const [fecha, setFecha] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [entry, setEntry] = useState<JournalEntry>(EMPTY_ENTRY);
-  // New-note buffers — reset after each save so "Guardar diario" always
-  // appends the current textarea content instead of overwriting what was
-  // previously stored.
-  const [newAprendizajes, setNewAprendizajes] = useState('');
-  const [newObservaciones, setNewObservaciones] = useState('');
-  const [newNotas, setNewNotas] = useState('');
   const [saving, setSaving] = useState(false);
   const [expandedDay, setExpandedDay] = useState<string | null>(null);
   const [query, setQuery] = useState('');
@@ -249,46 +244,18 @@ export default function JournalPage() {
     }));
   }, [weeklyFocus, entryData]);
 
-  /**
-   * Join existing text with a new chunk, preserving both. Empty on either
-   * side is handled so we don't get leading/trailing blank lines.
-   */
-  function appendIfNew(existing: string, incoming: string): string {
-    const e = (existing || '').trim();
-    const n = (incoming || '').trim();
-    if (!n) return e;
-    if (!e) return n;
-    return `${e}\n\n${n}`;
-  }
-
   async function handleSave() {
     setSaving(true);
     try {
-      // Append any buffered new-note text to the stored value so "Guardar
-      // diario" never overwrites previous entries on the same day.
-      const payload = {
-        ...entry,
-        aprendizajes: appendIfNew(entry.aprendizajes, newAprendizajes),
-        observaciones: appendIfNew(entry.observaciones, newObservaciones),
-        notas: appendIfNew(entry.notas, newNotas),
-      };
+      // The 3 persistent text fields (aprendizajes, observaciones, notas)
+      // now live in the journal_entries table and save themselves per-entry.
+      // Guardar diario only commits the structured daily fields.
       const res = await fetch('/api/daily-task', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'journal', fecha, ...payload }),
+        body: JSON.stringify({ action: 'journal', fecha, ...entry }),
       });
       if (res.ok) {
-        // Commit the merged text into local state, clear the buffers so the
-        // textareas start empty for the next note.
-        setEntry((prev) => ({
-          ...prev,
-          aprendizajes: payload.aprendizajes,
-          observaciones: payload.observaciones,
-          notas: payload.notas,
-        }));
-        setNewAprendizajes('');
-        setNewObservaciones('');
-        setNewNotas('');
         mutate(entryKey);
         mutate(weeklyKey);
         mutate((k: string) => typeof k === 'string' && k.startsWith('/api/daily-task?history'));
@@ -547,54 +514,39 @@ export default function JournalPage() {
         <SectionHeading
           icon={Sparkles}
           title="Reflexion del dia"
-          subtitle="Persiste para revisar en el tiempo"
+          subtitle="Cada nota se guarda sola cuando la agregas — sin pisar las anteriores"
         />
 
-        <Card>
-          <span className="block text-[11px] uppercase tracking-[0.12em] font-semibold text-jjl-muted mb-1.5">
-            Que aprendiste hoy que quieras recordar
-          </span>
-          <SavedBlock value={entry.aprendizajes} />
-          <textarea
-            value={newAprendizajes}
-            onChange={(e) => setNewAprendizajes(e.target.value)}
-            placeholder="Insights de las luchas, detalles tecnicos, patrones que notaste..."
-            rows={3}
-            className="w-full bg-white/[0.03] border border-jjl-border rounded-lg px-3 py-2.5 text-[13px] text-white placeholder:text-jjl-muted/50 focus:outline-none focus:border-jjl-red focus:ring-2 focus:ring-jjl-red/25 resize-none"
-          />
-          <p className="text-[10px] text-jjl-muted/60 mt-1.5">
-            Al guardar el diario, esta nota se suma a lo de arriba sin pisar.
-          </p>
-        </Card>
+        <EntryField
+          kind="aprendizaje"
+          fecha={fecha}
+          label="Aprendizajes de hoy"
+          placeholder="Insights de las luchas, detalles tecnicos, patrones que notaste..."
+          iconTone="bg-yellow-500/10 ring-yellow-500/25 text-yellow-400"
+          icon={Sparkles}
+          addLabel="Agregar aprendizaje"
+        />
 
-        <Card>
-          <span className="block text-[11px] uppercase tracking-[0.12em] font-semibold text-jjl-muted mb-1.5">
-            Observaciones
-          </span>
-          <SavedBlock value={entry.observaciones} />
-          <textarea
-            value={newObservaciones}
-            onChange={(e) => setNewObservaciones(e.target.value)}
-            placeholder="Problemas, logros, lo que quieras anotar"
-            rows={3}
-            className="w-full bg-white/[0.03] border border-jjl-border rounded-lg px-3 py-2.5 text-[13px] text-white placeholder:text-jjl-muted/50 focus:outline-none focus:border-jjl-red focus:ring-2 focus:ring-jjl-red/25 resize-none"
-          />
-        </Card>
+        <EntryField
+          kind="observacion"
+          fecha={fecha}
+          label="Observaciones"
+          placeholder="Problemas, logros, lo que quieras anotar"
+          iconTone="bg-white/5 ring-white/15 text-jjl-muted"
+          icon={NotebookPen}
+          addLabel="Agregar observacion"
+        />
 
-        <Card>
-          <span className="flex items-center gap-1.5 text-[11px] uppercase tracking-[0.12em] font-semibold text-jjl-muted mb-1.5">
-            <LinkIcon className="h-3 w-3" />
-            Notas + links
-          </span>
-          <SavedBlock value={entry.notas} linkify />
-          <textarea
-            value={newNotas}
-            onChange={(e) => setNewNotas(e.target.value)}
-            placeholder={'Recursos, videos, ideas — pega URLs y se convierten en links\nhttps://youtube.com/...'}
-            rows={3}
-            className="w-full bg-white/[0.03] border border-jjl-border rounded-lg px-3 py-2.5 text-[13px] text-white placeholder:text-jjl-muted/50 focus:outline-none focus:border-jjl-red focus:ring-2 focus:ring-jjl-red/25 resize-none"
-          />
-        </Card>
+        <EntryField
+          kind="nota"
+          fecha={fecha}
+          label="Notas + links"
+          placeholder={'Recursos, videos, ideas — pega URLs y se convierten en links'}
+          iconTone="bg-jjl-red/10 ring-jjl-red/25 text-jjl-red"
+          icon={LinkIcon}
+          renderText={(t) => renderLinkified(t)}
+          addLabel="Agregar nota"
+        />
       </section>
 
       {/* Save */}
