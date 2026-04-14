@@ -127,13 +127,14 @@ export async function POST(request: NextRequest) {
     if (allUsers && allUsers.length > 0) {
       const { createNotification } = await import('@/lib/notifications');
       const authorName = authorProfile?.nombre || 'Alguien';
+      const postUrl = data?.id ? `/community/${data.id}` : '/community';
       for (const u of allUsers) {
         await createNotification(
           u.id,
           'system',
           `Nuevo post de ${authorName}`,
           titulo.trim(),
-          '/community'
+          postUrl
         );
       }
     }

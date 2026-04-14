@@ -26,12 +26,14 @@ export async function createNotification(
 ) {
   const admin = supabaseAdmin();
 
-  // Save in-app notification
+  // Save in-app notification with its destination url so clicks in the
+  // bell dropdown can deep-link the user to the right page.
   await admin.from('notifications').insert({
     user_id: userId,
     tipo,
     titulo,
     mensaje,
+    url: url || null,
   });
 
   // Send push notification

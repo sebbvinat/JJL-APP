@@ -1,7 +1,19 @@
 'use client';
 
 import { useState, useCallback, useRef, useEffect, useId } from 'react';
-import { CheckCircle, Circle, Play, Pause, Volume2, VolumeX, Maximize, Minimize } from 'lucide-react';
+import {
+  CheckCircle,
+  Circle,
+  Play,
+  Pause,
+  Volume2,
+  VolumeX,
+  Maximize,
+  Minimize,
+  RotateCcw,
+  RotateCw,
+  Gauge,
+} from 'lucide-react';
 import Button from '@/components/ui/Button';
 
 interface CustomVideoPlayerProps {
@@ -39,6 +51,8 @@ export default function CustomVideoPlayer({
     setHasStarted(false);
     setShowThumbnail(true);
     setShowControls(true);
+    setPlaybackRate(1);
+    setShowRateMenu(false);
   }, [completed, youtubeId]);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
@@ -50,6 +64,10 @@ export default function CustomVideoPlayer({
   const [hasStarted, setHasStarted] = useState(false);
   const [showThumbnail, setShowThumbnail] = useState(true);
   const [isCssFullscreen, setIsCssFullscreen] = useState(false);
+  const [playbackRate, setPlaybackRate] = useState(1);
+  const [showRateMenu, setShowRateMenu] = useState(false);
+  const SEEK_STEP_SECONDS = 10;
+  const RATES = [0.75, 1, 1.25, 1.5, 1.75, 2] as const;
 
   const playerRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -232,6 +250,49 @@ export default function CustomVideoPlayer({
     const pct = Math.max(0, Math.min(1, x / rect.width));
     playerRef.current.seekTo(pct * duration, true);
   }, [duration]);
+
+  const seekRelative = useCallback((delta: number) => {
+    const p = playerRef.current;
+    if (!p || typeof p.getCurrentTime !== 'function') return;
+    const next = Math.max(0, Math.min(duration || Infinity, p.getCurrentTime() + delta));
+    p.seekTo(next, true);
+    setCurrentTime(next);
+  }, [duration]);
+
+  const changeRate = useCallback((rate: number) => {
+    const p = playerRef.current;
+    if (!p || typeof p.setPlaybackRate !== 'function') return;
+    try {
+      p.setPlaybackRate(rate);
+      setPlaybackRate(rate);
+    } catch {}
+  }, []);
+
+  // Keyboard shortcuts — arrow keys for seek, space for play/pause, J/L for
+  // standard 10s skip, K for pause toggle. Only fires when the player is
+  // on-screen (we listen at window level but ignore when the active element
+  // is a text field).
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (!playerReady) return;
+      const target = e.target as HTMLElement | null;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
+        return;
+      }
+      if (e.key === ' ' || e.key === 'k' || e.key === 'K') {
+        e.preventDefault();
+        togglePlay();
+      } else if (e.key === 'ArrowLeft' || e.key === 'j' || e.key === 'J') {
+        e.preventDefault();
+        seekRelative(-SEEK_STEP_SECONDS);
+      } else if (e.key === 'ArrowRight' || e.key === 'l' || e.key === 'L') {
+        e.preventDefault();
+        seekRelative(SEEK_STEP_SECONDS);
+      }
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [playerReady, togglePlay, seekRelative]);
 
   const isIOS = typeof navigator !== 'undefined' && /iPhone|iPad|iPod/.test(navigator.userAgent);
 
@@ -453,30 +514,101 @@ export default function CustomVideoPlayer({
           </div>
 
           {/* Controls row */}
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-3">
               <button
                 onClick={(e) => { e.stopPropagation(); togglePlay(); }}
+                aria-label={isPlaying ? 'Pausar' : 'Reproducir'}
                 className="text-white hover:text-jjl-red transition-colors"
               >
                 {isPlaying ? <Pause className="h-5 w-5" fill="white" /> : <Play className="h-5 w-5" fill="white" />}
               </button>
               <button
+                onClick={(e) => { e.stopPropagation(); seekRelative(-SEEK_STEP_SECONDS); }}
+                aria-label="Retroceder 10 segundos"
+                className="text-white hover:text-jjl-red transition-colors relative"
+              >
+                <RotateCcw className="h-5 w-5" />
+                <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 text-[8px] font-bold tabular-nums">
+                  10
+                </span>
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); seekRelative(SEEK_STEP_SECONDS); }}
+                aria-label="Adelantar 10 segundos"
+                className="text-white hover:text-jjl-red transition-colors relative"
+              >
+                <RotateCw className="h-5 w-5" />
+                <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 text-[8px] font-bold tabular-nums">
+                  10
+                </span>
+              </button>
+              <button
                 onClick={(e) => { e.stopPropagation(); toggleMute(); }}
-                className="text-white hover:text-jjl-red transition-colors"
+                aria-label={isMuted ? 'Activar audio' : 'Silenciar'}
+                className="text-white hover:text-jjl-red transition-colors hidden sm:inline-flex"
               >
                 {isMuted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
               </button>
-              <span className="text-xs text-white/70 font-mono">
+              <span className="text-xs text-white/70 font-mono tabular-nums">
                 {formatTime(currentTime)} / {formatTime(duration)}
               </span>
             </div>
-            <button
-              onClick={(e) => { e.stopPropagation(); handleFullscreen(); }}
-              className="text-white hover:text-jjl-red transition-colors"
-            >
-              {isCssFullscreen ? <Minimize className="h-5 w-5" /> : <Maximize className="h-5 w-5" />}
-            </button>
+
+            <div className="flex items-center gap-2">
+              {/* Playback rate */}
+              <div className="relative">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowRateMenu((v) => !v);
+                  }}
+                  aria-label="Velocidad"
+                  className="inline-flex items-center gap-1 h-7 px-2 rounded-md bg-white/10 hover:bg-white/20 text-white text-[12px] font-bold tabular-nums transition-colors"
+                >
+                  <Gauge className="h-3.5 w-3.5" />
+                  {playbackRate === 1 ? '1x' : `${playbackRate}x`}
+                </button>
+                {showRateMenu && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-40"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowRateMenu(false);
+                      }}
+                    />
+                    <div className="absolute right-0 bottom-full mb-2 z-50 bg-black/95 border border-jjl-border rounded-lg py-1 shadow-2xl min-w-[88px]">
+                      {RATES.map((r) => (
+                        <button
+                          key={r}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            changeRate(r);
+                            setShowRateMenu(false);
+                          }}
+                          className={`w-full px-3 py-1.5 text-left text-[12px] font-semibold tabular-nums transition-colors ${
+                            playbackRate === r
+                              ? 'text-jjl-red bg-jjl-red/10'
+                              : 'text-white hover:bg-white/10'
+                          }`}
+                        >
+                          {r}x
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+
+              <button
+                onClick={(e) => { e.stopPropagation(); handleFullscreen(); }}
+                aria-label="Pantalla completa"
+                className="text-white hover:text-jjl-red transition-colors"
+              >
+                {isCssFullscreen ? <Minimize className="h-5 w-5" /> : <Maximize className="h-5 w-5" />}
+              </button>
+            </div>
           </div>
         </div>
       </div>

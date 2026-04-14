@@ -149,6 +149,7 @@ CREATE TABLE public.notifications (
   tipo TEXT NOT NULL CHECK (tipo IN ('belt', 'module', 'streak', 'achievement', 'system')),
   titulo TEXT NOT NULL,
   mensaje TEXT NOT NULL,
+  url TEXT,
   leido BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );

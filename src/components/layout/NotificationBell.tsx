@@ -1,13 +1,15 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Bell, Check, Trophy, BookOpen, Flame, Star, Info } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Bell, Trophy, BookOpen, Flame, Star, Info } from 'lucide-react';
 
 interface Notification {
   id: string;
   tipo: string;
   titulo: string;
   mensaje: string;
+  url: string | null;
   leido: boolean;
   created_at: string;
 }
@@ -21,6 +23,7 @@ const TIPO_ICONS: Record<string, typeof Trophy> = {
 };
 
 export default function NotificationBell() {
+  const router = useRouter();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [open, setOpen] = useState(false);
@@ -28,12 +31,10 @@ export default function NotificationBell() {
 
   useEffect(() => {
     fetchNotifications();
-    // Poll every 60s for new notifications
     const interval = setInterval(fetchNotifications, 60000);
     return () => clearInterval(interval);
   }, []);
 
-  // Close panel on click outside
   useEffect(() => {
     function handleClick(e: MouseEvent) {
       if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
@@ -65,6 +66,24 @@ export default function NotificationBell() {
     setUnreadCount(0);
   }
 
+  async function handleClickNotification(n: Notification) {
+    setOpen(false);
+    // Mark as read in background (don't await so the navigation feels
+    // immediate — we update local state optimistically).
+    if (!n.leido) {
+      setNotifications((prev) => prev.map((x) => (x.id === n.id ? { ...x, leido: true } : x)));
+      setUnreadCount((c) => Math.max(0, c - 1));
+      fetch('/api/notifications', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notificationId: n.id }),
+      }).catch(() => {});
+    }
+    if (n.url) {
+      router.push(n.url);
+    }
+  }
+
   function formatTime(dateStr: string) {
     const diff = Date.now() - new Date(dateStr).getTime();
     const mins = Math.floor(diff / 60000);
@@ -80,6 +99,7 @@ export default function NotificationBell() {
     <div className="relative" ref={panelRef}>
       <button
         onClick={() => setOpen(!open)}
+        aria-label="Notificaciones"
         className="relative p-2 rounded-lg hover:bg-jjl-gray-light text-jjl-muted hover:text-white transition-colors"
       >
         <Bell className="h-5 w-5" />
@@ -92,7 +112,6 @@ export default function NotificationBell() {
 
       {open && (
         <div className="absolute right-0 top-12 w-80 max-h-96 bg-jjl-dark border border-jjl-border rounded-xl shadow-2xl overflow-hidden z-50">
-          {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-jjl-border">
             <span className="text-sm font-semibold">Notificaciones</span>
             {unreadCount > 0 && (
@@ -105,7 +124,6 @@ export default function NotificationBell() {
             )}
           </div>
 
-          {/* List */}
           <div className="overflow-y-auto max-h-80">
             {notifications.length === 0 ? (
               <div className="p-6 text-center text-sm text-jjl-muted">
@@ -114,12 +132,15 @@ export default function NotificationBell() {
             ) : (
               notifications.map((n) => {
                 const Icon = TIPO_ICONS[n.tipo] || Info;
+                const clickable = !!n.url;
                 return (
-                  <div
+                  <button
                     key={n.id}
-                    className={`px-4 py-3 border-b border-jjl-border/50 hover:bg-jjl-gray-light/30 transition-colors ${
-                      !n.leido ? 'bg-jjl-red/5' : ''
-                    }`}
+                    onClick={() => handleClickNotification(n)}
+                    className={`block w-full text-left px-4 py-3 border-b border-jjl-border/50 transition-colors ${
+                      clickable ? 'hover:bg-jjl-gray-light/30 cursor-pointer' : 'cursor-default'
+                    } ${!n.leido ? 'bg-jjl-red/5' : ''}`}
+                    disabled={!clickable && n.leido}
                   >
                     <div className="flex gap-3">
                       <div className={`shrink-0 mt-0.5 ${!n.leido ? 'text-jjl-red' : 'text-jjl-muted'}`}>
@@ -140,7 +161,7 @@ export default function NotificationBell() {
                         </div>
                       )}
                     </div>
-                  </div>
+                  </button>
                 );
               })
             )}
