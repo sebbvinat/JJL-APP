@@ -108,224 +108,77 @@ export default function UploadPage() {
 // ---------------------------------------------------------------------------
 
 function UploadTab({ onUploaded }: { onUploaded: () => void }) {
-  const [file, setFile] = useState<File | null>(null);
-  const [titulo, setTitulo] = useState('');
-  const [descripcion, setDescripcion] = useState('');
-  const [uploading, setUploading] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [result, setResult] = useState<{ fileName: string; webViewLink: string } | null>(null);
+  const [folderUrl, setFolderUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const toast = useToast();
-  const { mutate } = useSWRConfig();
 
   useEffect(() => {
-    if (!uploading) return;
-    const interval = setInterval(() => {
-      setProgress((p) => {
-        if (p >= 95) {
-          clearInterval(interval);
-          return 95;
+    async function getFolder() {
+      try {
+        const res = await fetch('/api/upload/folder');
+        const data = await res.json();
+        if (res.ok && data.folderUrl) {
+          setFolderUrl(data.folderUrl);
+        } else {
+          setError(data.error || 'Error al obtener carpeta');
         }
-        return p + Math.random() * 15;
-      });
-    }, 300);
-    return () => clearInterval(interval);
-  }, [uploading]);
-
-  const handleUpload = async () => {
-    if (!file) return;
-    setError('');
-    setUploading(true);
-    setProgress(0);
-
-    try {
-      // Step 1: ask server for a Google Drive resumable upload URL
-      const sessionRes = await fetch('/api/upload/session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          fileName: file.name,
-          mimeType: file.type || 'video/mp4',
-          fileSize: file.size,
-        }),
-      });
-      const sessionData = await sessionRes.json();
-      if (!sessionRes.ok) throw new Error(sessionData.error || 'Error creando sesion');
-      const { uploadUrl } = sessionData;
-
-      // Step 2: PUT the file directly to Drive with progress tracking
-      const fileId = await new Promise<string>((resolve, reject) => {
-        const xhr = new XMLHttpRequest();
-        xhr.open('PUT', uploadUrl, true);
-        xhr.setRequestHeader('Content-Type', file.type || 'video/mp4');
-        xhr.upload.onprogress = (e) => {
-          if (e.lengthComputable) {
-            const pct = Math.round((e.loaded / e.total) * 95); // 0-95, reserve 95-100 for confirm
-            setProgress(pct);
-          }
-        };
-        xhr.onload = () => {
-          if (xhr.status >= 200 && xhr.status < 300) {
-            try {
-              const res = JSON.parse(xhr.responseText);
-              resolve(res.id);
-            } catch {
-              reject(new Error('Drive response invalid'));
-            }
-          } else {
-            reject(new Error(`Drive upload failed: ${xhr.status}`));
-          }
-        };
-        xhr.onerror = () => reject(new Error('Error de red durante upload'));
-        xhr.send(file);
-      });
-
-      // Step 3: confirm — save in DB and get webViewLink
-      setProgress(97);
-      const confirmRes = await fetch('/api/upload/confirm', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          fileId,
-          titulo,
-          descripcion,
-          fileSize: file.size,
-        }),
-      });
-      const data = await confirmRes.json();
-      if (!confirmRes.ok) throw new Error(data.error || 'Error guardando');
-
-      setProgress(100);
-      setTimeout(() => {
-        setResult({ fileName: data.fileName ?? '', webViewLink: data.webViewLink ?? '' });
-        setUploading(false);
-        toast.success('Video subido', 'En revision por tu instructor');
-        mutate('/api/videos');
-      }, 500);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Error al subir el archivo';
-      setError(msg);
-      setUploading(false);
-      setProgress(0);
-      logger.error('upload.failed', { err, fileName: file.name, size: file.size });
-      toast.error(msg, 'Upload fallo');
+      } catch {
+        setError('Error de conexion');
+      }
+      setLoading(false);
     }
-  };
+    getFolder();
+  }, []);
 
-  const reset = () => {
-    setFile(null);
-    setTitulo('');
-    setDescripcion('');
-    setResult(null);
-    setProgress(0);
-    setError('');
-  };
-
-  if (result) {
+  if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center py-8 space-y-5 animate-fade-in">
-        <div className="h-20 w-20 bg-green-500/15 rounded-full flex items-center justify-center shadow-lg shadow-green-500/10 animate-scale-in">
-          <CheckCircle className="h-10 w-10 text-green-400 drop-shadow-[0_0_8px_rgba(74,222,128,0.3)]" />
-        </div>
-        <div className="text-center space-y-2 max-w-md">
-          <h2 className="text-xl font-bold text-white">Video en revision</h2>
-          <p className="text-[13px] text-jjl-muted">
-            Se subio correctamente. Tu instructor lo va a revisar y te va a dejar
-            una nota en &quot;Mis videos&quot;.
-          </p>
-        </div>
-        {result.webViewLink && result.webViewLink !== '#' && (
-          <a
-            href={result.webViewLink}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-2 text-jjl-red hover:text-red-400 hover:underline text-sm transition-colors"
-          >
-            <ExternalLink className="h-4 w-4" />
-            Abrir en Google Drive
-          </a>
-        )}
-        <div className="flex gap-2">
-          <Button onClick={reset} variant="secondary">
-            Subir otro
-          </Button>
-          <Button onClick={onUploaded}>Ver mis videos</Button>
-        </div>
+      <div className="space-y-4 animate-pulse">
+        <div className="h-48 bg-jjl-gray-light/50 rounded-xl" />
       </div>
     );
   }
 
-  return (
-    <div className="space-y-4">
+  if (error) {
+    return (
       <Card>
-        <UploadDropzone file={file} onFileSelect={setFile} />
-      </Card>
-
-      {file && (
-        <>
-          <Card>
-            <div className="space-y-4">
-              <Input
-                id="titulo"
-                label="Titulo del video"
-                placeholder="Ej: Lucha en torneo local — semifinal"
-                value={titulo}
-                onChange={(e) => setTitulo(e.target.value)}
-              />
-              <label className="block">
-                <span className="block text-[11px] font-semibold uppercase tracking-[0.1em] text-jjl-muted mb-1.5">
-                  Descripcion (opcional)
-                </span>
-                <textarea
-                  value={descripcion}
-                  onChange={(e) => setDescripcion(e.target.value)}
-                  className="w-full bg-white/[0.03] border border-jjl-border rounded-lg px-3.5 py-2.5 text-[13px] text-white placeholder:text-jjl-muted/50 focus:outline-none focus:border-jjl-red focus:ring-2 focus:ring-jjl-red/25 resize-none h-24"
-                  placeholder="Contexto: torneo, sparring, tecnica que intentaste..."
-                />
-              </label>
-            </div>
-          </Card>
-
-          {uploading && (
-            <Card>
-              <div className="space-y-2.5">
-                <div className="flex justify-between text-sm">
-                  <span className="text-jjl-muted">Subiendo a Google Drive...</span>
-                  <span className="text-jjl-red font-bold tabular-nums">
-                    {Math.round(progress)}%
-                  </span>
-                </div>
-                <div className="h-2 rounded-full bg-white/5 overflow-hidden">
-                  <div
-                    className="h-full bg-gradient-to-r from-jjl-red to-orange-500 rounded-full transition-all duration-300 shadow-[0_0_12px_-2px_rgba(220,38,38,0.6)]"
-                    style={{ width: `${progress}%` }}
-                  />
-                </div>
-              </div>
-            </Card>
-          )}
-
-          {error && (
-            <div className="bg-red-500/10 border border-red-500/30 rounded-lg px-4 py-3 text-sm text-red-400 flex items-start gap-2 animate-fade-in">
-              <div className="h-4 w-4 rounded-full bg-red-500/30 flex items-center justify-center shrink-0 mt-0.5">
-                <span className="text-red-300 text-[10px] font-bold">!</span>
-              </div>
-              {error}
-            </div>
-          )}
-
-          <Button
-            size="lg"
-            fullWidth
-            onClick={handleUpload}
-            loading={uploading}
-            disabled={uploading}
-          >
-            Subir video
+        <div className="text-center py-8 space-y-3">
+          <p className="text-red-400 text-sm">{error}</p>
+          <Button onClick={() => window.location.reload()} variant="secondary" size="sm">
+            Reintentar
           </Button>
-        </>
-      )}
-    </div>
+        </div>
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      <div className="text-center py-8 space-y-5">
+        <div className="h-20 w-20 bg-jjl-red/15 rounded-full flex items-center justify-center mx-auto">
+          <UploadIcon className="h-10 w-10 text-jjl-red" />
+        </div>
+        <div className="space-y-2 max-w-sm mx-auto">
+          <h2 className="text-xl font-bold">Subi tu lucha</h2>
+          <p className="text-sm text-jjl-muted">
+            Tenes una carpeta privada en Google Drive. Subi tus videos ahi y tu instructor los va a revisar.
+          </p>
+        </div>
+        {folderUrl && (
+          <a
+            href={folderUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-jjl-red text-white font-semibold rounded-xl hover:bg-jjl-red-hover transition-colors shadow-lg shadow-jjl-red/20"
+          >
+            <ExternalLink className="h-5 w-5" />
+            Abrir mi carpeta en Drive
+          </a>
+        )}
+        <p className="text-xs text-jjl-muted">
+          Podes subir videos de hasta 2GB. Formatos: MP4, MOV, AVI.
+        </p>
+      </div>
+    </Card>
   );
 }
 

@@ -34,10 +34,12 @@ export async function createResumableUploadSession(
   const finalName = buildFinalName(fileName, userName);
 
   const metadata: Record<string, any> = { name: finalName };
+  // IMPORTANT: parents must be set so the file is created IN the shared folder
+  // (owned by the folder owner, not the service account — avoids storage quota error)
   if (folderId) metadata.parents = [folderId];
 
   const res = await fetch(
-    'https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&fields=id,name,webViewLink',
+    'https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&supportsAllDrives=true&fields=id,name,webViewLink',
     {
       method: 'POST',
       headers: {
@@ -62,6 +64,39 @@ export async function createResumableUploadSession(
 }
 
 // After browser finishes uploading, fetch the file metadata to get webViewLink
+// Create a subfolder inside the main Drive folder (for per-student folders)
+export async function createDriveFolder(folderName: string) {
+  const auth = getAuth();
+  const drive = google.drive({ version: 'v3', auth });
+  const parentId = process.env.GOOGLE_DRIVE_FOLDER_ID;
+
+  const response = await drive.files.create({
+    requestBody: {
+      name: folderName,
+      mimeType: 'application/vnd.google-apps.folder',
+      parents: parentId ? [parentId] : undefined,
+    },
+    fields: 'id, name, webViewLink',
+    supportsAllDrives: true,
+  });
+
+  // Make the folder accessible to anyone with the link (so students can upload)
+  await drive.permissions.create({
+    fileId: response.data.id!,
+    requestBody: {
+      role: 'writer',
+      type: 'anyone',
+    },
+    supportsAllDrives: true,
+  });
+
+  return {
+    folderId: response.data.id,
+    folderName: response.data.name,
+    webViewLink: response.data.webViewLink,
+  };
+}
+
 export async function getDriveFileInfo(fileId: string) {
   const auth = getAuth();
   const drive = google.drive({ version: 'v3', auth });

@@ -12,6 +12,8 @@ CREATE TABLE public.users (
   rol TEXT DEFAULT 'alumno' CHECK (rol IN ('admin', 'alumno')),
   avatar_url TEXT,
   planilla_id TEXT,
+  drive_folder_id TEXT,
+  drive_folder_url TEXT,
   onboarding_step INTEGER DEFAULT 1 CHECK (onboarding_step BETWEEN 1 AND 5),
   onboarding_completed_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT NOW(),
