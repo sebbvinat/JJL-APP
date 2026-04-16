@@ -139,25 +139,61 @@ function UploadTab({ onUploaded }: { onUploaded: () => void }) {
     setProgress(0);
 
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('titulo', titulo);
-      formData.append('descripcion', descripcion);
+      // Step 1: ask server for a Google Drive resumable upload URL
+      const sessionRes = await fetch('/api/upload/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fileName: file.name,
+          mimeType: file.type || 'video/mp4',
+          fileSize: file.size,
+        }),
+      });
+      const sessionData = await sessionRes.json();
+      if (!sessionRes.ok) throw new Error(sessionData.error || 'Error creando sesion');
+      const { uploadUrl } = sessionData;
 
-      const res = await fetch('/api/upload', { method: 'POST', body: formData });
-      const text = await res.text();
-      let data: { fileName?: string; webViewLink?: string; error?: string };
-      try {
-        data = JSON.parse(text);
-      } catch {
-        throw new Error(
-          res.status === 413
-            ? 'El archivo es demasiado grande. Limite: 500MB'
-            : text || 'Error al subir'
-        );
-      }
+      // Step 2: PUT the file directly to Drive with progress tracking
+      const fileId = await new Promise<string>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('PUT', uploadUrl, true);
+        xhr.setRequestHeader('Content-Type', file.type || 'video/mp4');
+        xhr.upload.onprogress = (e) => {
+          if (e.lengthComputable) {
+            const pct = Math.round((e.loaded / e.total) * 95); // 0-95, reserve 95-100 for confirm
+            setProgress(pct);
+          }
+        };
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            try {
+              const res = JSON.parse(xhr.responseText);
+              resolve(res.id);
+            } catch {
+              reject(new Error('Drive response invalid'));
+            }
+          } else {
+            reject(new Error(`Drive upload failed: ${xhr.status}`));
+          }
+        };
+        xhr.onerror = () => reject(new Error('Error de red durante upload'));
+        xhr.send(file);
+      });
 
-      if (!res.ok) throw new Error(data.error || 'Error al subir');
+      // Step 3: confirm — save in DB and get webViewLink
+      setProgress(97);
+      const confirmRes = await fetch('/api/upload/confirm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fileId,
+          titulo,
+          descripcion,
+          fileSize: file.size,
+        }),
+      });
+      const data = await confirmRes.json();
+      if (!confirmRes.ok) throw new Error(data.error || 'Error guardando');
 
       setProgress(100);
       setTimeout(() => {

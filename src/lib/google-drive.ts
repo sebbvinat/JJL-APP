@@ -21,6 +21,61 @@ function buildFinalName(fileName: string, userName: string) {
   return `${cleanName}_${date}.${ext}`;
 }
 
+// Create a resumable upload session — returns a URL the browser can PUT to directly
+export async function createResumableUploadSession(
+  fileName: string,
+  mimeType: string,
+  userName: string,
+  fileSize: number
+) {
+  const auth = getAuth();
+  const accessToken = await auth.getAccessToken();
+  const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
+  const finalName = buildFinalName(fileName, userName);
+
+  const metadata: Record<string, any> = { name: finalName };
+  if (folderId) metadata.parents = [folderId];
+
+  const res = await fetch(
+    'https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&fields=id,name,webViewLink',
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json; charset=UTF-8',
+        'X-Upload-Content-Type': mimeType,
+        'X-Upload-Content-Length': String(fileSize),
+      },
+      body: JSON.stringify(metadata),
+    }
+  );
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Drive resumable init failed: ${res.status} ${text}`);
+  }
+
+  const uploadUrl = res.headers.get('location');
+  if (!uploadUrl) throw new Error('No upload URL returned from Drive');
+
+  return { uploadUrl, finalName };
+}
+
+// After browser finishes uploading, fetch the file metadata to get webViewLink
+export async function getDriveFileInfo(fileId: string) {
+  const auth = getAuth();
+  const drive = google.drive({ version: 'v3', auth });
+  const { data } = await drive.files.get({
+    fileId,
+    fields: 'id, name, webViewLink',
+  });
+  return {
+    fileId: data.id,
+    fileName: data.name,
+    webViewLink: data.webViewLink,
+  };
+}
+
 export async function uploadToDriveStream(
   body: Readable,
   fileName: string,
