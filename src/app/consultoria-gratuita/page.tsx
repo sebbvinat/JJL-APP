@@ -5,6 +5,7 @@ import { Check, Stethoscope, Compass, Flag } from 'lucide-react';
 import Card from '@/components/ui/Card';
 import CalendlyEmbed from '@/components/consultoria/CalendlyEmbed';
 import FaqAccordion from '@/components/consultoria/FaqAccordion';
+import TrackConsultoriaView from './track';
 
 export const metadata: Metadata = {
   title: 'Consultoría gratuita — Jiu Jitsu Latino',
@@ -289,6 +290,7 @@ function Footer() {
 export default function ConsultoriaPage() {
   return (
     <main id="top" className="min-h-screen bg-jjl-dark text-white font-sans overflow-x-hidden">
+      <TrackConsultoriaView />
       <Topbar />
       <Hero />
       <Deliverables />

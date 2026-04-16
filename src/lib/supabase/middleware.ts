@@ -41,7 +41,10 @@ export async function updateSession(request: NextRequest) {
 
   // Public routes that don't require auth
   const publicRoutes = ['/', '/login', '/register', '/consultoria-gratuita'];
-  const isPublicRoute = publicRoutes.includes(pathname) || pathname.startsWith('/auth/');
+  const isPublicRoute =
+    publicRoutes.includes(pathname) ||
+    pathname.startsWith('/auth/') ||
+    pathname.startsWith('/r/');
 
   // Allow /profile with reset param (password recovery flow)
   const isPasswordReset = pathname === '/profile' && request.nextUrl.searchParams.get('reset') === '1';
