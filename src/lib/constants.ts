@@ -7,15 +7,19 @@ import {
   Shield,
   NotebookPen,
   CalendarDays,
+  CalendarCheck,
   MessageCircle,
   Library,
+  Trophy,
 } from 'lucide-react';
 
 export const NAV_ITEMS = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { label: 'Diario', href: '/journal', icon: NotebookPen },
+  { label: 'Semana', href: '/weekly', icon: CalendarCheck },
   { label: 'Modulos', href: '/modules', icon: BookOpen },
   { label: 'Biblioteca', href: '/library', icon: Library },
+  { label: 'Competencias', href: '/competitions', icon: Trophy },
   { label: 'Eventos', href: '/events', icon: CalendarDays },
   { label: 'Chat', href: '/chat', icon: MessageCircle },
   { label: 'Comunidad', href: '/community', icon: Users },

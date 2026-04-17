@@ -17,8 +17,8 @@
 - clsx para clases CSS
 
 ## Estructura de archivos clave
-- `src/app/(dashboard)/` - rutas de usuario (dashboard, modules, journal, community, upload, profile)
-- `src/app/(admin)/admin/` - panel admin (page.tsx = lista alumnos, [userId] = detalle alumno, courses = planillas, edit/[moduleId] = editor de modulo)
+- `src/app/(dashboard)/` - rutas de usuario (dashboard, journal, weekly, modules, library, competitions, events, chat, community, upload, profile)
+- `src/app/(admin)/admin/` - panel admin (page.tsx = lista alumnos, [userId] = detalle alumno, courses = planillas, edit/[moduleId] = editor de modulo, analytics = metricas, videos = review de videos)
 - `src/app/api/` - endpoints API (daily-task, dashboard-stats, progress, notifications, push, community, admin/*)
 - `src/components/` - componentes (video/CustomVideoPlayer, layout/Topbar+Sidebar+MobileNav+NotificationBell, ui/*, gamification/*, dashboard/*)
 - `src/providers/UserProvider.tsx` - context compartido de auth/user
