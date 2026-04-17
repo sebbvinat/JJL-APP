@@ -112,9 +112,7 @@ export default function DashboardPage() {
           </div>
           <div className="flex items-center gap-2">
             {isAdmin && (
-              <span className="px-2.5 py-1 rounded-lg bg-yellow-500/15 border border-yellow-500/30 text-yellow-400 text-[10px] font-bold uppercase tracking-[0.15em]">
-                Admin
-              </span>
+              <Badge variant="admin">Admin</Badge>
             )}
             <Badge belt={currentBelt} />
           </div>
@@ -189,9 +187,9 @@ export default function DashboardPage() {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {[
             { label: 'Diario', href: '/journal', icon: NotebookPen },
-            { label: 'Ver Modulos', href: '/modules', icon: BookOpen },
-            { label: 'Subir Lucha', href: '/upload', icon: Upload },
-            { label: 'Comunidad', href: '/community', icon: Users },
+            { label: 'Modulos', href: '/modules', icon: BookOpen },
+            { label: 'Eventos', href: '/events', icon: Calendar },
+            { label: 'Chat', href: '/chat', icon: Users },
           ].map((action) => {
             const Icon = action.icon;
             return (

@@ -18,6 +18,18 @@
   --color-belt-brown: #92400E;
   --color-belt-black: #111111;
 
+  /* Semantic status colors */
+  --color-success: #22C55E;
+  --color-success-soft: rgba(34, 197, 94, 0.15);
+  --color-error: #EF4444;
+  --color-error-soft: rgba(239, 68, 68, 0.15);
+  --color-warning: #F59E0B;
+  --color-warning-soft: rgba(245, 158, 11, 0.15);
+  --color-info: #3B82F6;
+  --color-info-soft: rgba(59, 130, 246, 0.15);
+  --color-admin: #EAB308;
+  --color-admin-soft: rgba(234, 179, 8, 0.15);
+
   --font-sans: "Inter", system-ui, -apple-system, sans-serif;
 
   --radius-card: 1rem;
