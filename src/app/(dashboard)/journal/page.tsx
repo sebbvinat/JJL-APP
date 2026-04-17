@@ -163,7 +163,11 @@ function weekLabel(fecha: string) {
 }
 
 export default function JournalPage() {
-  const [fecha, setFecha] = useState(format(new Date(), 'yyyy-MM-dd'));
+  // Accept ?fecha=YYYY-MM-DD from calendar clicks
+  const initialFecha = typeof window !== 'undefined'
+    ? new URLSearchParams(window.location.search).get('fecha') || format(new Date(), 'yyyy-MM-dd')
+    : format(new Date(), 'yyyy-MM-dd');
+  const [fecha, setFecha] = useState(initialFecha);
   const [entry, setEntry] = useState<JournalEntry>(EMPTY_ENTRY);
   const [saving, setSaving] = useState(false);
   const [expandedDay, setExpandedDay] = useState<string | null>(null);

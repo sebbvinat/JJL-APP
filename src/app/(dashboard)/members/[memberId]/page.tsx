@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { ArrowLeft, BookOpen, Dumbbell, MessageSquare, Trophy, MessageCircle } from 'lucide-react';
+import { ArrowLeft, BookOpen, Dumbbell, MessageSquare, Trophy, MessageCircle, NotebookPen } from 'lucide-react';
 import Card from '@/components/ui/Card';
 import Avatar from '@/components/ui/Avatar';
 import Badge from '@/components/ui/Badge';
@@ -119,8 +119,11 @@ export default function MemberPage() {
             <Button size="sm" variant="secondary" onClick={() => router.push('/chat')}>
               <MessageCircle className="h-4 w-4 mr-1.5" /> Chat
             </Button>
+            <Button size="sm" variant="secondary" onClick={() => router.push(`/admin/${member.id}#diario`)}>
+              <NotebookPen className="h-4 w-4 mr-1.5" /> Diario
+            </Button>
             <Button size="sm" variant="secondary" onClick={() => router.push(`/admin/analytics`)}>
-              📊 Analytics
+              📊 Reportes
             </Button>
           </div>
         </Card>

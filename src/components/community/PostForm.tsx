@@ -16,6 +16,7 @@ const CATEGORIES = [
   { value: 'progress', label: 'Progreso' },
   { value: 'discussion', label: 'Discusion' },
   { value: 'competition', label: 'Competencia' },
+  { value: 'bienvenida', label: 'Bienvenida' },
   { value: 'offtopic', label: 'Off Topic' },
 ];
 

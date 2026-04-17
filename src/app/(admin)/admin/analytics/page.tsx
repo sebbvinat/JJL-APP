@@ -119,7 +119,7 @@ export default function AnalyticsPage() {
           <ArrowLeft className="h-5 w-5" />
         </Link>
         <div>
-          <h1 className="text-2xl font-bold">Analytics</h1>
+          <h1 className="text-2xl font-bold">Reportes</h1>
           <p className="text-jjl-muted text-sm">Metricas de la plataforma (ultimos 7 dias)</p>
         </div>
       </div>

@@ -42,6 +42,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   progress: 'Progreso',
   discussion: 'Discusion',
   competition: 'Competencia',
+  bienvenida: 'Bienvenida',
   offtopic: 'Off Topic',
 };
 

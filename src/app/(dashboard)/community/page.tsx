@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import useSWR from 'swr';
 import { MessageCircle, Heart, Plus } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
@@ -41,6 +42,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   discussion: 'Discusion',
   competition: 'Competencia',
   offtopic: 'Off Topic',
+  bienvenida: 'Bienvenida',
 };
 
 const CATEGORIES = [
@@ -50,6 +52,7 @@ const CATEGORIES = [
   'progress',
   'discussion',
   'competition',
+  'bienvenida',
   'offtopic',
 ];
 const CATEGORY_DISPLAY = [
@@ -59,10 +62,12 @@ const CATEGORY_DISPLAY = [
   'Progreso',
   'Discusion',
   'Competencia',
+  'Bienvenida',
   'Off Topic',
 ];
 
 export default function CommunityPage() {
+  const router = useRouter();
   const [showForm, setShowForm] = useState(false);
   const [activeCategory, setActiveCategory] = useState('all');
   const [likingId, setLikingId] = useState<string | null>(null);
@@ -195,7 +200,7 @@ export default function CommunityPage() {
                     <div className="flex items-center gap-2 flex-wrap">
                       <span
                         className="font-semibold text-sm text-white hover:text-jjl-red cursor-pointer"
-                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); window.location.href = `/members/${post.authorId}`; }}
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push(`/members/${post.authorId}`); }}
                       >{post.autor}</span>
                       <Badge belt={post.cinturon} />
                       <span className="text-xs text-jjl-muted/70">{timeAgo(post.createdAt)}</span>

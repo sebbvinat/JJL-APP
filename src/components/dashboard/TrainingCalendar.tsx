@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { format, subDays, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, isSameMonth, isSameDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import Card from '@/components/ui/Card';
@@ -10,6 +11,7 @@ interface TrainingCalendarProps {
 }
 
 export default function TrainingCalendar({ trainedDays = [] }: TrainingCalendarProps) {
+  const router = useRouter();
   const { days, streak } = useMemo(() => {
     const today = new Date();
     const trainedSet = new Set(trainedDays);
@@ -83,9 +85,14 @@ export default function TrainingCalendar({ trainedDays = [] }: TrainingCalendarP
           const isToday = day.dateStr === todayStr;
           const isPast = day.date <= new Date();
           return (
-            <div
+            <button
               key={day.dateStr}
+              onClick={() => {
+                if (day.inMonth && isPast) router.push(`/journal?fecha=${day.dateStr}`);
+              }}
               className={`aspect-square rounded-lg flex items-center justify-center text-xs font-medium transition-colors ${
+                day.inMonth && isPast ? 'cursor-pointer hover:ring-1 hover:ring-jjl-red/40' : 'cursor-default'
+              } ${
                 !day.inMonth
                   ? 'text-jjl-muted/20'
                   : isToday
@@ -101,7 +108,7 @@ export default function TrainingCalendar({ trainedDays = [] }: TrainingCalendarP
               title={format(day.date, 'EEEE dd MMM', { locale: es })}
             >
               {day.date.getDate()}
-            </div>
+            </button>
           );
         })}
       </div>
