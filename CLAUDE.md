@@ -88,6 +88,36 @@ Todos comparten: Fundamentos + Mes 1 (Guardia Cerrada + Toreos) + Mes 2 (100KG, 
 - Inputs 16px font obligatorio en mobile (previene iOS zoom)
 - Tap targets minimo 44px en botones
 - Security headers: HSTS, X-Frame-Options, XSS, Referrer-Policy, Permissions-Policy
+- Leaderboard / Ranking (/leaderboard) con podio, sort por puntos/lecciones/dias/racha
+- Onboarding wizard (/onboarding) de 4 pasos para nuevos usuarios
+- Off Topic categoria en comunidad (schema + frontend)
+
+## Paginas de la app (todas)
+### Dashboard
+- /dashboard - stats, belt, calendario, quick actions
+- /journal - diario de entrenamiento diario
+- /weekly - retrospectiva semanal
+- /modules - modulos del curso con videos
+- /modules/[moduleId] - modulo individual con video player
+- /library - biblioteca de links y aprendizajes
+- /leaderboard - ranking de alumnos
+- /competitions - tracker de competencias
+- /events - eventos con RSVP
+- /chat - mensajes con instructor (audio + texto)
+- /community - foro de comunidad
+- /community/[postId] - detalle de post
+- /upload - subir video (carpeta Drive)
+- /profile - perfil, avatar, password, push toggle
+- /members/[memberId] - perfil publico de miembro
+- /onboarding - wizard de bienvenida
+
+### Admin
+- /admin - lista de alumnos, crear/editar/eliminar
+- /admin/[userId] - detalle de alumno, planilla, modulos
+- /admin/analytics - metricas y reportes
+- /admin/courses - gestionar planillas, sincronizar
+- /admin/edit/[moduleId] - editor de modulo
+- /admin/videos - review de videos y gestion YouTube IDs
 
 ## Variables de entorno (Vercel)
 - NEXT_PUBLIC_SUPABASE_URL
