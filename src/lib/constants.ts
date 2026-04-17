@@ -8,12 +8,14 @@ import {
   NotebookPen,
   CalendarDays,
   MessageCircle,
+  Library,
 } from 'lucide-react';
 
 export const NAV_ITEMS = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { label: 'Diario', href: '/journal', icon: NotebookPen },
   { label: 'Modulos', href: '/modules', icon: BookOpen },
+  { label: 'Biblioteca', href: '/library', icon: Library },
   { label: 'Eventos', href: '/events', icon: CalendarDays },
   { label: 'Chat', href: '/chat', icon: MessageCircle },
   { label: 'Comunidad', href: '/community', icon: Users },
