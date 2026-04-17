@@ -11,6 +11,7 @@ import {
   MessageCircle,
   Library,
   Trophy,
+  Medal,
 } from 'lucide-react';
 
 export const NAV_ITEMS = [
@@ -19,6 +20,7 @@ export const NAV_ITEMS = [
   { label: 'Semana', href: '/weekly', icon: CalendarCheck },
   { label: 'Modulos', href: '/modules', icon: BookOpen },
   { label: 'Biblioteca', href: '/library', icon: Library },
+  { label: 'Ranking', href: '/leaderboard', icon: Medal },
   { label: 'Competencias', href: '/competitions', icon: Trophy },
   { label: 'Eventos', href: '/events', icon: CalendarDays },
   { label: 'Comunidad', href: '/community', icon: Users },
