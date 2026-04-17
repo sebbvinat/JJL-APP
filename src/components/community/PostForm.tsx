@@ -16,6 +16,7 @@ const CATEGORIES = [
   { value: 'progress', label: 'Progreso' },
   { value: 'discussion', label: 'Discusion' },
   { value: 'competition', label: 'Competencia' },
+  { value: 'offtopic', label: 'Off Topic' },
 ];
 
 export default function PostForm({ onClose, onSubmit }: PostFormProps) {
@@ -56,7 +57,7 @@ export default function PostForm({ onClose, onSubmit }: PostFormProps) {
               value={contenido}
               onChange={(e) => setContenido(e.target.value)}
               placeholder="Comparte tu experiencia, duda o tecnica..."
-              className="w-full bg-jjl-gray-light border border-jjl-border rounded-lg px-4 py-2.5 text-white text-sm placeholder:text-jjl-muted/60 focus:outline-none focus:ring-2 focus:ring-jjl-red/50 focus:border-jjl-red transition-colors resize-none h-32"
+              className="w-full bg-jjl-gray-light border border-jjl-border rounded-lg px-4 py-3 text-white text-base placeholder:text-jjl-muted/60 focus:outline-none focus:ring-2 focus:ring-jjl-red/50 focus:border-jjl-red transition-colors resize-none h-32"
               required
             />
           </div>
@@ -69,7 +70,7 @@ export default function PostForm({ onClose, onSubmit }: PostFormProps) {
                   key={cat.value}
                   type="button"
                   onClick={() => setCategoria(cat.value)}
-                  className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition-colors min-h-[40px] ${
                     categoria === cat.value
                       ? 'bg-jjl-red text-white'
                       : 'bg-jjl-gray-light border border-jjl-border text-jjl-muted hover:text-white'

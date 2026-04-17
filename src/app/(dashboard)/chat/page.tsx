@@ -167,7 +167,7 @@ export default function ChatPage() {
 
   // Chat view
   return (
-    <div className="flex flex-col h-[calc(100dvh-8rem)] max-w-lg mx-auto">
+    <div className="flex flex-col h-[calc(100dvh-10rem)] lg:h-[calc(100dvh-8rem)] max-w-lg mx-auto">
       {/* Header */}
       <div className="flex items-center gap-3 pb-3 border-b border-jjl-border shrink-0">
         {isAdmin && (
@@ -223,18 +223,18 @@ export default function ChatPage() {
       </div>
 
       {/* Input */}
-      <form onSubmit={handleSend} className="flex gap-2 pt-3 border-t border-jjl-border shrink-0">
+      <form onSubmit={handleSend} className="flex gap-2 pt-3 border-t border-jjl-border shrink-0 pb-2">
         <input
           type="text"
           value={newMessage}
           onChange={(e) => setNewMessage(e.target.value)}
           placeholder="Escribe un mensaje..."
-          className="flex-1 bg-jjl-gray-light border border-jjl-border rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-jjl-muted/50 focus:outline-none focus:border-jjl-red"
+          className="flex-1 bg-jjl-gray-light border border-jjl-border rounded-xl px-4 py-3 text-base text-white placeholder:text-jjl-muted/50 focus:outline-none focus:border-jjl-red"
         />
         <button
           type="submit"
           disabled={!newMessage.trim() || sending}
-          className="px-4 py-2.5 bg-jjl-red text-white rounded-xl hover:bg-jjl-red-hover disabled:opacity-50 transition-colors shrink-0"
+          className="px-5 py-3 bg-jjl-red text-white rounded-xl hover:bg-jjl-red-hover disabled:opacity-50 transition-colors shrink-0 min-w-[48px] min-h-[48px] flex items-center justify-center"
         >
           <Send className="h-5 w-5" />
         </button>

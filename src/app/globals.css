@@ -156,3 +156,43 @@ body {
 @utility text-balance {
   text-wrap: balance;
 }
+
+/* ----------------------------------------------------------------
+   Mobile input & button fixes
+---------------------------------------------------------------- */
+/* Prevent iOS zoom on input focus — force 16px minimum */
+input, textarea, select {
+  font-size: 16px !important;
+}
+
+@media (min-width: 1024px) {
+  input, textarea, select {
+    font-size: inherit !important;
+  }
+}
+
+/* Minimum tap target for buttons and interactive elements */
+button, a, [role="button"] {
+  min-height: 36px;
+}
+
+/* Safe area for bottom nav on iOS */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Keyboard-aware forms: scroll input into view */
+@supports (height: 100dvh) {
+  .keyboard-aware {
+    padding-bottom: env(keyboard-inset-height, 80px);
+  }
+}
+
+/* Better touch feedback */
+@media (hover: none) {
+  button:active, a:active, [role="button"]:active {
+    opacity: 0.8;
+    transform: scale(0.98);
+    transition: all 0.1s;
+  }
+}

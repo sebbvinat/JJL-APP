@@ -280,7 +280,7 @@ export default function EventsPage() {
                       )}
                     </div>
                     {isAdmin && (
-                      <button onClick={() => handleDelete(event.id)} className="p-1.5 text-jjl-muted hover:text-red-400 rounded-lg hover:bg-red-900/20">
+                      <button onClick={() => handleDelete(event.id)} className="p-2.5 text-jjl-muted hover:text-red-400 rounded-lg hover:bg-red-900/20 min-w-[44px] min-h-[44px] flex items-center justify-center">
                         <Trash2 className="h-4 w-4" />
                       </button>
                     )}
@@ -319,10 +319,10 @@ export default function EventsPage() {
                   )}
 
                   {/* RSVP buttons */}
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <button
                       onClick={() => handleRsvp(event.id, 'confirmed')}
-                      className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium border transition-all ${
+                      className={`flex items-center gap-1.5 px-5 py-2.5 rounded-lg text-sm font-medium border transition-all min-h-[44px] ${
                         event.myRsvp === 'confirmed'
                           ? 'bg-green-500/20 border-green-500/40 text-green-400'
                           : 'border-jjl-border text-jjl-muted hover:border-green-500/40 hover:text-green-400'
@@ -333,7 +333,7 @@ export default function EventsPage() {
                     </button>
                     <button
                       onClick={() => handleRsvp(event.id, 'declined')}
-                      className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium border transition-all ${
+                      className={`flex items-center gap-1.5 px-5 py-2.5 rounded-lg text-sm font-medium border transition-all min-h-[44px] ${
                         event.myRsvp === 'declined'
                           ? 'bg-red-500/20 border-red-500/40 text-red-400'
                           : 'border-jjl-border text-jjl-muted hover:border-red-500/40 hover:text-red-400'

@@ -34,7 +34,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
             id={id}
             aria-invalid={!!error || undefined}
             className={clsx(
-              'w-full bg-white/[0.03] text-white text-sm placeholder:text-jjl-muted/50 rounded-lg px-4 py-2.5 transition-colors',
+              'w-full bg-white/[0.03] text-white text-base placeholder:text-jjl-muted/50 rounded-lg px-4 py-3 transition-colors min-h-[48px]',
               'border border-jjl-border hover:border-jjl-border-strong',
               'focus:outline-none focus:border-jjl-red focus:ring-2 focus:ring-jjl-red/25',
               'disabled:opacity-60 disabled:cursor-not-allowed',

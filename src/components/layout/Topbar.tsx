@@ -42,7 +42,7 @@ export default function Topbar() {
           <button
             onClick={() => setMobileNavOpen(!mobileNavOpen)}
             aria-label={mobileNavOpen ? 'Cerrar menu' : 'Abrir menu'}
-            className="lg:hidden h-9 w-9 flex items-center justify-center text-jjl-muted hover:text-white rounded-lg hover:bg-white/5 transition-colors"
+            className="lg:hidden h-11 w-11 flex items-center justify-center text-jjl-muted hover:text-white rounded-lg hover:bg-white/5 transition-colors"
           >
             {mobileNavOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
