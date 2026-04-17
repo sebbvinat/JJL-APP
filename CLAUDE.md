@@ -78,6 +78,11 @@ Todos comparten: Fundamentos + Mes 1 (Guardia Cerrada + Toreos) + Mes 2 (100KG, 
 - Chat DM: mensajes directos alumno ↔ instructor con push
 - Sincronizar planillas: boton que actualiza videos a todos los alumnos
 - Carpeta Drive por alumno para subir videos grandes
+- Audio messages en chat (grabar, subir a Storage, reproducir)
+- Member profiles (/members/[id]) - click en nombre en foro
+- Security headers: HSTS, X-Frame-Options, XSS, Referrer-Policy
+- Calendario mensual con dias numerados (tipo Google Calendar)
+- Perfiles clickeables en comunidad (Skool-style)
 
 ## Variables de entorno (Vercel)
 - NEXT_PUBLIC_SUPABASE_URL
