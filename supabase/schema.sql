@@ -156,7 +156,32 @@ CREATE TABLE public.notifications (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 12. PUSH_SUBSCRIPTIONS (Web Push subscriptions)
+-- 12. EVENTS (calendario de eventos)
+CREATE TABLE public.events (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  created_by UUID REFERENCES public.users ON DELETE CASCADE NOT NULL,
+  titulo TEXT NOT NULL,
+  descripcion TEXT,
+  fecha_hora TIMESTAMPTZ NOT NULL,
+  duracion_min INTEGER DEFAULT 60,
+  timezone TEXT DEFAULT 'America/Argentina/Buenos_Aires',
+  meet_link TEXT,
+  recurrencia TEXT CHECK (recurrencia IN ('none', 'weekly', 'biweekly', 'monthly')),
+  recurrencia_fin DATE,
+  parent_event_id UUID REFERENCES public.events ON DELETE CASCADE,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 13. EVENT_RSVPS (confirmaciones de asistencia)
+CREATE TABLE public.event_rsvps (
+  event_id UUID REFERENCES public.events ON DELETE CASCADE NOT NULL,
+  user_id UUID REFERENCES public.users ON DELETE CASCADE NOT NULL,
+  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'confirmed', 'declined')),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  PRIMARY KEY (event_id, user_id)
+);
+
+-- 14. PUSH_SUBSCRIPTIONS (Web Push subscriptions)
 CREATE TABLE public.push_subscriptions (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID REFERENCES public.users ON DELETE CASCADE NOT NULL,
@@ -212,6 +237,9 @@ CREATE INDEX idx_comments_post ON public.comments(post_id);
 CREATE INDEX idx_video_uploads_user ON public.video_uploads(user_id);
 CREATE INDEX idx_notifications_user ON public.notifications(user_id, created_at DESC);
 CREATE INDEX idx_notifications_unread ON public.notifications(user_id) WHERE leido = FALSE;
+CREATE INDEX idx_events_fecha ON public.events(fecha_hora);
+CREATE INDEX idx_events_created_by ON public.events(created_by);
+CREATE INDEX idx_event_rsvps_user ON public.event_rsvps(user_id);
 CREATE INDEX idx_push_subscriptions_user ON public.push_subscriptions(user_id);
 CREATE INDEX idx_course_data_user ON public.course_data(user_id);
 CREATE INDEX idx_users_onboarding_pending ON public.users(id) WHERE onboarding_completed_at IS NULL;
@@ -233,6 +261,8 @@ ALTER TABLE public.comments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.likes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.video_uploads ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.events ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.event_rsvps ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.push_subscriptions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.course_data ENABLE ROW LEVEL SECURITY;
 
@@ -346,6 +376,20 @@ CREATE POLICY "Users can update own notifications" ON public.notifications
 -- Regular users can only read/update their own
 CREATE POLICY "Service role can insert notifications" ON public.notifications
   FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
+
+-- EVENTS policies
+CREATE POLICY "Anyone can read events" ON public.events
+  FOR SELECT USING (true);
+CREATE POLICY "Admin can manage events" ON public.events
+  FOR ALL USING (public.is_admin());
+
+-- EVENT_RSVPS policies
+CREATE POLICY "Anyone can read rsvps" ON public.event_rsvps
+  FOR SELECT USING (true);
+CREATE POLICY "Users can manage own rsvp" ON public.event_rsvps
+  FOR ALL USING (user_id = auth.uid());
+CREATE POLICY "Admin can manage rsvps" ON public.event_rsvps
+  FOR ALL USING (public.is_admin());
 
 -- PUSH_SUBSCRIPTIONS policies
 CREATE POLICY "Users can manage own push subs" ON public.push_subscriptions

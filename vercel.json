@@ -16,6 +16,7 @@
   ],
   "crons": [
     { "path": "/api/cron/daily-reminder", "schedule": "0 0 * * *" },
-    { "path": "/api/cron/weekly-insight", "schedule": "0 23 * * 0" }
+    { "path": "/api/cron/weekly-insight", "schedule": "0 23 * * 0" },
+    { "path": "/api/events/remind", "schedule": "0 * * * *" }
   ]
 }
