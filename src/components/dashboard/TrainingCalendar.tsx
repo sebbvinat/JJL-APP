@@ -10,7 +10,10 @@ interface TrainingCalendarProps {
   weeks?: number;
 }
 
-export default function TrainingCalendar({ trainedDays = [], weeks = 13 }: TrainingCalendarProps) {
+export default function TrainingCalendar({ trainedDays = [], weeks: weeksProp = 13 }: TrainingCalendarProps) {
+  // Use fewer weeks on mobile for better cell size
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
+  const weeks = isMobile ? Math.min(weeksProp, 8) : weeksProp;
   // Build a grid aligned to weekdays: columns = weeks, rows = days (Mon-Sun)
   const { grid, streak } = useMemo(() => {
     const today = new Date();
