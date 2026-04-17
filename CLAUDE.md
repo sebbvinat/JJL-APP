@@ -40,6 +40,10 @@
 - `video_uploads` - user_id, titulo, drive_file_id, drive_url
 - `notifications` - user_id, tipo, titulo, mensaje, leido
 - `push_subscriptions` - user_id, endpoint, keys_p256dh, keys_auth
+- `events` - created_by, titulo, descripcion, fecha_hora, duracion_min, timezone, meet_link, recurrencia
+- `event_rsvps` - event_id, user_id, status (pending/confirmed/declined)
+- `user_sessions` - user_id, started_at, duration_seconds, pages_viewed
+- `messages` - from_user_id, to_user_id, contenido, leido
 
 ### Views
 - `course_data` - view que une modules+lessons+user_access por usuario (user_id, module_id, semana_numero, titulo, lessons JSON array)
@@ -68,6 +72,12 @@ Todos comparten: Fundamentos + Mes 1 (Guardia Cerrada + Toreos) + Mes 2 (100KG, 
 - Admin: crear/editar/eliminar usuarios, gestionar cinturon/rol/password
 - Comunidad: posts, comments, likes, categorias (incluyendo Off Topic)
 - Pre-fill YouTube ID al agregar leccion nueva en editor
+- Eventos con RSVP, recurrencia, Zoom/Meet link, email reminders (Resend)
+- Admin analytics: retencion, engagement, tiempo en app, grafico DAU
+- Session tracking: tiempo por sesion, paginas vistas
+- Chat DM: mensajes directos alumno ↔ instructor con push
+- Sincronizar planillas: boton que actualiza videos a todos los alumnos
+- Carpeta Drive por alumno para subir videos grandes
 
 ## Variables de entorno (Vercel)
 - NEXT_PUBLIC_SUPABASE_URL
@@ -77,6 +87,8 @@ Todos comparten: Fundamentos + Mes 1 (Guardia Cerrada + Toreos) + Mes 2 (100KG, 
 - GOOGLE_DRIVE_FOLDER_ID
 - NEXT_PUBLIC_VAPID_PUBLIC_KEY
 - VAPID_PRIVATE_KEY
+- RESEND_API_KEY (para email reminders de eventos)
+- CRON_SECRET (opcional, para proteger endpoints de cron)
 
 ## Notas importantes
 - El logo es negro con fondo transparente → necesita circulo blanco detras
@@ -85,3 +97,7 @@ Todos comparten: Fundamentos + Mes 1 (Guardia Cerrada + Toreos) + Mes 2 (100KG, 
 - El UserProvider carga el profile una sola vez → para avatar actualizado, fetchear directo de DB
 - Service worker cache version actual: v3
 - Categorias de comunidad: question, technique, progress, discussion, competition, offtopic
+- Chat DM: polling cada 5s, push notification al recibir mensaje
+- Session tracker: guarda duracion cada 30s + sendBeacon al cerrar
+- Vercel Cron: /api/events/remind cada hora para email reminders 24h antes
+- Resend email template: HTML styled con colores JJL
