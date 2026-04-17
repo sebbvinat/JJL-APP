@@ -14,6 +14,7 @@ interface Channel {
   avatar_url: string | null;
   lastMessage: string | null;
   lastAt: string | null;
+  hasNew?: boolean;
 }
 
 interface Message {
@@ -141,19 +142,24 @@ export default function ChatPage() {
               <button
                 key={ch.channelId}
                 onClick={() => setSelectedChannel(ch)}
-                className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-jjl-gray-light transition-colors text-left"
+                className={`w-full flex items-center gap-3 p-3 rounded-xl hover:bg-jjl-gray-light transition-colors text-left ${ch.hasNew ? 'bg-jjl-red/5 border border-jjl-red/20' : ''}`}
               >
-                <Avatar src={ch.avatar_url} name={ch.nombre} />
+                <div className="relative">
+                  <Avatar src={ch.avatar_url} name={ch.nombre} />
+                  {ch.hasNew && (
+                    <div className="absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full bg-jjl-red border-2 border-jjl-gray" />
+                  )}
+                </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between">
-                    <span className="font-semibold text-sm">{ch.nombre}</span>
+                    <span className={`text-sm ${ch.hasNew ? 'font-bold text-white' : 'font-semibold'}`}>{ch.nombre}</span>
                     {ch.lastAt && (
-                      <span className="text-[10px] text-jjl-muted">
+                      <span className={`text-[10px] ${ch.hasNew ? 'text-jjl-red font-semibold' : 'text-jjl-muted'}`}>
                         {formatDistanceToNow(new Date(ch.lastAt), { addSuffix: false, locale: es })}
                       </span>
                     )}
                   </div>
-                  <p className="text-xs text-jjl-muted truncate">
+                  <p className={`text-xs truncate ${ch.hasNew ? 'text-white font-medium' : 'text-jjl-muted'}`}>
                     {ch.lastMessage || 'Sin mensajes'}
                   </p>
                 </div>
@@ -183,7 +189,7 @@ export default function ChatPage() {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto py-4 space-y-3">
+      <div className="flex-1 min-h-0 overflow-y-auto py-4 space-y-3 overscroll-contain">
         {messages.length === 0 && (
           <div className="text-center py-8">
             <p className="text-jjl-muted text-sm">No hay mensajes todavia</p>

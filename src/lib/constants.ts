@@ -21,8 +21,8 @@ export const NAV_ITEMS = [
   { label: 'Biblioteca', href: '/library', icon: Library },
   { label: 'Competencias', href: '/competitions', icon: Trophy },
   { label: 'Eventos', href: '/events', icon: CalendarDays },
-  { label: 'Chat', href: '/chat', icon: MessageCircle },
   { label: 'Comunidad', href: '/community', icon: Users },
+  { label: 'Chat', href: '/chat', icon: MessageCircle },
   { label: 'Subir Video', href: '/upload', icon: Upload },
   { label: 'Perfil', href: '/profile', icon: User },
 ] as const;

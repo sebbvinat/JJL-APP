@@ -105,6 +105,9 @@ function ProfileContent() {
   const [cropFile, setCropFile] = useState<File | null>(null);
   const [cropPreview, setCropPreview] = useState('');
   const [cropScale, setCropScale] = useState(1);
+  const [cropOffset, setCropOffset] = useState({ x: 0, y: 0 });
+  const [dragging, setDragging] = useState(false);
+  const dragStart = useRef({ x: 0, y: 0, ox: 0, oy: 0 });
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const imgRef = useRef<HTMLImageElement>(null);
 
@@ -183,6 +186,7 @@ function ProfileContent() {
     setCropFile(file);
     setCropPreview(URL.createObjectURL(file));
     setCropScale(1);
+    setCropOffset({ x: 0, y: 0 });
     setShowCrop(true);
     if (fileInputRef.current) fileInputRef.current.value = '';
   }
@@ -196,17 +200,25 @@ function ProfileContent() {
     // Draw cropped/scaled image to canvas
     const canvas = canvasRef.current;
     const img = imgRef.current;
-    const size = 400; // output size
+    const size = 400;
     canvas.width = size;
     canvas.height = size;
     const ctx = canvas.getContext('2d')!;
     ctx.clearRect(0, 0, size, size);
 
-    const scaledW = img.naturalWidth * cropScale;
-    const scaledH = img.naturalHeight * cropScale;
-    const offsetX = (size - scaledW) / 2;
-    const offsetY = (size - scaledH) / 2;
-    ctx.drawImage(img, offsetX, offsetY, scaledW, scaledH);
+    // Fit image to cover the square, then apply user scale and offset
+    const aspect = img.naturalWidth / img.naturalHeight;
+    let drawW: number, drawH: number;
+    if (aspect > 1) {
+      drawH = size * cropScale;
+      drawW = drawH * aspect;
+    } else {
+      drawW = size * cropScale;
+      drawH = drawW / aspect;
+    }
+    const offsetX = (size - drawW) / 2 + cropOffset.x * (size / 192);
+    const offsetY = (size - drawH) / 2 + cropOffset.y * (size / 192);
+    ctx.drawImage(img, offsetX, offsetY, drawW, drawH);
 
     // Convert to blob
     const blob = await new Promise<Blob>((resolve) =>
@@ -489,8 +501,8 @@ function ProfileContent() {
                 {pushEnabled ? 'Activadas — recibis alertas en tu dispositivo' : 'Desactivadas — toca para activar'}
               </p>
             </div>
-            <div className={`w-10 h-6 rounded-full transition-colors ${pushEnabled ? 'bg-green-500' : 'bg-jjl-border'}`}>
-              <div className={`w-5 h-5 rounded-full bg-white shadow mt-0.5 transition-transform ${pushEnabled ? 'translate-x-4.5 ml-[18px]' : 'ml-0.5'}`} />
+            <div className={`w-11 h-6 rounded-full transition-colors relative ${pushEnabled ? 'bg-green-500' : 'bg-jjl-border'}`}>
+              <div className={`w-5 h-5 rounded-full bg-white shadow absolute top-0.5 transition-all duration-200 ${pushEnabled ? 'left-[22px]' : 'left-0.5'}`} />
             </div>
           </button>
 
@@ -525,38 +537,58 @@ function ProfileContent() {
               </button>
             </div>
 
-            {/* Preview */}
-            <div className="w-48 h-48 mx-auto rounded-full overflow-hidden bg-black relative">
+            {/* Preview — drag to move, pinch/slider to zoom */}
+            <div
+              className="w-48 h-48 mx-auto rounded-full overflow-hidden bg-black relative cursor-grab active:cursor-grabbing touch-none"
+              onPointerDown={(e) => {
+                setDragging(true);
+                dragStart.current = { x: e.clientX, y: e.clientY, ox: cropOffset.x, oy: cropOffset.y };
+                (e.target as HTMLElement).setPointerCapture(e.pointerId);
+              }}
+              onPointerMove={(e) => {
+                if (!dragging) return;
+                setCropOffset({
+                  x: dragStart.current.ox + (e.clientX - dragStart.current.x),
+                  y: dragStart.current.oy + (e.clientY - dragStart.current.y),
+                });
+              }}
+              onPointerUp={() => setDragging(false)}
+            >
               <canvas ref={canvasRef} className="hidden" />
               <img
                 ref={imgRef}
                 src={cropPreview}
                 alt="Preview"
-                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 object-cover"
+                draggable={false}
+                className="absolute object-cover pointer-events-none"
                 style={{
                   width: `${100 * cropScale}%`,
                   height: `${100 * cropScale}%`,
                   minWidth: '100%',
                   minHeight: '100%',
+                  left: `calc(50% + ${cropOffset.x}px)`,
+                  top: `calc(50% + ${cropOffset.y}px)`,
+                  transform: 'translate(-50%, -50%)',
                 }}
               />
             </div>
+            <p className="text-[10px] text-jjl-muted text-center">Arrastra para mover · Slider para zoom</p>
 
             {/* Zoom controls */}
             <div className="flex items-center gap-3 justify-center">
-              <button onClick={() => setCropScale((s) => Math.max(0.5, s - 0.1))} className="p-2 rounded-lg bg-jjl-gray-light hover:bg-jjl-border">
+              <button onClick={() => setCropScale((s) => Math.max(1, s - 0.1))} className="p-2.5 rounded-lg bg-jjl-gray-light hover:bg-jjl-border min-w-[44px] min-h-[44px] flex items-center justify-center">
                 <ZoomOut className="h-5 w-5" />
               </button>
               <input
                 type="range"
-                min="0.5"
+                min="1"
                 max="3"
-                step="0.1"
+                step="0.05"
                 value={cropScale}
                 onChange={(e) => setCropScale(parseFloat(e.target.value))}
                 className="flex-1 accent-jjl-red"
               />
-              <button onClick={() => setCropScale((s) => Math.min(3, s + 0.1))} className="p-2 rounded-lg bg-jjl-gray-light hover:bg-jjl-border">
+              <button onClick={() => setCropScale((s) => Math.min(3, s + 0.1))} className="p-2.5 rounded-lg bg-jjl-gray-light hover:bg-jjl-border min-w-[44px] min-h-[44px] flex items-center justify-center">
                 <ZoomIn className="h-5 w-5" />
               </button>
             </div>

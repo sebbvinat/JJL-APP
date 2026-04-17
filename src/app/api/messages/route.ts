@@ -87,13 +87,15 @@ export async function GET(request: NextRequest) {
         .limit(1);
 
       const msg = lastMsg?.[0];
+      // "hasNew" = last message is FROM the alumno (not from an admin)
+      const hasNew = msg?.from_user_id === alumno.id;
       channels.push({
         channelId: alumno.id,
         nombre: alumno.nombre,
         avatar_url: alumno.avatar_url,
         lastMessage: msg?.contenido || null,
         lastAt: msg?.created_at || null,
-        lastFrom: msg?.from_user_id || null,
+        hasNew,
       });
     }
 
