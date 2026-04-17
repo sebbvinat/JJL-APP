@@ -83,6 +83,11 @@ Todos comparten: Fundamentos + Mes 1 (Guardia Cerrada + Toreos) + Mes 2 (100KG, 
 - Security headers: HSTS, X-Frame-Options, XSS, Referrer-Policy
 - Calendario mensual con dias numerados (tipo Google Calendar)
 - Perfiles clickeables en comunidad (Skool-style)
+- Badge component con variantes: admin, success, warning, error, info
+- Semantic color tokens en CSS: success, error, warning, info, admin
+- Inputs 16px font obligatorio en mobile (previene iOS zoom)
+- Tap targets minimo 44px en botones
+- Security headers: HSTS, X-Frame-Options, XSS, Referrer-Policy, Permissions-Policy
 
 ## Variables de entorno (Vercel)
 - NEXT_PUBLIC_SUPABASE_URL
