@@ -4,6 +4,7 @@ import MobileNav from '@/components/layout/MobileNav';
 import { UserProvider } from '@/providers/UserProvider';
 import PushPrompt from '@/components/PushPrompt';
 import VersionCheck from '@/components/VersionCheck';
+import SessionTracker from '@/components/SessionTracker';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -19,6 +20,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <MobileNav />
         <PushPrompt />
         <VersionCheck />
+        <SessionTracker />
       </div>
     </UserProvider>
   );

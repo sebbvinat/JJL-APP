@@ -10,6 +10,7 @@ import {
   CalendarDays,
   Library,
   Trophy,
+  MessageCircle,
 } from 'lucide-react';
 
 export const NAV_ITEMS = [
@@ -20,6 +21,7 @@ export const NAV_ITEMS = [
   { label: 'Competencias', href: '/competitions', icon: Trophy },
   { label: 'Biblioteca', href: '/library', icon: Library },
   { label: 'Modulos', href: '/modules', icon: BookOpen },
+  { label: 'Chat', href: '/chat', icon: MessageCircle },
   { label: 'Comunidad', href: '/community', icon: Users },
   { label: 'Subir Video', href: '/upload', icon: Upload },
   { label: 'Perfil', href: '/profile', icon: User },

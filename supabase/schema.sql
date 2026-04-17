@@ -181,7 +181,26 @@ CREATE TABLE public.event_rsvps (
   PRIMARY KEY (event_id, user_id)
 );
 
--- 14. PUSH_SUBSCRIPTIONS (Web Push subscriptions)
+-- 14. USER_SESSIONS (tiempo en la app)
+CREATE TABLE public.user_sessions (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES public.users ON DELETE CASCADE NOT NULL,
+  started_at TIMESTAMPTZ DEFAULT NOW(),
+  duration_seconds INTEGER DEFAULT 0,
+  pages_viewed INTEGER DEFAULT 0
+);
+
+-- 15. MESSAGES (chat directo)
+CREATE TABLE public.messages (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  from_user_id UUID REFERENCES public.users ON DELETE CASCADE NOT NULL,
+  to_user_id UUID REFERENCES public.users ON DELETE CASCADE NOT NULL,
+  contenido TEXT NOT NULL,
+  leido BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 16. PUSH_SUBSCRIPTIONS (Web Push subscriptions)
 CREATE TABLE public.push_subscriptions (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID REFERENCES public.users ON DELETE CASCADE NOT NULL,
@@ -237,6 +256,9 @@ CREATE INDEX idx_comments_post ON public.comments(post_id);
 CREATE INDEX idx_video_uploads_user ON public.video_uploads(user_id);
 CREATE INDEX idx_notifications_user ON public.notifications(user_id, created_at DESC);
 CREATE INDEX idx_notifications_unread ON public.notifications(user_id) WHERE leido = FALSE;
+CREATE INDEX idx_user_sessions_user ON public.user_sessions(user_id, started_at DESC);
+CREATE INDEX idx_messages_to ON public.messages(to_user_id, created_at DESC);
+CREATE INDEX idx_messages_conversation ON public.messages(from_user_id, to_user_id);
 CREATE INDEX idx_events_fecha ON public.events(fecha_hora);
 CREATE INDEX idx_events_created_by ON public.events(created_by);
 CREATE INDEX idx_event_rsvps_user ON public.event_rsvps(user_id);
@@ -261,6 +283,8 @@ ALTER TABLE public.comments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.likes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.video_uploads ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.user_sessions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.event_rsvps ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.push_subscriptions ENABLE ROW LEVEL SECURITY;
@@ -376,6 +400,22 @@ CREATE POLICY "Users can update own notifications" ON public.notifications
 -- Regular users can only read/update their own
 CREATE POLICY "Service role can insert notifications" ON public.notifications
   FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
+
+-- USER_SESSIONS policies
+CREATE POLICY "Users can insert own sessions" ON public.user_sessions
+  FOR INSERT WITH CHECK (user_id = auth.uid());
+CREATE POLICY "Users can update own sessions" ON public.user_sessions
+  FOR UPDATE USING (user_id = auth.uid());
+CREATE POLICY "Admin can read all sessions" ON public.user_sessions
+  FOR SELECT USING (user_id = auth.uid() OR public.is_admin());
+
+-- MESSAGES policies
+CREATE POLICY "Users can read own messages" ON public.messages
+  FOR SELECT USING (from_user_id = auth.uid() OR to_user_id = auth.uid());
+CREATE POLICY "Users can send messages" ON public.messages
+  FOR INSERT WITH CHECK (from_user_id = auth.uid());
+CREATE POLICY "Users can mark own messages read" ON public.messages
+  FOR UPDATE USING (to_user_id = auth.uid());
 
 -- EVENTS policies
 CREATE POLICY "Anyone can read events" ON public.events
