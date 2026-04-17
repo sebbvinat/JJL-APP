@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { format, formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { ArrowLeft, Send, MessageCircle, Shield } from 'lucide-react';
+import { ArrowLeft, Send, MessageCircle, Shield, Mic, Square, Play, Pause } from 'lucide-react';
 import Card from '@/components/ui/Card';
 import Avatar from '@/components/ui/Avatar';
 import { useUser } from '@/hooks/useUser';
@@ -37,6 +37,11 @@ export default function ChatPage() {
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [recording, setRecording] = useState(false);
+  const [recordingTime, setRecordingTime] = useState(0);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const recordTimerRef = useRef<NodeJS.Timeout | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const pollRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -108,6 +113,52 @@ export default function ChatPage() {
     });
 
     setSending(false);
+  }
+
+  async function startRecording() {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunksRef.current.push(e.data);
+      };
+
+      mediaRecorder.onstop = async () => {
+        stream.getTracks().forEach((t) => t.stop());
+        if (recordTimerRef.current) clearInterval(recordTimerRef.current);
+        setRecordingTime(0);
+
+        const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        if (blob.size < 1000) return; // too short
+
+        // Upload
+        setSending(true);
+        const formData = new FormData();
+        formData.append('audio', blob, 'audio.webm');
+        formData.append('channelId', selectedChannel!.channelId);
+
+        await fetch('/api/messages/audio', { method: 'POST', body: formData });
+        setSending(false);
+        loadMessages(selectedChannel!.channelId);
+      };
+
+      mediaRecorder.start();
+      mediaRecorderRef.current = mediaRecorder;
+      setRecording(true);
+      setRecordingTime(0);
+      recordTimerRef.current = setInterval(() => setRecordingTime((t) => t + 1), 1000);
+    } catch {
+      alert('No se pudo acceder al microfono');
+    }
+  }
+
+  function stopRecording() {
+    if (mediaRecorderRef.current?.state === 'recording') {
+      mediaRecorderRef.current.stop();
+    }
+    setRecording(false);
   }
 
   // Loading
@@ -216,7 +267,16 @@ export default function ChatPage() {
                       ? 'bg-yellow-500/10 border border-yellow-500/20 text-white rounded-bl-md'
                       : 'bg-jjl-gray-light text-white rounded-bl-md'
                 }`}>
-                  <p className="whitespace-pre-wrap">{msg.contenido}</p>
+                  {msg.contenido.startsWith('[audio]') ? (
+                    <audio
+                      src={msg.contenido.replace('[audio]', '')}
+                      controls
+                      preload="metadata"
+                      className="max-w-[220px] h-10"
+                    />
+                  ) : (
+                    <p className="whitespace-pre-wrap">{msg.contenido}</p>
+                  )}
                   <p className={`text-[10px] mt-1 ${msg.isMine ? 'text-white/50' : 'text-jjl-muted'}`}>
                     {format(new Date(msg.created_at), 'HH:mm')}
                   </p>
@@ -229,22 +289,48 @@ export default function ChatPage() {
       </div>
 
       {/* Input */}
-      <form onSubmit={handleSend} className="flex gap-2 pt-3 border-t border-jjl-border shrink-0 pb-2">
-        <input
-          type="text"
-          value={newMessage}
-          onChange={(e) => setNewMessage(e.target.value)}
-          placeholder="Escribe un mensaje..."
-          className="flex-1 bg-jjl-gray-light border border-jjl-border rounded-xl px-4 py-3 text-base text-white placeholder:text-jjl-muted/50 focus:outline-none focus:border-jjl-red"
-        />
-        <button
-          type="submit"
-          disabled={!newMessage.trim() || sending}
-          className="px-5 py-3 bg-jjl-red text-white rounded-xl hover:bg-jjl-red-hover disabled:opacity-50 transition-colors shrink-0 min-w-[48px] min-h-[48px] flex items-center justify-center"
-        >
-          <Send className="h-5 w-5" />
-        </button>
-      </form>
+      {recording ? (
+        <div className="flex items-center gap-3 pt-3 border-t border-jjl-border shrink-0 pb-2">
+          <div className="flex-1 flex items-center gap-3 bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3">
+            <div className="w-3 h-3 rounded-full bg-red-500 animate-pulse" />
+            <span className="text-sm text-red-400 font-medium">Grabando... {recordingTime}s</span>
+          </div>
+          <button
+            onClick={stopRecording}
+            className="px-5 py-3 bg-jjl-red text-white rounded-xl hover:bg-jjl-red-hover transition-colors shrink-0 min-w-[48px] min-h-[48px] flex items-center justify-center"
+          >
+            <Square className="h-5 w-5" fill="white" />
+          </button>
+        </div>
+      ) : (
+        <form onSubmit={handleSend} className="flex gap-2 pt-3 border-t border-jjl-border shrink-0 pb-2">
+          <input
+            type="text"
+            value={newMessage}
+            onChange={(e) => setNewMessage(e.target.value)}
+            placeholder="Escribe un mensaje..."
+            className="flex-1 bg-jjl-gray-light border border-jjl-border rounded-xl px-4 py-3 text-base text-white placeholder:text-jjl-muted/50 focus:outline-none focus:border-jjl-red"
+          />
+          {newMessage.trim() ? (
+            <button
+              type="submit"
+              disabled={sending}
+              className="px-5 py-3 bg-jjl-red text-white rounded-xl hover:bg-jjl-red-hover disabled:opacity-50 transition-colors shrink-0 min-w-[48px] min-h-[48px] flex items-center justify-center"
+            >
+              <Send className="h-5 w-5" />
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={startRecording}
+              disabled={sending}
+              className="px-5 py-3 bg-jjl-gray-light border border-jjl-border text-white rounded-xl hover:bg-jjl-border disabled:opacity-50 transition-colors shrink-0 min-w-[48px] min-h-[48px] flex items-center justify-center"
+            >
+              <Mic className="h-5 w-5" />
+            </button>
+          )}
+        </form>
+      )}
     </div>
   );
 }

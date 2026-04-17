@@ -19,6 +19,7 @@ import { logger } from '@/lib/logger';
 
 interface Post {
   id: string;
+  authorId: string;
   autor: string;
   avatar_url: string | null;
   cinturon: string;
@@ -192,7 +193,10 @@ export default function CommunityPage() {
                   <Avatar src={post.avatar_url} name={post.autor} />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-semibold text-sm text-white">{post.autor}</span>
+                      <span
+                        className="font-semibold text-sm text-white hover:text-jjl-red cursor-pointer"
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); window.location.href = `/members/${post.authorId}`; }}
+                      >{post.autor}</span>
                       <Badge belt={post.cinturon} />
                       <span className="text-xs text-jjl-muted/70">{timeAgo(post.createdAt)}</span>
                     </div>

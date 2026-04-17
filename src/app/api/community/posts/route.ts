@@ -65,6 +65,7 @@ export async function GET(request: NextRequest) {
 
   const formatted = posts.map((p: any) => ({
     id: p.id,
+    authorId: p.user_id,
     autor: userMap[p.user_id]?.nombre || 'Usuario',
     avatar_url: userMap[p.user_id]?.avatar_url || null,
     cinturon: userMap[p.user_id]?.rol === 'admin' ? 'black' : (userMap[p.user_id]?.cinturon_actual || 'white'),
