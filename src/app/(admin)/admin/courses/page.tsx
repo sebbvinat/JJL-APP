@@ -382,11 +382,29 @@ function PlanillaTab() {
   const [expandedPlanilla, setExpandedPlanilla] = useState<string | null>(null);
   const [expandedWeek, setExpandedWeek] = useState<string | null>(null);
   const [loading, setLoading] = useState<string | null>(null);
+  const [syncing, setSyncing] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   function showToast(message: string, type: 'success' | 'error') {
     setToast({ message, type });
     setTimeout(() => setToast(null), 4000);
+  }
+
+  async function handleSync() {
+    if (!confirm('Sincronizar videos de TODOS los alumnos con las planillas actualizadas?')) return;
+    setSyncing(true);
+    try {
+      const res = await fetch('/api/admin/sync-planillas', { method: 'POST' });
+      const data = await res.json();
+      if (res.ok) {
+        showToast(`${data.synced} alumnos sincronizados`, 'success');
+      } else {
+        showToast(data.error || 'Error', 'error');
+      }
+    } catch {
+      showToast('Error de conexion', 'error');
+    }
+    setSyncing(false);
   }
 
   async function handleLoad(planillaId: string) {
@@ -430,6 +448,21 @@ function PlanillaTab() {
 
   return (
     <div className="space-y-4">
+      {/* Sync button */}
+      <div className="flex items-center justify-between bg-jjl-gray-light/30 border border-jjl-border rounded-xl px-4 py-3">
+        <div>
+          <p className="text-sm font-medium">Sincronizar planillas</p>
+          <p className="text-xs text-jjl-muted">Actualiza los videos de todos los alumnos sin perder su progreso</p>
+        </div>
+        <button
+          onClick={handleSync}
+          disabled={syncing}
+          className="px-4 py-2 bg-jjl-red text-white text-sm font-semibold rounded-lg hover:bg-jjl-red-hover disabled:opacity-50 transition-colors shrink-0"
+        >
+          {syncing ? 'Sincronizando...' : 'Sincronizar todos'}
+        </button>
+      </div>
+
       {/* Programs grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {PLANILLAS.map((planilla) => {
