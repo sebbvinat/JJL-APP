@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Key, LogOut, Eye, EyeOff, Camera, User } from 'lucide-react';
+import { Key, LogOut, Eye, EyeOff, Camera, User, Bell, BellOff, ZoomIn, ZoomOut, X as XIcon } from 'lucide-react';
 import Card from '@/components/ui/Card';
 import Avatar from '@/components/ui/Avatar';
 import Badge from '@/components/ui/Badge';
@@ -101,6 +101,50 @@ function ProfileContent() {
   const avatarUrl = uploadedAvatarUrl || dbAvatarUrl || profile?.avatar_url || null;
 
   const [avatarError, setAvatarError] = useState('');
+  const [showCrop, setShowCrop] = useState(false);
+  const [cropFile, setCropFile] = useState<File | null>(null);
+  const [cropPreview, setCropPreview] = useState('');
+  const [cropScale, setCropScale] = useState(1);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const imgRef = useRef<HTMLImageElement>(null);
+
+  // Push notification state
+  const [pushEnabled, setPushEnabled] = useState(false);
+  const [pushLoading, setPushLoading] = useState(false);
+
+  useEffect(() => {
+    if ('Notification' in window) {
+      setPushEnabled(Notification.permission === 'granted');
+    }
+  }, []);
+
+  async function togglePush() {
+    setPushLoading(true);
+    if (pushEnabled) {
+      // Can't programmatically revoke — tell user how
+      alert('Para desactivar notificaciones, anda a la configuracion del navegador > Notificaciones > busca este sitio y bloquealo.');
+      setPushLoading(false);
+      return;
+    }
+    try {
+      const permission = await Notification.requestPermission();
+      if (permission === 'granted') {
+        const registration = await navigator.serviceWorker.ready;
+        const subscription = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
+        });
+        await fetch('/api/push/subscribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ subscription: subscription.toJSON() }),
+        });
+        setPushEnabled(true);
+      }
+    } catch {}
+    setPushLoading(false);
+  }
+
   const toast = useToast();
 
   const [showNameForm, setShowNameForm] = useState(false);
@@ -133,15 +177,44 @@ function ProfileContent() {
 
   const displayBelt = profile?.rol === 'admin' ? 'black' : (profile?.cinturon_actual || 'white');
 
-  async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
+  function handleAvatarSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
+    setCropFile(file);
+    setCropPreview(URL.createObjectURL(file));
+    setCropScale(1);
+    setShowCrop(true);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  }
 
+  async function handleCropAndUpload() {
+    if (!cropFile || !canvasRef.current || !imgRef.current) return;
     setUploadingAvatar(true);
     setAvatarError('');
+    setShowCrop(false);
+
+    // Draw cropped/scaled image to canvas
+    const canvas = canvasRef.current;
+    const img = imgRef.current;
+    const size = 400; // output size
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d')!;
+    ctx.clearRect(0, 0, size, size);
+
+    const scaledW = img.naturalWidth * cropScale;
+    const scaledH = img.naturalHeight * cropScale;
+    const offsetX = (size - scaledW) / 2;
+    const offsetY = (size - scaledH) / 2;
+    ctx.drawImage(img, offsetX, offsetY, scaledW, scaledH);
+
+    // Convert to blob
+    const blob = await new Promise<Blob>((resolve) =>
+      canvas.toBlob((b) => resolve(b!), 'image/jpeg', 0.85)
+    );
 
     const formData = new FormData();
-    formData.append('avatar', file);
+    formData.append('avatar', blob, 'avatar.jpg');
 
     try {
       const res = await fetch('/api/profile/avatar', { method: 'POST', body: formData });
@@ -157,7 +230,7 @@ function ProfileContent() {
       toast.error(msg);
     }
     setUploadingAvatar(false);
-    if (fileInputRef.current) fileInputRef.current.value = '';
+    URL.revokeObjectURL(cropPreview);
   }
 
   async function handleChangePassword(e: React.FormEvent) {
@@ -291,7 +364,7 @@ function ProfileContent() {
                 ref={fileInputRef}
                 type="file"
                 accept="image/*"
-                onChange={handleAvatarChange}
+                onChange={handleAvatarSelect}
                 className="hidden"
               />
             </div>
@@ -399,6 +472,28 @@ function ProfileContent() {
             </form>
           )}
 
+          {/* Push Notifications */}
+          <button
+            onClick={togglePush}
+            disabled={pushLoading}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg bg-jjl-gray-light/50 hover:bg-jjl-gray-light transition-colors text-left"
+          >
+            {pushEnabled ? (
+              <Bell className="h-5 w-5 text-green-400" />
+            ) : (
+              <BellOff className="h-5 w-5 text-jjl-muted" />
+            )}
+            <div className="flex-1">
+              <p className="text-sm font-medium">Notificaciones push</p>
+              <p className="text-xs text-jjl-muted">
+                {pushEnabled ? 'Activadas — recibis alertas en tu dispositivo' : 'Desactivadas — toca para activar'}
+              </p>
+            </div>
+            <div className={`w-10 h-6 rounded-full transition-colors ${pushEnabled ? 'bg-green-500' : 'bg-jjl-border'}`}>
+              <div className={`w-5 h-5 rounded-full bg-white shadow mt-0.5 transition-transform ${pushEnabled ? 'translate-x-4.5 ml-[18px]' : 'ml-0.5'}`} />
+            </div>
+          </button>
+
           {/* Sign Out */}
           <button
             onClick={signOut}
@@ -416,6 +511,60 @@ function ProfileContent() {
       {message && !showPasswordForm && (
         <div className="bg-green-900/30 border border-green-500/30 rounded-lg px-4 py-3 text-sm text-green-400">
           {message}
+        </div>
+      )}
+
+      {/* Image crop modal */}
+      {showCrop && (
+        <div className="fixed inset-0 z-[9999] bg-black/80 flex items-center justify-center p-4">
+          <div className="bg-jjl-gray border border-jjl-border rounded-xl p-5 w-full max-w-sm space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold">Ajustar foto</h3>
+              <button onClick={() => { setShowCrop(false); URL.revokeObjectURL(cropPreview); }} className="p-1 text-jjl-muted hover:text-white">
+                <XIcon className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Preview */}
+            <div className="w-48 h-48 mx-auto rounded-full overflow-hidden bg-black relative">
+              <canvas ref={canvasRef} className="hidden" />
+              <img
+                ref={imgRef}
+                src={cropPreview}
+                alt="Preview"
+                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 object-cover"
+                style={{
+                  width: `${100 * cropScale}%`,
+                  height: `${100 * cropScale}%`,
+                  minWidth: '100%',
+                  minHeight: '100%',
+                }}
+              />
+            </div>
+
+            {/* Zoom controls */}
+            <div className="flex items-center gap-3 justify-center">
+              <button onClick={() => setCropScale((s) => Math.max(0.5, s - 0.1))} className="p-2 rounded-lg bg-jjl-gray-light hover:bg-jjl-border">
+                <ZoomOut className="h-5 w-5" />
+              </button>
+              <input
+                type="range"
+                min="0.5"
+                max="3"
+                step="0.1"
+                value={cropScale}
+                onChange={(e) => setCropScale(parseFloat(e.target.value))}
+                className="flex-1 accent-jjl-red"
+              />
+              <button onClick={() => setCropScale((s) => Math.min(3, s + 0.1))} className="p-2 rounded-lg bg-jjl-gray-light hover:bg-jjl-border">
+                <ZoomIn className="h-5 w-5" />
+              </button>
+            </div>
+
+            <Button variant="primary" size="lg" className="w-full" onClick={handleCropAndUpload} loading={uploadingAvatar}>
+              Guardar foto
+            </Button>
+          </div>
         </div>
       )}
     </div>
