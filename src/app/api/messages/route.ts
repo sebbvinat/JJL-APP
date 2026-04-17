@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
+import { createClient } from '@supabase/supabase-js';
 
 function getSupabase(request: NextRequest) {
   return createServerClient(
@@ -9,113 +10,169 @@ function getSupabase(request: NextRequest) {
   );
 }
 
-// GET: list conversations or messages in a conversation
+function getAdmin() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  );
+}
+
+// GET: list channels (admin) or messages in a channel
 export async function GET(request: NextRequest) {
   const supabase = getSupabase(request);
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
 
-  const withUserId = request.nextUrl.searchParams.get('with');
+  const { data: profile } = await supabase.from('users').select('rol, nombre').eq('id', user.id).single();
+  const isAdmin = (profile as any)?.rol === 'admin';
 
-  if (withUserId) {
-    // Get messages between current user and withUserId
-    const { data: messages } = await supabase
+  const channelId = request.nextUrl.searchParams.get('channel');
+
+  if (channelId) {
+    // Get messages in this channel
+    // Channel = alumno's user_id. Only the alumno or admins can read.
+    if (!isAdmin && channelId !== user.id) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
+    }
+
+    const admin = getAdmin();
+    const { data: messages } = await admin
       .from('messages')
-      .select('*')
-      .or(`and(from_user_id.eq.${user.id},to_user_id.eq.${withUserId}),and(from_user_id.eq.${withUserId},to_user_id.eq.${user.id})`)
+      .select('id, from_user_id, contenido, created_at')
+      .eq('to_user_id', channelId)
       .order('created_at', { ascending: true })
-      .limit(100);
+      .limit(200);
 
-    // Mark as read
-    await supabase
-      .from('messages')
-      .update({ leido: true })
-      .eq('from_user_id', withUserId)
-      .eq('to_user_id', user.id)
-      .eq('leido', false);
+    // Get sender names
+    const senderIds = [...new Set((messages || []).map((m: any) => m.from_user_id))];
+    let senders: Record<string, { nombre: string; avatar_url: string | null; rol: string }> = {};
+    if (senderIds.length > 0) {
+      const { data } = await admin.from('users').select('id, nombre, avatar_url, rol').in('id', senderIds);
+      (data || []).forEach((u: any) => { senders[u.id] = { nombre: u.nombre, avatar_url: u.avatar_url, rol: u.rol }; });
+    }
 
-    return NextResponse.json({ messages: messages || [] });
+    // Mark as read (for this user)
+    // We don't track per-message read status in group chat — just return messages
+
+    return NextResponse.json({
+      messages: (messages || []).map((m: any) => ({
+        ...m,
+        senderName: senders[m.from_user_id]?.nombre || 'Usuario',
+        senderAvatar: senders[m.from_user_id]?.avatar_url || null,
+        isAdmin: senders[m.from_user_id]?.rol === 'admin',
+        isMine: m.from_user_id === user.id,
+      })),
+    });
   }
 
-  // List conversations (latest message per user)
-  const { data: sent } = await supabase
-    .from('messages')
-    .select('to_user_id, contenido, created_at, leido')
-    .eq('from_user_id', user.id)
-    .order('created_at', { ascending: false });
+  // List channels
+  if (isAdmin) {
+    // Admin sees all alumnos as channels
+    const admin = getAdmin();
+    const { data: alumnos } = await admin
+      .from('users')
+      .select('id, nombre, avatar_url')
+      .eq('rol', 'alumno')
+      .order('nombre');
 
-  const { data: received } = await supabase
-    .from('messages')
-    .select('from_user_id, contenido, created_at, leido')
-    .eq('to_user_id', user.id)
-    .order('created_at', { ascending: false });
+    // Get last message per channel + unread count
+    const channels = [];
+    for (const alumno of (alumnos || [])) {
+      const { data: lastMsg } = await admin
+        .from('messages')
+        .select('contenido, created_at, from_user_id')
+        .eq('to_user_id', alumno.id)
+        .order('created_at', { ascending: false })
+        .limit(1);
 
-  // Build conversation list
-  const convMap = new Map<string, { userId: string; lastMessage: string; lastAt: string; unread: number }>();
-
-  (sent || []).forEach((m: any) => {
-    if (!convMap.has(m.to_user_id)) {
-      convMap.set(m.to_user_id, { userId: m.to_user_id, lastMessage: m.contenido, lastAt: m.created_at, unread: 0 });
-    }
-  });
-
-  (received || []).forEach((m: any) => {
-    const existing = convMap.get(m.from_user_id);
-    if (!existing || m.created_at > existing.lastAt) {
-      convMap.set(m.from_user_id, {
-        userId: m.from_user_id,
-        lastMessage: m.contenido,
-        lastAt: m.created_at,
-        unread: (existing?.unread || 0) + (!m.leido ? 1 : 0),
+      const msg = lastMsg?.[0];
+      channels.push({
+        channelId: alumno.id,
+        nombre: alumno.nombre,
+        avatar_url: alumno.avatar_url,
+        lastMessage: msg?.contenido || null,
+        lastAt: msg?.created_at || null,
+        lastFrom: msg?.from_user_id || null,
       });
-    } else if (!m.leido) {
-      existing.unread++;
     }
-  });
 
-  const conversations = [...convMap.values()].sort((a, b) => b.lastAt.localeCompare(a.lastAt));
+    // Sort: channels with messages first, then by last message time
+    channels.sort((a, b) => {
+      if (a.lastAt && !b.lastAt) return -1;
+      if (!a.lastAt && b.lastAt) return 1;
+      if (a.lastAt && b.lastAt) return b.lastAt.localeCompare(a.lastAt);
+      return a.nombre.localeCompare(b.nombre);
+    });
 
-  // Get user names
-  const userIds = conversations.map((c) => c.userId);
-  let userNames: Record<string, { nombre: string; avatar_url: string | null }> = {};
-  if (userIds.length > 0) {
-    const { data } = await supabase.from('users').select('id, nombre, avatar_url').in('id', userIds);
-    (data || []).forEach((u: any) => { userNames[u.id] = { nombre: u.nombre, avatar_url: u.avatar_url }; });
+    return NextResponse.json({ channels });
   }
+
+  // Alumno: their own channel only
+  const admin = getAdmin();
+  const { data: lastMsg } = await admin
+    .from('messages')
+    .select('contenido, created_at')
+    .eq('to_user_id', user.id)
+    .order('created_at', { ascending: false })
+    .limit(1);
 
   return NextResponse.json({
-    conversations: conversations.map((c) => ({
-      ...c,
-      nombre: userNames[c.userId]?.nombre || 'Usuario',
-      avatar_url: userNames[c.userId]?.avatar_url || null,
-    })),
+    channels: [{
+      channelId: user.id,
+      nombre: 'Mi chat con el instructor',
+      avatar_url: null,
+      lastMessage: lastMsg?.[0]?.contenido || null,
+      lastAt: lastMsg?.[0]?.created_at || null,
+    }],
   });
 }
 
-// POST: send a message
+// POST: send a message to a channel
 export async function POST(request: NextRequest) {
   const supabase = getSupabase(request);
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
 
-  const { toUserId, contenido } = await request.json();
-  if (!toUserId || !contenido?.trim()) {
+  const { data: profile } = await supabase.from('users').select('rol, nombre').eq('id', user.id).single();
+  const isAdmin = (profile as any)?.rol === 'admin';
+
+  const { channelId, contenido } = await request.json();
+  if (!channelId || !contenido?.trim()) {
     return NextResponse.json({ error: 'Datos invalidos' }, { status: 400 });
   }
 
-  const { error } = await supabase.from('messages').insert({
+  // Alumno can only send to their own channel
+  if (!isAdmin && channelId !== user.id) {
+    return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
+  }
+
+  const admin = getAdmin();
+
+  // Insert message: to_user_id = channelId (the alumno's ID)
+  const { error } = await admin.from('messages').insert({
     from_user_id: user.id,
-    to_user_id: toUserId,
+    to_user_id: channelId,
     contenido: contenido.trim(),
   });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  // Send push notification
+  // Push notification
   try {
     const { createNotification } = await import('@/lib/notifications');
-    const { data: sender } = await supabase.from('users').select('nombre').eq('id', user.id).single();
-    await createNotification(toUserId, 'system', `Mensaje de ${(sender as any)?.nombre || 'alguien'}`, contenido.trim().slice(0, 100), '/chat');
+    const senderName = (profile as any)?.nombre || 'alguien';
+
+    if (isAdmin) {
+      // Admin sends → notify the alumno
+      await createNotification(channelId, 'system', `Mensaje de ${senderName}`, contenido.trim().slice(0, 100), '/chat');
+    } else {
+      // Alumno sends → notify all admins
+      const { data: admins } = await admin.from('users').select('id').eq('rol', 'admin');
+      for (const a of (admins || [])) {
+        await createNotification(a.id, 'system', `Mensaje de ${senderName}`, contenido.trim().slice(0, 100), '/chat');
+      }
+    }
   } catch {}
 
   return NextResponse.json({ success: true });
