@@ -261,12 +261,23 @@ export default function ModuleDetailPage() {
             <WeeklyReflection weekNumber={moduleInfo.semana_numero} />
           ) : activeLesson ? (
             <>
-              <CustomVideoPlayer
-                youtubeId={activeLesson.youtube_id}
-                title={activeLesson.titulo}
-                completed={isActiveLessonCompleted}
-                onComplete={() => handleComplete(activeLessonId)}
-              />
+              {activeLesson.youtube_id ? (
+                <CustomVideoPlayer
+                  youtubeId={activeLesson.youtube_id}
+                  title={activeLesson.titulo}
+                  completed={isActiveLessonCompleted}
+                  onComplete={() => handleComplete(activeLessonId)}
+                />
+              ) : (
+                <Card className="text-center py-8">
+                  <div className="space-y-2">
+                    <div className="text-4xl">🎬</div>
+                    <h3 className="font-bold text-lg">{activeLesson.titulo}</h3>
+                    <p className="text-sm text-jjl-muted">Video proximamente</p>
+                    <p className="text-xs text-jjl-muted/60">Tu instructor esta preparando este video. Mientras, podes avanzar con las otras lecciones.</p>
+                  </div>
+                </Card>
+              )}
               {activeLesson.descripcion && (
                 <Card>
                   <h3 className="font-semibold">{activeLesson.titulo}</h3>
