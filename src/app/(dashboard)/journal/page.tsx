@@ -152,6 +152,13 @@ function averagePuntaje(history: HistoryEntry[], days: number): number | null {
   return Math.round(avg * 10) / 10;
 }
 
+function puntajeLabel(p: number): string {
+  if (p >= 9) return 'Excelente';
+  if (p >= 6) return 'Bueno';
+  if (p >= 4) return 'Normal';
+  return 'Regular';
+}
+
 function weekLabel(fecha: string) {
   const d = new Date(fecha + 'T12:00:00');
   const from = startOfWeek(d, { weekStartsOn: 1 });
@@ -461,31 +468,28 @@ export default function JournalPage() {
           </Card>
 
           <Card>
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-[13px] font-semibold text-white">Puntaje del dia</h3>
-              <span
-                className={`text-[11px] font-bold tabular-nums ${
-                  (entry.puntaje ?? 0) >= 7
-                    ? 'text-green-400'
-                    : (entry.puntaje ?? 0) >= 4
-                      ? 'text-yellow-400'
-                      : 'text-red-400'
-                }`}
-              >
-                {entry.puntaje ?? '-'}/10
-              </span>
-            </div>
-            <input
-              type="range"
-              min={1}
-              max={10}
-              value={entry.puntaje ?? 5}
-              onChange={(e) => update('puntaje', parseInt(e.target.value))}
-              className="w-full accent-jjl-red h-1.5"
-            />
-            <div className="flex justify-between text-[10px] text-jjl-muted mt-1">
-              <span>Malo</span>
-              <span>Excelente</span>
+            <h3 className="text-[13px] font-semibold text-white mb-3">Como estuvo el dia?</h3>
+            <div className="grid grid-cols-4 gap-2">
+              {[
+                { value: 3, label: 'Regular', color: 'border-red-500/40 bg-red-500/10 text-red-400' },
+                { value: 5, label: 'Normal', color: 'border-yellow-500/40 bg-yellow-500/10 text-yellow-400' },
+                { value: 7, label: 'Bueno', color: 'border-green-500/40 bg-green-500/10 text-green-400' },
+                { value: 10, label: 'Excelente', color: 'border-green-400 bg-green-500/20 text-green-300' },
+              ].map((opt) => {
+                const isActive = entry.puntaje === opt.value;
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => update('puntaje', opt.value)}
+                    className={`py-2.5 rounded-lg border-2 text-xs font-semibold transition-all min-h-[44px] ${
+                      isActive ? opt.color + ' scale-105' : 'border-jjl-border text-jjl-muted hover:border-jjl-border-strong'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                );
+              })}
             </div>
           </Card>
         </div>
@@ -658,7 +662,7 @@ export default function JournalPage() {
                     </div>
                     {h.puntaje != null && (
                       <span
-                        className={`text-[12px] font-bold px-2 py-0.5 rounded tabular-nums ${
+                        className={`text-[11px] font-bold px-2 py-0.5 rounded ${
                           h.puntaje >= 7
                             ? 'text-green-400'
                             : h.puntaje >= 4
@@ -666,7 +670,7 @@ export default function JournalPage() {
                               : 'text-red-400'
                         }`}
                       >
-                        {h.puntaje}/10
+                        {puntajeLabel(h.puntaje)}
                       </span>
                     )}
                     <ChevronDown
@@ -796,6 +800,15 @@ function FocoCard({
 }) {
   const hasValue = value.trim().length > 0;
   const [editing, setEditing] = useState(!hasValue);
+  const initialValueRef = useRef(value);
+
+  // When backend value changes (e.g. switched date), sync editing state
+  useEffect(() => {
+    if (value !== initialValueRef.current) {
+      initialValueRef.current = value;
+      setEditing(!value.trim());
+    }
+  }, [value]);
 
   const iconTone =
     tone === 'blue'

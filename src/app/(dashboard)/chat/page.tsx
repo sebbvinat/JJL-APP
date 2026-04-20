@@ -303,13 +303,25 @@ export default function ChatPage() {
           </button>
         </div>
       ) : (
-        <form onSubmit={handleSend} className="flex gap-2 pt-3 border-t border-jjl-border shrink-0 pb-2">
-          <input
-            type="text"
+        <form onSubmit={handleSend} className="flex gap-2 pt-3 border-t border-jjl-border shrink-0 pb-2 items-end">
+          <textarea
             value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
+            onChange={(e) => {
+              setNewMessage(e.target.value);
+              // Auto-resize
+              e.target.style.height = 'auto';
+              e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
+            }}
+            onKeyDown={(e) => {
+              // Enter sends, Shift+Enter new line
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleSend(e as any);
+              }
+            }}
             placeholder="Escribe un mensaje..."
-            className="flex-1 bg-jjl-gray-light border border-jjl-border rounded-xl px-4 py-3 text-base text-white placeholder:text-jjl-muted/50 focus:outline-none focus:border-jjl-red"
+            rows={1}
+            className="flex-1 bg-jjl-gray-light border border-jjl-border rounded-2xl px-4 py-3 text-base text-white placeholder:text-jjl-muted/50 focus:outline-none focus:border-jjl-red resize-none max-h-[120px] overflow-y-auto"
           />
           {newMessage.trim() ? (
             <button

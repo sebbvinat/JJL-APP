@@ -51,7 +51,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         className={clsx(
           'inline-flex items-center justify-center font-semibold transition-all duration-150 select-none',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-jjl-red/60 focus-visible:ring-offset-2 focus-visible:ring-offset-jjl-dark',
-          'disabled:opacity-50 disabled:cursor-not-allowed disabled:active:translate-y-0 disabled:hover:shadow-none',
+          'disabled:!bg-jjl-gray-light disabled:!text-jjl-muted disabled:!border-jjl-border disabled:!shadow-none disabled:cursor-not-allowed disabled:active:translate-y-0',
           variantStyles[variant],
           sizeStyles[size],
           fullWidth && 'w-full',
