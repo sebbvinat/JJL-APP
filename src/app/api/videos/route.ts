@@ -14,8 +14,9 @@ export async function GET(request: NextRequest) {
 
   const targetUser = request.nextUrl.searchParams.get('user');
   const pendingOnly = request.nextUrl.searchParams.get('pending') === '1';
+  const all = request.nextUrl.searchParams.get('all') === '1';
 
-  if (targetUser || pendingOnly) {
+  if (targetUser || pendingOnly || all) {
     const ctx = await requireAdmin(request);
     if (!ctx) return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
     const { admin } = ctx;
