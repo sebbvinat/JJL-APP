@@ -360,17 +360,6 @@ export default function JournalPage() {
           placeholder="Ej: Mejorar timing en pasadas de guardia"
         />
 
-        <FocoCard
-          tone="orange"
-          icon={ShieldAlert}
-          label="Que NO voy a hacer"
-          value={entry.regla}
-          onChange={(v) => update('regla', v)}
-          cumplido={entry.regla_cumplida}
-          onCumplido={(v) => update('regla_cumplida', v)}
-          cumplidoLabel="Cumpliste la regla?"
-          placeholder="Ej: No voy a hacer rondas sin foco"
-        />
       </section>
 
       {/* =====================================================================
