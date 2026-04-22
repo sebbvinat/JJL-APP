@@ -192,6 +192,18 @@ CREATE TABLE IF NOT EXISTS public.skills (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- 13B2. SKILL_TASKS (cosas puntuales que el alumno quiere mejorar en esta skill)
+CREATE TABLE IF NOT EXISTS public.skill_tasks (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  skill_id UUID REFERENCES public.skills ON DELETE CASCADE NOT NULL,
+  user_id UUID REFERENCES public.users ON DELETE CASCADE NOT NULL,
+  texto TEXT NOT NULL,
+  completada BOOLEAN DEFAULT FALSE,
+  completed_at TIMESTAMPTZ,
+  orden INTEGER DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- 13C. SKILL_RATINGS (puntajes semanales de cada skill)
 CREATE TABLE IF NOT EXISTS public.skill_ratings (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -308,6 +320,7 @@ ALTER TABLE public.video_uploads ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.skills ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.skill_ratings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.skill_tasks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_sessions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.events ENABLE ROW LEVEL SECURITY;
@@ -436,6 +449,12 @@ CREATE POLICY "Admin can read all skills" ON public.skills
 CREATE POLICY "Users manage own ratings" ON public.skill_ratings
   FOR ALL USING (user_id = auth.uid());
 CREATE POLICY "Admin can read all ratings" ON public.skill_ratings
+  FOR SELECT USING (user_id = auth.uid() OR public.is_admin());
+
+-- SKILL_TASKS policies
+CREATE POLICY "Users manage own tasks" ON public.skill_tasks
+  FOR ALL USING (user_id = auth.uid());
+CREATE POLICY "Admin can read all tasks" ON public.skill_tasks
   FOR SELECT USING (user_id = auth.uid() OR public.is_admin());
 
 -- USER_SESSIONS policies
