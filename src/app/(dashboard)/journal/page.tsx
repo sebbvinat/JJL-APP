@@ -789,7 +789,16 @@ function FocoCard({
   placeholder: string;
 }) {
   const [editing, setEditing] = useState(() => !value.trim());
+  const [touched, setTouched] = useState(false);
   const hasValue = value.trim().length > 0;
+
+  // When value arrives from backend (initial load), switch to "listo" mode
+  // unless the user is actively typing (touched = true)
+  useEffect(() => {
+    if (hasValue && !touched && editing) {
+      setEditing(false);
+    }
+  }, [hasValue, touched]);
 
   const iconTone =
     tone === 'blue'
@@ -815,7 +824,7 @@ function FocoCard({
             {hasValue && !editing && (
               <button
                 type="button"
-                onClick={() => setEditing(true)}
+                onClick={() => { setTouched(true); setEditing(true); }}
                 className="text-[11px] text-jjl-red hover:text-jjl-red-hover font-semibold inline-flex items-center gap-1"
               >
                 <Pencil className="h-3 w-3" />
@@ -828,7 +837,7 @@ function FocoCard({
             <div className="space-y-2">
               <textarea
                 value={value}
-                onChange={(e) => onChange(e.target.value)}
+                onChange={(e) => { setTouched(true); onChange(e.target.value); }}
                 placeholder={placeholder}
                 rows={2}
                 className="w-full bg-white/[0.03] border border-jjl-border rounded-lg px-3 py-2 text-[14px] text-white placeholder:text-jjl-muted/50 focus:outline-none focus:border-jjl-red focus:ring-2 focus:ring-jjl-red/25 resize-none"
@@ -837,7 +846,7 @@ function FocoCard({
               {hasValue && (
                 <button
                   type="button"
-                  onClick={() => setEditing(false)}
+                  onClick={() => { setEditing(false); setTouched(false); }}
                   className="text-[11px] text-jjl-muted hover:text-white font-semibold"
                 >
                   Listo
