@@ -181,6 +181,29 @@ CREATE TABLE public.event_rsvps (
   PRIMARY KEY (event_id, user_id)
 );
 
+-- 13B. SKILLS (habilidades que el alumno quiere mejorar)
+CREATE TABLE IF NOT EXISTS public.skills (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES public.users ON DELETE CASCADE NOT NULL,
+  nombre TEXT NOT NULL,
+  descripcion TEXT,
+  categoria TEXT,
+  activa BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 13C. SKILL_RATINGS (puntajes semanales de cada skill)
+CREATE TABLE IF NOT EXISTS public.skill_ratings (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  skill_id UUID REFERENCES public.skills ON DELETE CASCADE NOT NULL,
+  user_id UUID REFERENCES public.users ON DELETE CASCADE NOT NULL,
+  semana DATE NOT NULL,
+  nivel INTEGER NOT NULL CHECK (nivel >= 1 AND nivel <= 10),
+  nota TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(skill_id, semana)
+);
+
 -- 14. USER_SESSIONS (tiempo en la app)
 CREATE TABLE public.user_sessions (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -283,6 +306,8 @@ ALTER TABLE public.comments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.likes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.video_uploads ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.skills ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.skill_ratings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_sessions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.events ENABLE ROW LEVEL SECURITY;
@@ -400,6 +425,18 @@ CREATE POLICY "Users can update own notifications" ON public.notifications
 -- Regular users can only read/update their own
 CREATE POLICY "Service role can insert notifications" ON public.notifications
   FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
+
+-- SKILLS policies
+CREATE POLICY "Users manage own skills" ON public.skills
+  FOR ALL USING (user_id = auth.uid());
+CREATE POLICY "Admin can read all skills" ON public.skills
+  FOR SELECT USING (user_id = auth.uid() OR public.is_admin());
+
+-- SKILL_RATINGS policies
+CREATE POLICY "Users manage own ratings" ON public.skill_ratings
+  FOR ALL USING (user_id = auth.uid());
+CREATE POLICY "Admin can read all ratings" ON public.skill_ratings
+  FOR SELECT USING (user_id = auth.uid() OR public.is_admin());
 
 -- USER_SESSIONS policies
 CREATE POLICY "Users can insert own sessions" ON public.user_sessions

@@ -349,6 +349,7 @@ export default function JournalPage() {
         />
 
         <FocoCard
+          key={`objetivo-${fecha}`}
           tone="blue"
           icon={Target}
           label="Que voy a practicar en la lucha"
@@ -787,17 +788,8 @@ function FocoCard({
   cumplidoLabel: string;
   placeholder: string;
 }) {
+  const [editing, setEditing] = useState(() => !value.trim());
   const hasValue = value.trim().length > 0;
-  const [editing, setEditing] = useState(!hasValue);
-  const initialValueRef = useRef(value);
-
-  // When backend value changes (e.g. switched date), sync editing state
-  useEffect(() => {
-    if (value !== initialValueRef.current) {
-      initialValueRef.current = value;
-      setEditing(!value.trim());
-    }
-  }, [value]);
 
   const iconTone =
     tone === 'blue'
