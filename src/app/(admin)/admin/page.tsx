@@ -244,6 +244,9 @@ function StudentsManagement() {
         <Link href="/admin/analytics" className="px-4 py-2 bg-purple-500/10 border border-purple-500/30 rounded-lg text-purple-400 text-sm font-medium hover:bg-purple-500/20 transition-colors">
           📊 Reportes
         </Link>
+        <Link href="/admin/diaries" className="px-4 py-2 bg-jjl-red/10 border border-jjl-red/30 rounded-lg text-jjl-red text-sm font-medium hover:bg-jjl-red/20 transition-colors">
+          📓 Diarios
+        </Link>
         <Link href="/admin/courses" className="px-4 py-2 bg-blue-500/10 border border-blue-500/30 rounded-lg text-blue-400 text-sm font-medium hover:bg-blue-500/20 transition-colors">
           📋 Planillas
         </Link>
