@@ -77,11 +77,12 @@ export async function PATCH(request: NextRequest) {
 
   const taskAny = task as any;
 
-  // Auto-level on tick (only when transitioning to completada=true)
+  // Auto-level on tick/untick
   let newLevel: number | null = null;
   let leveledUp = false;
+  let leveledDown = false;
 
-  if (completada && taskAny.skill_id) {
+  if (taskAny.skill_id) {
     // Get latest rating for this skill
     const { data: latest } = await supabase
       .from('skill_ratings')
@@ -92,22 +93,28 @@ export async function PATCH(request: NextRequest) {
 
     const currentNivel = (latest as any)?.[0]?.nivel || 0;
 
-    if (currentNivel < 10) {
+    if (completada && currentNivel < 10) {
+      // Tick: +1 level (capped at 10)
       newLevel = currentNivel + 1;
       leveledUp = true;
+    } else if (!completada && currentNivel > 1) {
+      // Untick: -1 level (floor at 1)
+      newLevel = currentNivel - 1;
+      leveledDown = true;
+    }
 
-      // Upsert rating for current week
+    if (newLevel !== null) {
       await supabase.from('skill_ratings').upsert({
         skill_id: taskAny.skill_id,
         user_id: user.id,
         semana: weekAnchor(),
         nivel: newLevel,
-        nota: 'Subio por completar un objetivo',
+        nota: completada ? 'Subio por completar un objetivo' : 'Bajo por descompletar un objetivo',
       }, { onConflict: 'skill_id,semana' });
     }
   }
 
-  return NextResponse.json({ success: true, leveledUp, newLevel });
+  return NextResponse.json({ success: true, leveledUp, leveledDown, newLevel });
 }
 
 // DELETE: remove a task
