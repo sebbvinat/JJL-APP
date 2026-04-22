@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
 
     let query = admin
       .from('video_uploads')
-      .select('*, users(nombre, avatar_url)')
+      .select('*')
       .order('created_at', { ascending: false })
       .limit(200);
     if (targetUser) query = query.eq('user_id', targetUser);
@@ -31,9 +31,29 @@ export async function GET(request: NextRequest) {
 
     const { data, error } = await query;
     if (error) {
+      console.error('[videos GET admin] error:', error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
-    return NextResponse.json({ videos: data || [] });
+
+    // Fetch user data separately to avoid relation ambiguity issues
+    const userIds = [...new Set((data || []).map((v: any) => v.user_id))];
+    const usersMap: Record<string, { nombre: string; avatar_url: string | null }> = {};
+    if (userIds.length > 0) {
+      const { data: usersData } = await admin
+        .from('users')
+        .select('id, nombre, avatar_url')
+        .in('id', userIds);
+      (usersData || []).forEach((u: any) => {
+        usersMap[u.id] = { nombre: u.nombre, avatar_url: u.avatar_url };
+      });
+    }
+
+    const videos = (data || []).map((v: any) => ({
+      ...v,
+      users: usersMap[v.user_id] || null,
+    }));
+
+    return NextResponse.json({ videos });
   }
 
   const { data, error } = await supabase
