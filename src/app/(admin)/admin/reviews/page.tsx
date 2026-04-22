@@ -35,24 +35,45 @@ export default function ReviewsPage() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState('');
   const [saving, setSaving] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [syncMsg, setSyncMsg] = useState('');
 
-  useEffect(() => { loadVideos(); }, []);
+  useEffect(() => {
+    // Auto-sync drive videos then load
+    (async () => {
+      await handleSync(true);
+      await loadVideos();
+    })();
+  }, []);
 
   async function loadVideos() {
     try {
-      const res = await fetch('/api/videos?pending=1');
+      const res = await fetch('/api/videos?all=1');
       if (res.ok) {
         const data = await res.json();
         setVideos(data.videos || []);
       }
-      // Also load all videos
-      const res2 = await fetch('/api/videos?all=1');
-      if (res2.ok) {
-        const data2 = await res2.json();
-        setVideos(data2.videos || []);
-      }
     } catch {}
     setLoading(false);
+  }
+
+  async function handleSync(silent = false) {
+    setSyncing(true);
+    try {
+      const res = await fetch('/api/admin/sync-drive-videos', { method: 'POST' });
+      if (res.ok) {
+        const data = await res.json();
+        if (!silent && data.imported > 0) {
+          setSyncMsg(`${data.imported} video${data.imported !== 1 ? 's' : ''} nuevo${data.imported !== 1 ? 's' : ''} importado${data.imported !== 1 ? 's' : ''}`);
+          setTimeout(() => setSyncMsg(''), 4000);
+        } else if (!silent) {
+          setSyncMsg('Todo al dia');
+          setTimeout(() => setSyncMsg(''), 2000);
+        }
+        if (data.imported > 0) await loadVideos();
+      }
+    } catch {}
+    setSyncing(false);
   }
 
   async function handleReview(videoId: string, status: 'revisado' | 'para_rehacer') {
@@ -101,9 +122,16 @@ export default function ReviewsPage() {
         <div className="flex-1">
           <h1 className="text-2xl font-bold">Revisar Videos</h1>
           <p className="text-jjl-muted text-sm mt-1">
-            {pendingCount > 0 ? `${pendingCount} pendiente${pendingCount !== 1 ? 's' : ''} de revisar` : 'Todos revisados'}
+            {syncing ? 'Sincronizando con Drive...' : syncMsg || (pendingCount > 0 ? `${pendingCount} pendiente${pendingCount !== 1 ? 's' : ''} de revisar` : 'Todos revisados')}
           </p>
         </div>
+        <button
+          onClick={() => handleSync(false)}
+          disabled={syncing}
+          className="px-3 py-2 bg-jjl-gray-light border border-jjl-border rounded-lg text-xs font-semibold hover:bg-jjl-border disabled:opacity-50"
+        >
+          {syncing ? 'Sincronizando...' : 'Sincronizar Drive'}
+        </button>
       </div>
 
       {/* Filter tabs */}

@@ -10,8 +10,28 @@ function getAuth() {
   const key = JSON.parse(keyJson);
   return new google.auth.GoogleAuth({
     credentials: key,
-    scopes: ['https://www.googleapis.com/auth/drive.file'],
+    scopes: [
+      'https://www.googleapis.com/auth/drive.file',
+      'https://www.googleapis.com/auth/drive.readonly',
+    ],
   });
+}
+
+// List all video files inside a Drive folder (not trashed)
+export async function listDriveFolderVideos(folderId: string) {
+  const auth = getAuth();
+  const drive = google.drive({ version: 'v3', auth });
+
+  const res = await drive.files.list({
+    q: `'${folderId}' in parents and trashed = false and (mimeType contains 'video/' or mimeType = 'application/vnd.google-apps.video')`,
+    fields: 'files(id, name, mimeType, size, createdTime, modifiedTime, webViewLink, thumbnailLink)',
+    pageSize: 100,
+    orderBy: 'createdTime desc',
+    supportsAllDrives: true,
+    includeItemsFromAllDrives: true,
+  });
+
+  return res.data.files || [];
 }
 
 function buildFinalName(fileName: string, userName: string) {
