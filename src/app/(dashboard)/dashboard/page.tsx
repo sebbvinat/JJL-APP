@@ -3,7 +3,7 @@
 import useSWR from 'swr';
 import Link from 'next/link';
 import { format } from 'date-fns';
-import { Flame, BookOpen, Trophy, Calendar, Upload, Users, ChevronRight, NotebookPen } from 'lucide-react';
+import { Flame, BookOpen, Trophy, Calendar, Upload, Users, ChevronRight, NotebookPen, Play, Check, Lock } from 'lucide-react';
 import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import StatCard from '@/components/dashboard/StatCard';
@@ -29,12 +29,20 @@ interface DashboardData {
   lessonsCompleted: number;
   totalLessonsAvailable: number;
   unlockedModules: number;
+  completedLessonIds: string[];
   completedWeekNumbers: number[];
   completedWeeksCount: number;
   totalWeeks: number;
   overallProgress: number;
   streak: number;
   totalTrainingDays: number;
+}
+
+interface ModuleWithLessons {
+  id: string;
+  semana_numero: number;
+  titulo: string;
+  lessons: { id: string; titulo: string; tipo?: string; youtube_id?: string; duracion?: string }[];
 }
 
 export default function DashboardPage() {
@@ -47,6 +55,13 @@ export default function DashboardPage() {
       revalidateIfStale: true,
       dedupingInterval: 30_000,
     }
+  );
+
+  // Fetch course data for "Continuar" card
+  const { data: courseData } = useSWR<{ modules: ModuleWithLessons[] }>(
+    '/api/course-data?all=true',
+    fetcher,
+    { revalidateOnFocus: false, dedupingInterval: 120_000 }
   );
 
   if (loading && !data) {
@@ -75,8 +90,14 @@ export default function DashboardPage() {
     totalLessonsCompleted: lessonsCompleted,
   });
 
+  // Find active module (lowest semana_numero with pending lessons)
+  const completedLessonIds = new Set(data?.completedLessonIds || []);
+  const activeModule = courseData?.modules
+    ?.filter((m) => m.lessons.some((l) => !completedLessonIds.has(l.id)))
+    .sort((a, b) => a.semana_numero - b.semana_numero)[0];
+
   return (
-    <div className="space-y-6 max-w-4xl">
+    <div className="space-y-6 max-w-5xl">
       {/* Welcome */}
       <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-jjl-red/15 via-jjl-gray/40 to-transparent p-6">
         <div
@@ -178,8 +199,69 @@ export default function DashboardPage() {
         )}
       </Card>
 
-      {/* Training Calendar */}
-      <TrainingCalendar trainedDays={trainedDays} />
+      {/* Training Calendar + Continuar (side by side on desktop) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <TrainingCalendar trainedDays={trainedDays} />
+        {activeModule && (
+          <Card>
+            <div className="mb-4">
+              <p className="text-[11px] uppercase tracking-[0.18em] text-jjl-muted font-semibold mb-1">Continuar</p>
+              <h2 className="text-lg font-bold">
+                Semana {activeModule.semana_numero} · {activeModule.titulo}
+              </h2>
+            </div>
+            <div className="space-y-2">
+              {activeModule.lessons.slice(0, 4).map((lesson, idx) => {
+                const isCompleted = completedLessonIds.has(lesson.id);
+                const isNext = !isCompleted && activeModule.lessons.slice(0, idx).every((l) => completedLessonIds.has(l.id));
+                return (
+                  <div
+                    key={lesson.id}
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded-lg ${
+                      isNext
+                        ? 'bg-jjl-red/10 border border-jjl-red/30'
+                        : isCompleted
+                          ? 'bg-white/[0.02]'
+                          : 'bg-white/[0.02] opacity-60'
+                    }`}
+                  >
+                    <div className="shrink-0">
+                      {isCompleted ? (
+                        <div className="w-5 h-5 rounded-full bg-green-500/20 flex items-center justify-center">
+                          <Check className="h-3 w-3 text-green-400" strokeWidth={3} />
+                        </div>
+                      ) : isNext ? (
+                        <div className="w-5 h-5 rounded-full bg-jjl-red flex items-center justify-center">
+                          <Play className="h-2.5 w-2.5 text-white fill-white ml-0.5" />
+                        </div>
+                      ) : (
+                        <div className="w-5 h-5 rounded-full bg-jjl-gray-light flex items-center justify-center">
+                          <Lock className="h-2.5 w-2.5 text-jjl-muted" />
+                        </div>
+                      )}
+                    </div>
+                    <span className={`text-sm flex-1 min-w-0 truncate ${
+                      isNext ? 'text-white font-semibold' : isCompleted ? 'text-jjl-muted line-through' : 'text-jjl-muted'
+                    }`}>
+                      {lesson.titulo}
+                    </span>
+                    {lesson.duracion && (
+                      <span className="text-[11px] text-jjl-muted tabular-nums shrink-0">{lesson.duracion}</span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            <Link
+              href={`/modules/${activeModule.id}`}
+              className="mt-4 flex items-center justify-center gap-2 w-full py-2.5 rounded-lg bg-jjl-gray-light/50 hover:bg-jjl-gray-light border border-jjl-border text-sm font-semibold transition-colors"
+            >
+              Ver modulo completo
+              <ChevronRight className="h-4 w-4" />
+            </Link>
+          </Card>
+        )}
+      </div>
 
       {/* Quick Actions */}
       <Card>
