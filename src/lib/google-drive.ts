@@ -17,21 +17,31 @@ function getAuth() {
   });
 }
 
-// List all video files inside a Drive folder (not trashed)
+// List all files inside a Drive folder (not trashed), filter videos client-side
 export async function listDriveFolderVideos(folderId: string) {
   const auth = getAuth();
   const drive = google.drive({ version: 'v3', auth });
 
+  // Get all non-folder files — filter video extensions client-side for flexibility
   const res = await drive.files.list({
-    q: `'${folderId}' in parents and trashed = false and (mimeType contains 'video/' or mimeType = 'application/vnd.google-apps.video')`,
+    q: `'${folderId}' in parents and trashed = false and mimeType != 'application/vnd.google-apps.folder'`,
     fields: 'files(id, name, mimeType, size, createdTime, modifiedTime, webViewLink, thumbnailLink)',
-    pageSize: 100,
+    pageSize: 200,
     orderBy: 'createdTime desc',
     supportsAllDrives: true,
     includeItemsFromAllDrives: true,
   });
 
-  return res.data.files || [];
+  const files = res.data.files || [];
+  // Filter videos by mime OR extension
+  const videoExts = /\.(mp4|mov|avi|mkv|webm|m4v|3gp|wmv|flv|mpeg|mpg)$/i;
+  return files.filter((f) => {
+    const mime = f.mimeType || '';
+    const name = f.name || '';
+    return mime.startsWith('video/') ||
+      mime === 'application/vnd.google-apps.video' ||
+      videoExts.test(name);
+  });
 }
 
 function buildFinalName(fileName: string, userName: string) {

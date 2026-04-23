@@ -61,18 +61,40 @@ export default function ReviewsPage() {
     setSyncing(true);
     try {
       const res = await fetch('/api/admin/sync-drive-videos', { method: 'POST' });
-      if (res.ok) {
-        const data = await res.json();
-        if (!silent && data.imported > 0) {
-          setSyncMsg(`${data.imported} video${data.imported !== 1 ? 's' : ''} nuevo${data.imported !== 1 ? 's' : ''} importado${data.imported !== 1 ? 's' : ''}`);
-          setTimeout(() => setSyncMsg(''), 4000);
-        } else if (!silent) {
-          setSyncMsg('Todo al dia');
-          setTimeout(() => setSyncMsg(''), 2000);
+      const data = await res.json();
+
+      if (!res.ok) {
+        if (!silent) {
+          setSyncMsg(`Error: ${data.error || 'No se pudo sincronizar'}`);
+          setTimeout(() => setSyncMsg(''), 5000);
         }
-        if (data.imported > 0) await loadVideos();
+        console.error('[sync] failed', data);
+        setSyncing(false);
+        return;
       }
-    } catch {}
+
+      console.log('[sync] result', data);
+
+      if (!silent) {
+        if (data.imported > 0) {
+          setSyncMsg(`${data.imported} video${data.imported !== 1 ? 's' : ''} nuevo${data.imported !== 1 ? 's' : ''} importado${data.imported !== 1 ? 's' : ''}`);
+        } else if (data.studentsWithFolder === 0 || (data.studentsScanned === 0)) {
+          setSyncMsg(data.message || 'No hay alumnos con carpeta');
+        } else {
+          const totalFiles = (data.scanDetails || []).reduce((s: number, d: any) => s + d.totalFiles, 0);
+          setSyncMsg(totalFiles > 0 ? `Todo al dia (${totalFiles} ya en app)` : `Sin videos en las ${data.studentsScanned} carpetas`);
+        }
+        setTimeout(() => setSyncMsg(''), 5000);
+      }
+
+      if (data.imported > 0) await loadVideos();
+    } catch (err) {
+      console.error('[sync] exception', err);
+      if (!silent) {
+        setSyncMsg('Error de conexion');
+        setTimeout(() => setSyncMsg(''), 4000);
+      }
+    }
     setSyncing(false);
   }
 

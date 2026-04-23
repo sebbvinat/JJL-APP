@@ -31,13 +31,22 @@ export async function POST(request: NextRequest) {
   );
 
   // Get all students with drive folders
-  const { data: students } = await admin
+  const { data: students, error: studentsErr } = await admin
     .from('users')
     .select('id, nombre, drive_folder_id')
     .not('drive_folder_id', 'is', null);
 
+  if (studentsErr) {
+    console.error('[sync-drive] students query error', studentsErr);
+    return NextResponse.json({ error: studentsErr.message }, { status: 500 });
+  }
+
   if (!students || students.length === 0) {
-    return NextResponse.json({ imported: 0, message: 'No hay alumnos con carpeta de Drive' });
+    return NextResponse.json({
+      imported: 0,
+      message: 'No hay alumnos con carpeta de Drive creada. Pedile a los alumnos que entren a "Subir video" para crear su carpeta.',
+      studentsWithFolder: 0,
+    });
   }
 
   // Get existing drive_file_ids to skip duplicates
@@ -51,6 +60,7 @@ export async function POST(request: NextRequest) {
   let imported = 0;
   const errors: string[] = [];
   const importedDetails: { nombre: string; count: number }[] = [];
+  const scanDetails: { nombre: string; folderId: string; totalFiles: number; newFiles: number; error?: string }[] = [];
 
   for (const student of students as Array<{ id: string; nombre: string; drive_folder_id: string | null }>) {
     if (!student.drive_folder_id) continue;
@@ -58,6 +68,13 @@ export async function POST(request: NextRequest) {
     try {
       const files = await listDriveFolderVideos(student.drive_folder_id);
       const newFiles = files.filter((f) => f.id && !existingIds.has(f.id));
+
+      scanDetails.push({
+        nombre: student.nombre,
+        folderId: student.drive_folder_id,
+        totalFiles: files.length,
+        newFiles: newFiles.length,
+      });
 
       if (newFiles.length === 0) continue;
 
@@ -97,14 +114,24 @@ export async function POST(request: NextRequest) {
         } catch {}
       }
     } catch (err: any) {
+      console.error(`[sync-drive] error for ${student.nombre}:`, err);
       errors.push(`${student.nombre}: ${err.message || 'error'}`);
+      scanDetails.push({
+        nombre: student.nombre,
+        folderId: student.drive_folder_id!,
+        totalFiles: 0,
+        newFiles: 0,
+        error: err.message || String(err),
+      });
     }
   }
 
   return NextResponse.json({
     success: true,
     imported,
+    studentsScanned: students.length,
     details: importedDetails,
+    scanDetails,
     errors: errors.length > 0 ? errors : undefined,
   });
 }
