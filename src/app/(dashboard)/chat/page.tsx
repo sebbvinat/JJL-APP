@@ -43,7 +43,10 @@ export default function ChatPage() {
   const audioChunksRef = useRef<Blob[]>([]);
   const recordTimerRef = useRef<NodeJS.Timeout | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const pollRef = useRef<NodeJS.Timeout | null>(null);
+  const lastMsgCountRef = useRef(0);
+  const isAtBottomRef = useRef(true);
 
   useEffect(() => {
     loadChannels();
@@ -63,9 +66,33 @@ export default function ChatPage() {
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
   }, [selectedChannel]);
 
+  // Auto-scroll only if user is near bottom OR message count changed because of a new message they sent
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    const prevCount = lastMsgCountRef.current;
+    lastMsgCountRef.current = messages.length;
+
+    // If no new messages, dont scroll
+    if (messages.length <= prevCount) return;
+
+    // If user is at bottom (within 100px), auto-scroll. Otherwise keep position.
+    if (isAtBottomRef.current) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
   }, [messages]);
+
+  // Reset to bottom when switching channels
+  useEffect(() => {
+    if (selectedChannel) {
+      isAtBottomRef.current = true;
+      setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'auto' }), 50);
+    }
+  }, [selectedChannel?.channelId]);
+
+  function handleScroll(e: React.UIEvent<HTMLDivElement>) {
+    const el = e.currentTarget;
+    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    isAtBottomRef.current = distanceFromBottom < 100;
+  }
 
   async function loadChannels() {
     try {
@@ -240,7 +267,11 @@ export default function ChatPage() {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 min-h-0 overflow-y-auto py-4 space-y-3 overscroll-contain">
+      <div
+        ref={messagesContainerRef}
+        onScroll={handleScroll}
+        className="flex-1 min-h-0 overflow-y-auto py-4 space-y-3 overscroll-contain"
+      >
         {messages.length === 0 && (
           <div className="text-center py-8">
             <p className="text-jjl-muted text-sm">No hay mensajes todavia</p>
