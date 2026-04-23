@@ -37,6 +37,8 @@ export default function ReviewsPage() {
   const [saving, setSaving] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [syncMsg, setSyncMsg] = useState('');
+  const [scanDetails, setScanDetails] = useState<any[]>([]);
+  const [showScanDetails, setShowScanDetails] = useState(false);
 
   useEffect(() => {
     // Auto-sync drive videos then load
@@ -74,6 +76,7 @@ export default function ReviewsPage() {
       }
 
       console.log('[sync] result', data);
+      setScanDetails(data.scanDetails || []);
 
       if (!silent) {
         if (data.imported > 0) {
@@ -155,6 +158,53 @@ export default function ReviewsPage() {
           {syncing ? 'Sincronizando...' : 'Sincronizar Drive'}
         </button>
       </div>
+
+      {/* Scan details - shows which folders were checked */}
+      {scanDetails.length > 0 && (
+        <Card>
+          <button
+            onClick={() => setShowScanDetails(!showScanDetails)}
+            className="w-full flex items-center justify-between"
+          >
+            <span className="text-sm font-semibold">
+              Carpetas escaneadas ({scanDetails.length})
+            </span>
+            <span className="text-xs text-jjl-muted">
+              {showScanDetails ? 'Ocultar' : 'Ver detalle'}
+            </span>
+          </button>
+          {showScanDetails && (
+            <div className="mt-3 space-y-2">
+              {scanDetails.map((d: any, i: number) => (
+                <div key={i} className="flex items-center justify-between text-sm bg-jjl-gray-light/30 rounded-lg px-3 py-2">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold truncate">{d.nombre}</p>
+                    <a
+                      href={`https://drive.google.com/drive/folders/${d.folderId}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[10px] text-blue-400 hover:underline truncate block"
+                    >
+                      {d.folderId} ↗
+                    </a>
+                    {d.error && (
+                      <p className="text-[10px] text-red-400 mt-1">Error: {d.error}</p>
+                    )}
+                  </div>
+                  <div className="text-right shrink-0 ml-2">
+                    <p className="text-xs text-jjl-muted">
+                      <span className="text-white font-bold">{d.totalFiles}</span> videos
+                    </p>
+                    {d.newFiles > 0 && (
+                      <p className="text-[10px] text-green-400">+{d.newFiles} nuevos</p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
+      )}
 
       {/* Filter tabs */}
       <div className="flex gap-1 bg-jjl-gray-light/50 rounded-xl p-1 overflow-x-auto">
