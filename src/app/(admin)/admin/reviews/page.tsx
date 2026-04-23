@@ -39,6 +39,7 @@ export default function ReviewsPage() {
   const [syncMsg, setSyncMsg] = useState('');
   const [scanDetails, setScanDetails] = useState<any[]>([]);
   const [showScanDetails, setShowScanDetails] = useState(false);
+  const [syncErrors, setSyncErrors] = useState<string[]>([]);
 
   useEffect(() => {
     // Auto-sync drive videos then load
@@ -77,6 +78,7 @@ export default function ReviewsPage() {
 
       console.log('[sync] result', data);
       setScanDetails(data.scanDetails || []);
+      setSyncErrors(data.errors || []);
 
       if (!silent) {
         if (data.imported > 0) {
@@ -158,6 +160,18 @@ export default function ReviewsPage() {
           {syncing ? 'Sincronizando...' : 'Sincronizar Drive'}
         </button>
       </div>
+
+      {/* Sync errors */}
+      {syncErrors.length > 0 && (
+        <Card className="border-red-500/40 bg-red-500/5">
+          <p className="text-sm font-semibold text-red-400 mb-2">
+            Errores al importar ({syncErrors.length})
+          </p>
+          <ul className="space-y-1 text-xs text-red-300">
+            {syncErrors.map((e, i) => <li key={i}>{e}</li>)}
+          </ul>
+        </Card>
+      )}
 
       {/* Scan details - shows which folders were checked */}
       {scanDetails.length > 0 && (

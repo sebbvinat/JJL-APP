@@ -78,22 +78,31 @@ export async function POST(request: NextRequest) {
 
       if (newFiles.length === 0) continue;
 
-      const rows = newFiles.map((f) => ({
-        user_id: student.id,
-        titulo: f.name || 'Video sin titulo',
-        drive_file_id: f.id,
-        drive_url: f.webViewLink,
-        file_size: f.size ? parseInt(f.size as string) : null,
-        status: 'pendiente',
-        created_at: f.createdTime || new Date().toISOString(),
-      }));
+      // Insert one-by-one so one bad row doesn't block others
+      let insertedForStudent = 0;
+      for (const f of newFiles) {
+        const row = {
+          user_id: student.id,
+          titulo: f.name || 'Video sin titulo',
+          drive_file_id: f.id!,
+          drive_url: f.webViewLink || null,
+          file_size: f.size ? parseInt(f.size as string) : null,
+          status: 'pendiente',
+          created_at: f.createdTime || new Date().toISOString(),
+        };
 
-      const { error } = await admin.from('video_uploads').insert(rows);
-      if (error) {
-        errors.push(`${student.nombre}: ${error.message}`);
-      } else {
-        imported += newFiles.length;
-        importedDetails.push({ nombre: student.nombre, count: newFiles.length });
+        const { error } = await admin.from('video_uploads').insert(row);
+        if (error) {
+          console.error('[sync-drive] insert error', { student: student.nombre, file: f.name, error });
+          errors.push(`${student.nombre} / ${f.name}: ${error.message}`);
+        } else {
+          insertedForStudent++;
+        }
+      }
+
+      if (insertedForStudent > 0) {
+        imported += insertedForStudent;
+        importedDetails.push({ nombre: student.nombre, count: insertedForStudent });
 
         // Notify admins of new videos
         try {
