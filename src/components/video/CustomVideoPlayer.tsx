@@ -12,6 +12,8 @@ import {
   Minimize,
   RotateCcw,
   RotateCw,
+  Rewind,
+  FastForward,
   Gauge,
 } from 'lucide-react';
 import Button from '@/components/ui/Button';
@@ -418,6 +420,23 @@ export default function CustomVideoPlayer({
     }
   }, [isIOS]);
 
+  // Track native Fullscreen API state so we can toggle the FloGrappling-style
+  // layout only while the video is actually taking over the screen.
+  const [isNativeFullscreen, setIsNativeFullscreen] = useState(false);
+  useEffect(() => {
+    function onFsChange() {
+      const fsEl = document.fullscreenElement || (document as any).webkitFullscreenElement;
+      setIsNativeFullscreen(!!fsEl);
+    }
+    document.addEventListener('fullscreenchange', onFsChange);
+    document.addEventListener('webkitfullscreenchange', onFsChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', onFsChange);
+      document.removeEventListener('webkitfullscreenchange', onFsChange);
+    };
+  }, []);
+  const isFullscreen = isCssFullscreen || isNativeFullscreen;
+
   // Lock body scroll when CSS fullscreen
   useEffect(() => {
     if (isCssFullscreen) {
@@ -592,10 +611,11 @@ export default function CustomVideoPlayer({
           </div>
         )}
 
-        {/* Side-stacked big controls (FloGrappling style) — rewind / play / forward */}
-        {hasStarted && (
+        {/* Side-stacked big controls (FloGrappling style) — only in fullscreen.
+            In small/inline mode we keep the original compact bottom bar. */}
+        {hasStarted && isFullscreen && (
           <div
-            className={`absolute right-3 sm:right-6 top-1/2 -translate-y-1/2 z-30 flex flex-col items-center gap-6 sm:gap-8 transition-opacity duration-300 ${
+            className={`absolute right-4 sm:right-8 top-1/2 -translate-y-1/2 z-30 flex flex-col items-center gap-7 sm:gap-10 transition-opacity duration-300 ${
               showControls || !isPlaying ? 'opacity-100' : 'opacity-0 pointer-events-none'
             }`}
           >
@@ -604,7 +624,7 @@ export default function CustomVideoPlayer({
               aria-label="Retroceder 10 segundos"
               className="text-white/90 hover:text-white active:scale-95 transition-transform drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]"
             >
-              <RotateCcw className="h-8 w-8 sm:h-9 sm:w-9" strokeWidth={2.5} />
+              <Rewind className="h-9 w-9 sm:h-11 sm:w-11" fill="currentColor" strokeWidth={1.5} />
             </button>
             <button
               onClick={(e) => { e.stopPropagation(); togglePlay(); }}
@@ -612,8 +632,8 @@ export default function CustomVideoPlayer({
               className="text-white hover:scale-110 active:scale-95 transition-transform drop-shadow-[0_2px_12px_rgba(0,0,0,0.9)]"
             >
               {isPlaying
-                ? <Pause className="h-10 w-10 sm:h-12 sm:w-12" fill="white" strokeWidth={2} />
-                : <Play className="h-10 w-10 sm:h-12 sm:w-12 ml-1" fill="white" strokeWidth={2} />
+                ? <Pause className="h-11 w-11 sm:h-14 sm:w-14" fill="white" strokeWidth={1.5} />
+                : <Play className="h-11 w-11 sm:h-14 sm:w-14 ml-1" fill="white" strokeWidth={1.5} />
               }
             </button>
             <button
@@ -621,7 +641,7 @@ export default function CustomVideoPlayer({
               aria-label="Adelantar 10 segundos"
               className="text-white/90 hover:text-white active:scale-95 transition-transform drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]"
             >
-              <RotateCw className="h-8 w-8 sm:h-9 sm:w-9" strokeWidth={2.5} />
+              <FastForward className="h-9 w-9 sm:h-11 sm:w-11" fill="currentColor" strokeWidth={1.5} />
             </button>
           </div>
         )}
@@ -632,45 +652,99 @@ export default function CustomVideoPlayer({
             hasStarted && (showControls || !isPlaying) ? 'opacity-100' : 'opacity-0 pointer-events-none'
           }`}
         >
-          {/* Time + Progress bar (drag-to-seek) */}
-          <div className="flex items-center gap-3 mb-2">
-            <span className="text-[11px] sm:text-xs text-white font-mono tabular-nums drop-shadow shrink-0">
-              {formatTime(isDragging ? (dragProgress / 100) * duration : currentTime)}
-            </span>
+          {/* Progress bar — thin on inline, flanked by times in fullscreen.
+              Drag-to-seek works in both modes via pointer events. */}
+          {isFullscreen ? (
+            <div className="flex items-center gap-3 mb-2">
+              <span className="text-[11px] sm:text-xs text-white font-mono tabular-nums drop-shadow shrink-0">
+                {formatTime(isDragging ? (dragProgress / 100) * duration : currentTime)}
+              </span>
+              <div
+                ref={progressBarRef}
+                className="flex-1 h-4 flex items-center cursor-pointer touch-none group/progress"
+                onClick={(e) => { e.stopPropagation(); if (!isDragging) handleSeek(e); }}
+                onPointerDown={onProgressPointerDown}
+                onPointerMove={onProgressPointerMove}
+                onPointerUp={onProgressPointerUp}
+                onPointerCancel={onProgressPointerUp}
+              >
+                <div className={`relative w-full bg-white/25 rounded-full transition-all ${isDragging ? 'h-1.5' : 'h-1 group-hover/progress:h-1.5'}`}>
+                  <div className="h-full bg-jjl-red rounded-full relative" style={{ width: `${isDragging ? dragProgress : progress}%` }}>
+                    <div className={`absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 bg-jjl-red rounded-full transition-all ${
+                      isDragging ? 'w-4 h-4 opacity-100' : 'w-3 h-3 opacity-0 group-hover/progress:opacity-100'
+                    }`} />
+                  </div>
+                </div>
+              </div>
+              <span className="text-[11px] sm:text-xs text-white/70 font-mono tabular-nums drop-shadow shrink-0">
+                {formatTime(duration)}
+              </span>
+            </div>
+          ) : (
             <div
               ref={progressBarRef}
-              className="flex-1 h-4 flex items-center cursor-pointer touch-none group/progress"
+              className="w-full h-4 flex items-center cursor-pointer mb-2 touch-none group/progress"
               onClick={(e) => { e.stopPropagation(); if (!isDragging) handleSeek(e); }}
               onPointerDown={onProgressPointerDown}
               onPointerMove={onProgressPointerMove}
               onPointerUp={onProgressPointerUp}
               onPointerCancel={onProgressPointerUp}
             >
-              <div className={`relative w-full bg-white/25 rounded-full transition-all ${isDragging ? 'h-1.5' : 'h-1 group-hover/progress:h-1.5'}`}>
-                <div
-                  className="h-full bg-jjl-red rounded-full relative"
-                  style={{ width: `${isDragging ? dragProgress : progress}%` }}
-                >
+              <div className={`relative w-full bg-white/20 rounded-full transition-all ${isDragging ? 'h-1.5' : 'h-1 group-hover/progress:h-1.5'}`}>
+                <div className="h-full bg-jjl-red rounded-full relative" style={{ width: `${isDragging ? dragProgress : progress}%` }}>
                   <div className={`absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 bg-jjl-red rounded-full transition-all ${
-                    isDragging ? 'w-4 h-4 opacity-100' : 'w-3 h-3 opacity-0 group-hover/progress:opacity-100'
+                    isDragging ? 'w-3.5 h-3.5 opacity-100' : 'w-3 h-3 opacity-0 group-hover/progress:opacity-100'
                   }`} />
                 </div>
               </div>
             </div>
-            <span className="text-[11px] sm:text-xs text-white/70 font-mono tabular-nums drop-shadow shrink-0">
-              {formatTime(duration)}
-            </span>
-          </div>
+          )}
 
-          {/* Controls row — only meta controls now (rate, mute, fullscreen) */}
-          <div className="flex items-center justify-end gap-2">
-            <button
-              onClick={(e) => { e.stopPropagation(); toggleMute(); }}
-              aria-label={isMuted ? 'Activar audio' : 'Silenciar'}
-              className="text-white hover:text-jjl-red transition-colors"
-            >
-              {isMuted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
-            </button>
+          {/* Controls row */}
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-3">
+              {/* Inline mode only: play + seek buttons live in the bottom bar.
+                  In fullscreen the big side-stacked controls replace these. */}
+              {!isFullscreen && (
+                <>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); togglePlay(); }}
+                    aria-label={isPlaying ? 'Pausar' : 'Reproducir'}
+                    className="text-white hover:text-jjl-red transition-colors"
+                  >
+                    {isPlaying ? <Pause className="h-5 w-5" fill="white" /> : <Play className="h-5 w-5" fill="white" />}
+                  </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); seekRelative(-SEEK_STEP_SECONDS); }}
+                    aria-label="Retroceder 10 segundos"
+                    className="text-white hover:text-jjl-red transition-colors relative"
+                  >
+                    <RotateCcw className="h-5 w-5" />
+                    <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 text-[8px] font-bold tabular-nums">10</span>
+                  </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); seekRelative(SEEK_STEP_SECONDS); }}
+                    aria-label="Adelantar 10 segundos"
+                    className="text-white hover:text-jjl-red transition-colors relative"
+                  >
+                    <RotateCw className="h-5 w-5" />
+                    <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 text-[8px] font-bold tabular-nums">10</span>
+                  </button>
+                </>
+              )}
+              <button
+                onClick={(e) => { e.stopPropagation(); toggleMute(); }}
+                aria-label={isMuted ? 'Activar audio' : 'Silenciar'}
+                className="text-white hover:text-jjl-red transition-colors"
+              >
+                {isMuted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
+              </button>
+              {!isFullscreen && (
+                <span className="text-xs text-white/70 font-mono tabular-nums">
+                  {formatTime(isDragging ? (dragProgress / 100) * duration : currentTime)} / {formatTime(duration)}
+                </span>
+              )}
+            </div>
             <div className="flex items-center gap-2">
               {/* Playback rate */}
               <div className="relative">

@@ -104,14 +104,12 @@ function ProfileContent() {
   const [showCrop, setShowCrop] = useState(false);
   const [cropFile, setCropFile] = useState<File | null>(null);
   const [cropPreview, setCropPreview] = useState('');
+  // scale=1 means the image fits entirely inside the square ("contain").
+  // scale>1 zooms in. scale<1 shrinks the image leaving empty space.
   const [cropScale, setCropScale] = useState(1);
   const [cropOffset, setCropOffset] = useState({ x: 0, y: 0 });
   const [imgAspect, setImgAspect] = useState(1);
   const [dragging, setDragging] = useState(false);
-  // Minimum scale that still lets the whole image fit inside the square.
-  // For aspect>1 (wide) that's 1/aspect; for aspect<1 (tall) that's aspect.
-  // Below this scale we'd start seeing empty space in the canvas crop.
-  const fitScale = imgAspect > 1 ? 1 / imgAspect : imgAspect;
   const dragStart = useRef({ x: 0, y: 0, ox: 0, oy: 0 });
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const imgRef = useRef<HTMLImageElement>(null);
@@ -231,19 +229,21 @@ function ProfileContent() {
     const ctx = canvas.getContext('2d')!;
     ctx.clearRect(0, 0, size, size);
 
-    // Fit image to cover the square, then apply user scale and offset
+    // Base (scale=1) fits the image inside the square preserving aspect.
+    // Scale>1 zooms in. The canvas math mirrors the preview's CSS transforms
+    // (fit size → translate offset → scale) so what the user sees is what
+    // gets saved.
     const aspect = img.naturalWidth / img.naturalHeight;
-    let drawW: number, drawH: number;
-    if (aspect > 1) {
-      drawH = size * cropScale;
-      drawW = drawH * aspect;
-    } else {
-      drawW = size * cropScale;
-      drawH = drawW / aspect;
-    }
-    const offsetX = (size - drawW) / 2 + cropOffset.x * (size / 192);
-    const offsetY = (size - drawH) / 2 + cropOffset.y * (size / 192);
-    ctx.drawImage(img, offsetX, offsetY, drawW, drawH);
+    const fitW = aspect > 1 ? size : size * aspect;
+    const fitH = aspect > 1 ? size / aspect : size;
+    const drawW = fitW * cropScale;
+    const drawH = fitH * cropScale;
+    // Preview container is 192px; canvas is `size` px. Scale the offset so
+    // pixel drags in the preview map to the correct offset on the canvas.
+    const k = size / 192;
+    const centerX = size / 2 + cropOffset.x * k;
+    const centerY = size / 2 + cropOffset.y * k;
+    ctx.drawImage(img, centerX - drawW / 2, centerY - drawH / 2, drawW, drawH);
 
     // Convert to blob
     const blob = await new Promise<Blob>((resolve) =>
@@ -597,28 +597,21 @@ function ProfileContent() {
                 onLoad={(e) => {
                   const el = e.currentTarget;
                   if (el.naturalWidth && el.naturalHeight) {
-                    const a = el.naturalWidth / el.naturalHeight;
-                    setImgAspect(a);
-                    // Start at "fit" so the whole image is visible, not cropped.
-                    const initial = a > 1 ? 1 / a : a;
-                    setCropScale(initial);
+                    setImgAspect(el.naturalWidth / el.naturalHeight);
+                    setCropScale(1);
                     setCropOffset({ x: 0, y: 0 });
                   }
                 }}
-                className="absolute pointer-events-none"
+                className="absolute pointer-events-none left-1/2 top-1/2"
                 style={{
-                  // Explicit dimensions based on aspect + scale so the image
-                  // is never clipped by object-fit. The canvas uses the same
-                  // formulas, so what-you-see-is-what-you-save.
-                  width: imgAspect > 1
-                    ? `${100 * imgAspect * cropScale}%`
-                    : `${100 * cropScale}%`,
-                  height: imgAspect > 1
-                    ? `${100 * cropScale}%`
-                    : `${(100 / imgAspect) * cropScale}%`,
-                  left: `calc(50% + ${cropOffset.x}px)`,
-                  top: `calc(50% + ${cropOffset.y}px)`,
-                  transform: 'translate(-50%, -50%)',
+                  // Base (scale=1): image fits entirely inside the square
+                  // container preserving its natural aspect. Width/height are
+                  // set once from aspect; scaling is done via transform: scale
+                  // so the image never distorts regardless of zoom level.
+                  width: imgAspect > 1 ? '100%' : `${100 * imgAspect}%`,
+                  height: imgAspect > 1 ? `${100 / imgAspect}%` : '100%',
+                  transformOrigin: 'center center',
+                  transform: `translate(-50%, -50%) translate(${cropOffset.x}px, ${cropOffset.y}px) scale(${cropScale})`,
                 }}
               />
             </div>
@@ -626,19 +619,19 @@ function ProfileContent() {
 
             {/* Zoom controls */}
             <div className="flex items-center gap-3 justify-center">
-              <button onClick={() => setCropScale((s) => Math.max(fitScale, s - 0.1))} className="p-2.5 rounded-lg bg-jjl-gray-light hover:bg-jjl-border min-w-[44px] min-h-[44px] flex items-center justify-center">
+              <button onClick={() => setCropScale((s) => Math.max(1, s - 0.1))} className="p-2.5 rounded-lg bg-jjl-gray-light hover:bg-jjl-border min-w-[44px] min-h-[44px] flex items-center justify-center">
                 <ZoomOut className="h-5 w-5" />
               </button>
               <input
                 type="range"
-                min={fitScale}
-                max={3}
+                min={1}
+                max={4}
                 step={0.01}
                 value={cropScale}
                 onChange={(e) => setCropScale(parseFloat(e.target.value))}
                 className="flex-1 accent-jjl-red"
               />
-              <button onClick={() => setCropScale((s) => Math.min(3, s + 0.1))} className="p-2.5 rounded-lg bg-jjl-gray-light hover:bg-jjl-border min-w-[44px] min-h-[44px] flex items-center justify-center">
+              <button onClick={() => setCropScale((s) => Math.min(4, s + 0.1))} className="p-2.5 rounded-lg bg-jjl-gray-light hover:bg-jjl-border min-w-[44px] min-h-[44px] flex items-center justify-center">
                 <ZoomIn className="h-5 w-5" />
               </button>
             </div>
