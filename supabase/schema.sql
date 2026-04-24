@@ -192,6 +192,27 @@ CREATE TABLE IF NOT EXISTS public.skills (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- 13A1. POST_POLLS (encuestas adjuntas a un post)
+CREATE TABLE IF NOT EXISTS public.post_polls (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  post_id UUID REFERENCES public.posts ON DELETE CASCADE NOT NULL UNIQUE,
+  pregunta TEXT NOT NULL,
+  opciones JSONB NOT NULL,  -- array of {id: string, texto: string}
+  multiple BOOLEAN DEFAULT FALSE,
+  cierra_en TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 13A2. POST_POLL_VOTES (votos en encuestas)
+CREATE TABLE IF NOT EXISTS public.post_poll_votes (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  poll_id UUID REFERENCES public.post_polls ON DELETE CASCADE NOT NULL,
+  user_id UUID REFERENCES public.users ON DELETE CASCADE NOT NULL,
+  opcion_id TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(poll_id, user_id, opcion_id)
+);
+
 -- 13B2. SKILL_TASKS (cosas puntuales que el alumno quiere mejorar en esta skill)
 CREATE TABLE IF NOT EXISTS public.skill_tasks (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -321,6 +342,8 @@ ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.skills ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.skill_ratings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.skill_tasks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.post_polls ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.post_poll_votes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_sessions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.events ENABLE ROW LEVEL SECURITY;
@@ -450,6 +473,20 @@ CREATE POLICY "Users manage own ratings" ON public.skill_ratings
   FOR ALL USING (user_id = auth.uid());
 CREATE POLICY "Admin can read all ratings" ON public.skill_ratings
   FOR SELECT USING (user_id = auth.uid() OR public.is_admin());
+
+-- POST_POLLS policies (publicas de lectura, crea quien hace el post)
+CREATE POLICY "Anyone can read polls" ON public.post_polls FOR SELECT USING (true);
+CREATE POLICY "Users can create polls on their posts" ON public.post_polls FOR INSERT WITH CHECK (
+  EXISTS (SELECT 1 FROM public.posts WHERE id = post_id AND author_id = auth.uid())
+);
+CREATE POLICY "Authors or admin can delete polls" ON public.post_polls FOR DELETE USING (
+  EXISTS (SELECT 1 FROM public.posts WHERE id = post_id AND author_id = auth.uid()) OR public.is_admin()
+);
+
+-- POST_POLL_VOTES policies
+CREATE POLICY "Anyone can read votes" ON public.post_poll_votes FOR SELECT USING (true);
+CREATE POLICY "Users vote as themselves" ON public.post_poll_votes FOR INSERT WITH CHECK (user_id = auth.uid());
+CREATE POLICY "Users remove own votes" ON public.post_poll_votes FOR DELETE USING (user_id = auth.uid());
 
 -- SKILL_TASKS policies
 CREATE POLICY "Users manage own tasks" ON public.skill_tasks

@@ -14,6 +14,7 @@ import Button from '@/components/ui/Button';
 import EmptyState from '@/components/ui/EmptyState';
 import { SkeletonCard } from '@/components/ui/Skeleton';
 import PostForm from '@/components/community/PostForm';
+import Poll from '@/components/community/Poll';
 import { fetcher } from '@/lib/fetcher';
 import { useToast } from '@/components/ui/Toast';
 import { logger } from '@/lib/logger';
@@ -24,6 +25,7 @@ interface Post {
   autor: string;
   avatar_url: string | null;
   cinturon: string;
+  poll?: import('@/components/community/Poll').PollData | null;
   titulo: string;
   contenido: string;
   categoria: string;
@@ -80,7 +82,7 @@ export default function CommunityPage() {
   });
   const posts = data?.posts || [];
 
-  async function handleNewPost(form: { titulo: string; contenido: string; categoria: string }) {
+  async function handleNewPost(form: { titulo: string; contenido: string; categoria: string; poll?: { pregunta: string; opciones: string[]; multiple: boolean } }) {
     try {
       const res = await fetch('/api/community/posts', {
         method: 'POST',
@@ -211,6 +213,7 @@ export default function CommunityPage() {
                     <p className="text-[13px] text-jjl-muted mt-1 line-clamp-2 leading-relaxed">
                       {post.contenido}
                     </p>
+                    {post.poll && <Poll poll={post.poll} />}
                     <div className="flex items-center gap-4 mt-3">
                       <button
                         onClick={(e) => {

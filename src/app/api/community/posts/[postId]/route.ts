@@ -64,12 +64,43 @@ export async function GET(
       .single(),
   ]);
 
-  const isAdmin = callerProfile?.rol === 'admin';
+  const isAdmin = (callerProfile as any)?.rol === 'admin';
+
+  // Fetch poll (if exists) + votes
+  let pollData: any = null;
+  const { data: poll } = await supabase
+    .from('post_polls')
+    .select('*')
+    .eq('post_id', postId)
+    .maybeSingle();
+
+  if (poll) {
+    const pollAny = poll as any;
+    const { data: votes } = await supabase
+      .from('post_poll_votes')
+      .select('opcion_id, user_id')
+      .eq('poll_id', pollAny.id);
+
+    const counts: Record<string, number> = {};
+    (votes || []).forEach((v: any) => { counts[v.opcion_id] = (counts[v.opcion_id] || 0) + 1; });
+    const myVotes = (votes || []).filter((v: any) => v.user_id === user.id).map((v: any) => v.opcion_id);
+
+    pollData = {
+      id: pollAny.id,
+      pregunta: pollAny.pregunta,
+      opciones: pollAny.opciones,
+      multiple: pollAny.multiple,
+      totalVotes: (votes || []).length,
+      counts,
+      myVotes,
+    };
+  }
 
   return NextResponse.json({
     isAdmin,
     post: {
       id: post.id,
+      authorId: post.user_id,
       autor: userMap[post.user_id]?.nombre || 'Usuario',
       avatar_url: userMap[post.user_id]?.avatar_url || null,
       cinturon: beltFor(post.user_id),
@@ -81,6 +112,7 @@ export async function GET(
       liked: !!like,
       isOwner: post.user_id === user.id || isAdmin,
       createdAt: post.created_at,
+      poll: pollData,
     },
     comments: (comments || []).map((c: any) => ({
       id: c.id,

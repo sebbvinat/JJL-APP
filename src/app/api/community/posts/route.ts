@@ -53,15 +53,42 @@ export async function GET(request: NextRequest) {
   const postIds = posts.map((p: any) => p.id);
   let likedPostIds: string[] = [];
 
-  const [likesResult, profileResult] = await Promise.all([
+  const [likesResult, profileResult, pollsResult, votesResult] = await Promise.all([
     postIds.length > 0
       ? supabase.from('post_likes').select('post_id').eq('user_id', user.id).in('post_id', postIds)
       : Promise.resolve({ data: [] }),
     supabase.from('users').select('rol').eq('id', user.id).single(),
+    postIds.length > 0
+      ? supabase.from('post_polls').select('*').in('post_id', postIds)
+      : Promise.resolve({ data: [] }),
+    supabase.from('post_poll_votes').select('poll_id, user_id, opcion_id'),
   ]);
 
   likedPostIds = (likesResult.data || []).map((l: any) => l.post_id);
-  const isAdmin = profileResult.data?.rol === 'admin';
+  const isAdmin = (profileResult.data as any)?.rol === 'admin';
+
+  // Build polls map
+  const pollsByPost: Record<string, any> = {};
+  const votesByPoll: Record<string, any[]> = {};
+  (votesResult.data || []).forEach((v: any) => {
+    if (!votesByPoll[v.poll_id]) votesByPoll[v.poll_id] = [];
+    votesByPoll[v.poll_id].push(v);
+  });
+  (pollsResult.data || []).forEach((poll: any) => {
+    const votes = votesByPoll[poll.id] || [];
+    const counts: Record<string, number> = {};
+    votes.forEach((v: any) => { counts[v.opcion_id] = (counts[v.opcion_id] || 0) + 1; });
+    const myVotes = votes.filter((v: any) => v.user_id === user.id).map((v: any) => v.opcion_id);
+    pollsByPost[poll.post_id] = {
+      id: poll.id,
+      pregunta: poll.pregunta,
+      opciones: poll.opciones,
+      multiple: poll.multiple,
+      totalVotes: votes.length,
+      counts,
+      myVotes,
+    };
+  });
 
   const formatted = posts.map((p: any) => ({
     id: p.id,
@@ -78,6 +105,7 @@ export async function GET(request: NextRequest) {
     isOwner: p.user_id === user.id,
     canDelete: p.user_id === user.id || isAdmin,
     createdAt: p.created_at,
+    poll: pollsByPost[p.id] || null,
   }));
 
   return NextResponse.json({ posts: formatted, isAdmin });
@@ -90,7 +118,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
   }
 
-  const { titulo, contenido, categoria } = await request.json();
+  const { titulo, contenido, categoria, poll } = await request.json();
 
   if (!titulo?.trim() || !contenido?.trim()) {
     return NextResponse.json({ error: 'Titulo y contenido son requeridos' }, { status: 400 });
@@ -110,6 +138,22 @@ export async function POST(request: NextRequest) {
   if (error) {
     console.error('Create post error:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  // Create poll if provided
+  if (poll && typeof poll === 'object' && poll.pregunta?.trim() && Array.isArray(poll.opciones)) {
+    const validOpciones = poll.opciones
+      .filter((o: any) => typeof o === 'string' && o.trim().length > 0)
+      .map((texto: string, i: number) => ({ id: `opt-${i}`, texto: texto.trim() }));
+
+    if (validOpciones.length >= 2) {
+      await supabase.from('post_polls').insert({
+        post_id: (data as any).id,
+        pregunta: poll.pregunta.trim(),
+        opciones: validOpciones,
+        multiple: !!poll.multiple,
+      });
+    }
   }
 
   // Push notify all other users about the new post

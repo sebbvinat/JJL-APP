@@ -7,6 +7,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import Card from '@/components/ui/Card';
 import Avatar from '@/components/ui/Avatar';
+import Poll from '@/components/community/Poll';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 
@@ -23,6 +24,7 @@ interface Post {
   liked: boolean;
   isOwner: boolean;
   createdAt: string;
+  poll?: import('@/components/community/Poll').PollData | null;
 }
 
 interface Comment {
@@ -192,6 +194,8 @@ export default function PostDetailPage() {
         <div className="mt-3 text-jjl-muted whitespace-pre-line text-sm leading-relaxed">
           {post.contenido}
         </div>
+
+        {post.poll && <Poll poll={post.poll} />}
 
         <div className="flex items-center gap-4 mt-4 pt-4 border-t border-jjl-border">
           <button
