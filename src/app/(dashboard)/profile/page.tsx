@@ -191,6 +191,26 @@ function ProfileContent() {
     if (fileInputRef.current) fileInputRef.current.value = '';
   }
 
+  async function openEditCurrentAvatar() {
+    if (!avatarUrl || uploadingAvatar) return;
+    setAvatarError('');
+    try {
+      // Cache-bust to avoid stale CORS-cached responses from prior loads.
+      const res = await fetch(`${avatarUrl}${avatarUrl.includes('?') ? '&' : '?'}t=${Date.now()}`, { cache: 'no-store' });
+      if (!res.ok) throw new Error('fetch-failed');
+      const blob = await res.blob();
+      const file = new File([blob], 'current-avatar.jpg', { type: blob.type || 'image/jpeg' });
+      setCropFile(file);
+      setCropPreview(URL.createObjectURL(blob));
+      setCropScale(1);
+      setCropOffset({ x: 0, y: 0 });
+      setShowCrop(true);
+    } catch {
+      // If CORS/network blocks the fetch, fall back to picking a new file.
+      fileInputRef.current?.click();
+    }
+  }
+
   async function handleCropAndUpload() {
     if (!cropFile || !canvasRef.current || !imgRef.current) return;
     setUploadingAvatar(true);
@@ -359,7 +379,16 @@ function ProfileContent() {
         <div className="relative flex flex-col sm:flex-row items-center gap-5">
           <div className="flex flex-col items-center gap-1.5">
             <div className="relative">
-              <Avatar src={avatarUrl} name={profile?.nombre || 'Usuario'} size="lg" />
+              <button
+                type="button"
+                onClick={() => avatarUrl ? openEditCurrentAvatar() : fileInputRef.current?.click()}
+                disabled={uploadingAvatar}
+                aria-label={avatarUrl ? 'Ajustar recorte de la foto' : 'Subir foto de perfil'}
+                title={avatarUrl ? 'Ajustar recorte' : 'Subir foto'}
+                className="rounded-full transition-transform active:scale-95 hover:opacity-90 disabled:opacity-60"
+              >
+                <Avatar src={avatarUrl} name={profile?.nombre || 'Usuario'} size="lg" />
+              </button>
               <button
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploadingAvatar}

@@ -288,6 +288,49 @@ export default function CustomVideoPlayer({
     playerRef.current.seekTo(pct * duration, true);
   }, [duration]);
 
+  // Drag-to-seek support — pointer events give us mouse + touch in one API.
+  const progressBarRef = useRef<HTMLDivElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragProgress, setDragProgress] = useState(0);
+
+  const seekFromPointer = useCallback((clientX: number) => {
+    const bar = progressBarRef.current;
+    if (!bar || !duration) return 0;
+    const rect = bar.getBoundingClientRect();
+    const pct = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+    return pct;
+  }, [duration]);
+
+  const onProgressPointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    e.stopPropagation();
+    if (!duration) return;
+    (e.currentTarget as HTMLDivElement).setPointerCapture(e.pointerId);
+    setIsDragging(true);
+    const pct = seekFromPointer(e.clientX);
+    setDragProgress(pct * 100);
+    setCurrentTime(pct * duration);
+  }, [duration, seekFromPointer]);
+
+  const onProgressPointerMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isDragging || !duration) return;
+    e.stopPropagation();
+    const pct = seekFromPointer(e.clientX);
+    setDragProgress(pct * 100);
+    setCurrentTime(pct * duration);
+  }, [isDragging, duration, seekFromPointer]);
+
+  const onProgressPointerUp = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isDragging) return;
+    e.stopPropagation();
+    try { (e.currentTarget as HTMLDivElement).releasePointerCapture(e.pointerId); } catch {}
+    const pct = seekFromPointer(e.clientX);
+    setIsDragging(false);
+    if (playerRef.current && duration) {
+      playerRef.current.seekTo(pct * duration, true);
+      setProgress(pct * 100);
+    }
+  }, [isDragging, duration, seekFromPointer]);
+
   const seekRelative = useCallback((delta: number) => {
     const p = playerRef.current;
     if (!p || typeof p.getCurrentTime !== 'function') return;
@@ -549,67 +592,85 @@ export default function CustomVideoPlayer({
           </div>
         )}
 
+        {/* Side-stacked big controls (FloGrappling style) — rewind / play / forward */}
+        {hasStarted && (
+          <div
+            className={`absolute right-3 sm:right-6 top-1/2 -translate-y-1/2 z-30 flex flex-col items-center gap-6 sm:gap-8 transition-opacity duration-300 ${
+              showControls || !isPlaying ? 'opacity-100' : 'opacity-0 pointer-events-none'
+            }`}
+          >
+            <button
+              onClick={(e) => { e.stopPropagation(); seekRelative(-SEEK_STEP_SECONDS); }}
+              aria-label="Retroceder 10 segundos"
+              className="text-white/90 hover:text-white active:scale-95 transition-transform drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]"
+            >
+              <RotateCcw className="h-8 w-8 sm:h-9 sm:w-9" strokeWidth={2.5} />
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); togglePlay(); }}
+              aria-label={isPlaying ? 'Pausar' : 'Reproducir'}
+              className="text-white hover:scale-110 active:scale-95 transition-transform drop-shadow-[0_2px_12px_rgba(0,0,0,0.9)]"
+            >
+              {isPlaying
+                ? <Pause className="h-10 w-10 sm:h-12 sm:w-12" fill="white" strokeWidth={2} />
+                : <Play className="h-10 w-10 sm:h-12 sm:w-12 ml-1" fill="white" strokeWidth={2} />
+              }
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); seekRelative(SEEK_STEP_SECONDS); }}
+              aria-label="Adelantar 10 segundos"
+              className="text-white/90 hover:text-white active:scale-95 transition-transform drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]"
+            >
+              <RotateCw className="h-8 w-8 sm:h-9 sm:w-9" strokeWidth={2.5} />
+            </button>
+          </div>
+        )}
+
         {/* Custom controls bar */}
         <div
           className={`absolute bottom-0 left-0 right-0 z-30 bg-gradient-to-t from-black/90 to-transparent px-4 pb-3 pt-8 transition-opacity duration-300 ${
             hasStarted && (showControls || !isPlaying) ? 'opacity-100' : 'opacity-0 pointer-events-none'
           }`}
         >
-          {/* Progress bar */}
-          <div
-            className="w-full h-1 bg-white/20 rounded-full cursor-pointer mb-3 group/progress hover:h-1.5 transition-all"
-            onClick={(e) => { e.stopPropagation(); handleSeek(e); }}
-          >
+          {/* Time + Progress bar (drag-to-seek) */}
+          <div className="flex items-center gap-3 mb-2">
+            <span className="text-[11px] sm:text-xs text-white font-mono tabular-nums drop-shadow shrink-0">
+              {formatTime(isDragging ? (dragProgress / 100) * duration : currentTime)}
+            </span>
             <div
-              className="h-full bg-jjl-red rounded-full relative"
-              style={{ width: `${progress}%` }}
+              ref={progressBarRef}
+              className="flex-1 h-4 flex items-center cursor-pointer touch-none group/progress"
+              onClick={(e) => { e.stopPropagation(); if (!isDragging) handleSeek(e); }}
+              onPointerDown={onProgressPointerDown}
+              onPointerMove={onProgressPointerMove}
+              onPointerUp={onProgressPointerUp}
+              onPointerCancel={onProgressPointerUp}
             >
-              <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-jjl-red rounded-full opacity-0 group-hover/progress:opacity-100 transition-opacity" />
+              <div className={`relative w-full bg-white/25 rounded-full transition-all ${isDragging ? 'h-1.5' : 'h-1 group-hover/progress:h-1.5'}`}>
+                <div
+                  className="h-full bg-jjl-red rounded-full relative"
+                  style={{ width: `${isDragging ? dragProgress : progress}%` }}
+                >
+                  <div className={`absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 bg-jjl-red rounded-full transition-all ${
+                    isDragging ? 'w-4 h-4 opacity-100' : 'w-3 h-3 opacity-0 group-hover/progress:opacity-100'
+                  }`} />
+                </div>
+              </div>
             </div>
+            <span className="text-[11px] sm:text-xs text-white/70 font-mono tabular-nums drop-shadow shrink-0">
+              {formatTime(duration)}
+            </span>
           </div>
 
-          {/* Controls row */}
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-3">
-              <button
-                onClick={(e) => { e.stopPropagation(); togglePlay(); }}
-                aria-label={isPlaying ? 'Pausar' : 'Reproducir'}
-                className="text-white hover:text-jjl-red transition-colors"
-              >
-                {isPlaying ? <Pause className="h-5 w-5" fill="white" /> : <Play className="h-5 w-5" fill="white" />}
-              </button>
-              <button
-                onClick={(e) => { e.stopPropagation(); seekRelative(-SEEK_STEP_SECONDS); }}
-                aria-label="Retroceder 10 segundos"
-                className="text-white hover:text-jjl-red transition-colors relative"
-              >
-                <RotateCcw className="h-5 w-5" />
-                <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 text-[8px] font-bold tabular-nums">
-                  10
-                </span>
-              </button>
-              <button
-                onClick={(e) => { e.stopPropagation(); seekRelative(SEEK_STEP_SECONDS); }}
-                aria-label="Adelantar 10 segundos"
-                className="text-white hover:text-jjl-red transition-colors relative"
-              >
-                <RotateCw className="h-5 w-5" />
-                <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 text-[8px] font-bold tabular-nums">
-                  10
-                </span>
-              </button>
-              <button
-                onClick={(e) => { e.stopPropagation(); toggleMute(); }}
-                aria-label={isMuted ? 'Activar audio' : 'Silenciar'}
-                className="text-white hover:text-jjl-red transition-colors hidden sm:inline-flex"
-              >
-                {isMuted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
-              </button>
-              <span className="text-xs text-white/70 font-mono tabular-nums">
-                {formatTime(currentTime)} / {formatTime(duration)}
-              </span>
-            </div>
-
+          {/* Controls row — only meta controls now (rate, mute, fullscreen) */}
+          <div className="flex items-center justify-end gap-2">
+            <button
+              onClick={(e) => { e.stopPropagation(); toggleMute(); }}
+              aria-label={isMuted ? 'Activar audio' : 'Silenciar'}
+              className="text-white hover:text-jjl-red transition-colors"
+            >
+              {isMuted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
+            </button>
             <div className="flex items-center gap-2">
               {/* Playback rate */}
               <div className="relative">
