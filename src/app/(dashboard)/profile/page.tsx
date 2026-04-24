@@ -106,7 +106,12 @@ function ProfileContent() {
   const [cropPreview, setCropPreview] = useState('');
   const [cropScale, setCropScale] = useState(1);
   const [cropOffset, setCropOffset] = useState({ x: 0, y: 0 });
+  const [imgAspect, setImgAspect] = useState(1);
   const [dragging, setDragging] = useState(false);
+  // Minimum scale that still lets the whole image fit inside the square.
+  // For aspect>1 (wide) that's 1/aspect; for aspect<1 (tall) that's aspect.
+  // Below this scale we'd start seeing empty space in the canvas crop.
+  const fitScale = imgAspect > 1 ? 1 / imgAspect : imgAspect;
   const dragStart = useRef({ x: 0, y: 0, ox: 0, oy: 0 });
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const imgRef = useRef<HTMLImageElement>(null);
@@ -589,12 +594,28 @@ function ProfileContent() {
                 src={cropPreview}
                 alt="Preview"
                 draggable={false}
-                className="absolute object-cover pointer-events-none"
+                onLoad={(e) => {
+                  const el = e.currentTarget;
+                  if (el.naturalWidth && el.naturalHeight) {
+                    const a = el.naturalWidth / el.naturalHeight;
+                    setImgAspect(a);
+                    // Start at "fit" so the whole image is visible, not cropped.
+                    const initial = a > 1 ? 1 / a : a;
+                    setCropScale(initial);
+                    setCropOffset({ x: 0, y: 0 });
+                  }
+                }}
+                className="absolute pointer-events-none"
                 style={{
-                  width: `${100 * cropScale}%`,
-                  height: `${100 * cropScale}%`,
-                  minWidth: '100%',
-                  minHeight: '100%',
+                  // Explicit dimensions based on aspect + scale so the image
+                  // is never clipped by object-fit. The canvas uses the same
+                  // formulas, so what-you-see-is-what-you-save.
+                  width: imgAspect > 1
+                    ? `${100 * imgAspect * cropScale}%`
+                    : `${100 * cropScale}%`,
+                  height: imgAspect > 1
+                    ? `${100 * cropScale}%`
+                    : `${(100 / imgAspect) * cropScale}%`,
                   left: `calc(50% + ${cropOffset.x}px)`,
                   top: `calc(50% + ${cropOffset.y}px)`,
                   transform: 'translate(-50%, -50%)',
@@ -605,14 +626,14 @@ function ProfileContent() {
 
             {/* Zoom controls */}
             <div className="flex items-center gap-3 justify-center">
-              <button onClick={() => setCropScale((s) => Math.max(1, s - 0.1))} className="p-2.5 rounded-lg bg-jjl-gray-light hover:bg-jjl-border min-w-[44px] min-h-[44px] flex items-center justify-center">
+              <button onClick={() => setCropScale((s) => Math.max(fitScale, s - 0.1))} className="p-2.5 rounded-lg bg-jjl-gray-light hover:bg-jjl-border min-w-[44px] min-h-[44px] flex items-center justify-center">
                 <ZoomOut className="h-5 w-5" />
               </button>
               <input
                 type="range"
-                min="1"
-                max="3"
-                step="0.05"
+                min={fitScale}
+                max={3}
+                step={0.01}
                 value={cropScale}
                 onChange={(e) => setCropScale(parseFloat(e.target.value))}
                 className="flex-1 accent-jjl-red"
