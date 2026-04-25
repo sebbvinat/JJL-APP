@@ -13,7 +13,7 @@ export interface PollData {
   myVotes: string[];
 }
 
-export default function Poll({ poll, onVote }: { poll: PollData; onVote?: (updated: PollData) => void }) {
+export default function Poll({ poll, onVote, isAdmin = false }: { poll: PollData; onVote?: (updated: PollData) => void; isAdmin?: boolean }) {
   const [localPoll, setLocalPoll] = useState<PollData>(poll);
   const [voting, setVoting] = useState(false);
 
@@ -63,6 +63,9 @@ export default function Poll({ poll, onVote }: { poll: PollData; onVote?: (updat
 
   const hasVoted = localPoll.myVotes.length > 0;
   const total = localPoll.totalVotes || 0;
+  // Admins always see results so they can monitor the encuesta in real time,
+  // even before casting their own vote.
+  const showResults = hasVoted || isAdmin;
 
   return (
     <div className="mt-3 bg-white/[0.02] border border-jjl-border rounded-xl p-4 space-y-3">
@@ -88,7 +91,7 @@ export default function Poll({ poll, onVote }: { poll: PollData; onVote?: (updat
               }`}
             >
               {/* Progress bar bg - only shown after voting */}
-              {hasVoted && (
+              {showResults && (
                 <div
                   className={`absolute inset-y-0 left-0 ${isMyVote ? 'bg-jjl-red/20' : 'bg-white/[0.04]'}`}
                   style={{ width: `${pct}%`, transition: 'width 300ms ease-out' }}
@@ -101,7 +104,7 @@ export default function Poll({ poll, onVote }: { poll: PollData; onVote?: (updat
                     {opt.texto}
                   </span>
                 </div>
-                {hasVoted && (
+                {showResults && (
                   <span className="text-xs tabular-nums shrink-0 text-jjl-muted">
                     <span className={isMyVote ? 'text-jjl-red font-bold' : 'text-white font-semibold'}>{pct}%</span>
                     <span className="ml-1.5 text-[10px]">· {count}</span>
@@ -113,7 +116,7 @@ export default function Poll({ poll, onVote }: { poll: PollData; onVote?: (updat
         })}
       </div>
       <p className="text-[10px] text-jjl-muted">
-        {total} voto{total !== 1 ? 's' : ''}{localPoll.multiple ? ' · Multiple' : ''}
+        {total} voto{total !== 1 ? 's' : ''}{localPoll.multiple ? ' · Multiple' : ''}{isAdmin && !hasVoted ? ' · vista admin' : ''}
       </p>
     </div>
   );

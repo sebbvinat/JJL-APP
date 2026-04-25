@@ -14,6 +14,8 @@ export async function GET(request: NextRequest) {
   let query = supabase
     .from('posts')
     .select('*')
+    // Pinned posts always float to the top so admin announcements stay visible.
+    .order('pinned', { ascending: false })
     .order('created_at', { ascending: false })
     .limit(50);
 
@@ -104,6 +106,7 @@ export async function GET(request: NextRequest) {
     liked: likedPostIds.includes(p.id),
     isOwner: p.user_id === user.id,
     canDelete: p.user_id === user.id || isAdmin,
+    pinned: !!p.pinned,
     createdAt: p.created_at,
     poll: pollsByPost[p.id] || null,
   }));

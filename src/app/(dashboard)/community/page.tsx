@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import useSWR from 'swr';
-import { MessageCircle, Heart, Plus } from 'lucide-react';
+import { MessageCircle, Heart, Plus, Pin, PinOff } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import Card from '@/components/ui/Card';
@@ -34,6 +34,7 @@ interface Post {
   liked: boolean;
   isOwner: boolean;
   canDelete: boolean;
+  pinned: boolean;
   createdAt: string;
 }
 
@@ -76,11 +77,12 @@ export default function CommunityPage() {
   const toast = useToast();
 
   const postsKey = `/api/community/posts?category=${activeCategory}`;
-  const { data, isLoading, mutate } = useSWR<{ posts: Post[] }>(postsKey, fetcher, {
+  const { data, isLoading, mutate } = useSWR<{ posts: Post[]; isAdmin?: boolean }>(postsKey, fetcher, {
     revalidateOnFocus: true,
     dedupingInterval: 30_000,
   });
   const posts = data?.posts || [];
+  const isAdmin = !!data?.isAdmin;
 
   async function handleNewPost(form: { titulo: string; contenido: string; categoria: string; poll?: { pregunta: string; opciones: string[]; multiple: boolean } }) {
     try {
@@ -98,6 +100,24 @@ export default function CommunityPage() {
       }
     } catch (err) {
       logger.error('community.createPost.failed', { err });
+      toast.error('Error de conexion');
+    }
+  }
+
+  async function handleTogglePin(e: React.MouseEvent, postId: string) {
+    e.preventDefault();
+    e.stopPropagation();
+    try {
+      const res = await fetch(`/api/community/posts/${postId}/pin`, { method: 'POST' });
+      if (res.ok) {
+        mutate();
+        const data = await res.json().catch(() => null);
+        toast.success(data?.pinned ? 'Post fijado' : 'Post desfijado');
+      } else {
+        toast.error('No pudimos actualizar');
+      }
+    } catch (err) {
+      logger.error('community.pin.failed', { err, postId });
       toast.error('Error de conexion');
     }
   }
@@ -195,10 +215,16 @@ export default function CommunityPage() {
               href={`/community/${post.id}`}
               className="block animate-fade-in"
             >
-              <Card hover>
+              <Card hover className={post.pinned ? 'border-jjl-red/40 bg-jjl-red/[0.03]' : undefined}>
                 <div className="flex gap-3">
                   <Avatar src={post.avatar_url} name={post.autor} />
                   <div className="flex-1 min-w-0">
+                    {post.pinned && (
+                      <div className="flex items-center gap-1.5 mb-1.5">
+                        <Pin className="h-3 w-3 text-jjl-red" fill="currentColor" />
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-jjl-red">Fijado</span>
+                      </div>
+                    )}
                     <div className="flex items-center gap-2 flex-wrap">
                       <span
                         className="font-semibold text-sm text-white hover:text-jjl-red cursor-pointer"
@@ -206,6 +232,20 @@ export default function CommunityPage() {
                       >{post.autor}</span>
                       <Badge belt={post.cinturon} />
                       <span className="text-xs text-jjl-muted/70">{timeAgo(post.createdAt)}</span>
+                      {isAdmin && (
+                        <button
+                          onClick={(e) => handleTogglePin(e, post.id)}
+                          className={`ml-auto p-1 rounded-md transition-colors ${
+                            post.pinned
+                              ? 'text-jjl-red hover:bg-jjl-red/10'
+                              : 'text-jjl-muted hover:text-white hover:bg-white/[0.06]'
+                          }`}
+                          title={post.pinned ? 'Desfijar' : 'Fijar post'}
+                          aria-label={post.pinned ? 'Desfijar' : 'Fijar post'}
+                        >
+                          {post.pinned ? <PinOff className="h-4 w-4" /> : <Pin className="h-4 w-4" />}
+                        </button>
+                      )}
                     </div>
                     <h3 className="font-bold mt-1.5 text-white text-[15px] leading-snug text-balance">
                       {post.titulo}
@@ -213,7 +253,7 @@ export default function CommunityPage() {
                     <p className="text-[13px] text-jjl-muted mt-1 line-clamp-2 leading-relaxed">
                       {post.contenido}
                     </p>
-                    {post.poll && <Poll poll={post.poll} />}
+                    {post.poll && <Poll poll={post.poll} isAdmin={isAdmin} />}
                     <div className="flex items-center gap-4 mt-3">
                       <button
                         onClick={(e) => {

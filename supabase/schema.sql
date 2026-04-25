@@ -98,6 +98,7 @@ CREATE TABLE public.posts (
   contenido TEXT NOT NULL,
   categoria TEXT DEFAULT 'discussion' CHECK (categoria IN ('question', 'technique', 'progress', 'discussion', 'competition', 'bienvenida', 'offtopic')),
   likes_count INTEGER DEFAULT 0,
+  pinned BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );

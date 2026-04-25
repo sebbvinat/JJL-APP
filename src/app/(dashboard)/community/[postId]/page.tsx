@@ -59,6 +59,7 @@ export default function PostDetailPage() {
   const [newComment, setNewComment] = useState('');
   const [sending, setSending] = useState(false);
   const [liking, setLiking] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     fetchPost();
@@ -71,6 +72,7 @@ export default function PostDetailPage() {
         const data = await res.json();
         setPost(data.post);
         setComments(data.comments || []);
+        setIsAdmin(!!data.isAdmin);
       }
     } catch {}
     setLoading(false);
@@ -195,7 +197,7 @@ export default function PostDetailPage() {
           {post.contenido}
         </div>
 
-        {post.poll && <Poll poll={post.poll} />}
+        {post.poll && <Poll poll={post.poll} isAdmin={isAdmin} />}
 
         <div className="flex items-center gap-4 mt-4 pt-4 border-t border-jjl-border">
           <button

@@ -111,6 +111,7 @@ export async function GET(
       comments: post.comments_count || 0,
       liked: !!like,
       isOwner: post.user_id === user.id || isAdmin,
+      pinned: !!post.pinned,
       createdAt: post.created_at,
       poll: pollData,
     },
