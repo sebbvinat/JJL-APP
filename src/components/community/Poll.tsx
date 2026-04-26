@@ -1,7 +1,15 @@
 'use client';
 
 import { useState } from 'react';
-import { BarChart3, Check } from 'lucide-react';
+import { BarChart3, Check, ChevronDown } from 'lucide-react';
+import Avatar from '@/components/ui/Avatar';
+
+export interface PollVoter {
+  id: string;
+  nombre: string;
+  avatar_url: string | null;
+  cinturon: string;
+}
 
 export interface PollData {
   id: string;
@@ -11,11 +19,16 @@ export interface PollData {
   totalVotes: number;
   counts: Record<string, number>;
   myVotes: string[];
+  // Admin-only: who voted on each option (keyed by opcion_id). Undefined for
+  // non-admins so member identity stays private in regular views.
+  voters?: Record<string, PollVoter[]>;
 }
 
 export default function Poll({ poll, onVote, isAdmin = false }: { poll: PollData; onVote?: (updated: PollData) => void; isAdmin?: boolean }) {
   const [localPoll, setLocalPoll] = useState<PollData>(poll);
   const [voting, setVoting] = useState(false);
+  // Per-option expansion of the voter list (admin-only).
+  const [expandedOption, setExpandedOption] = useState<string | null>(null);
 
   async function handleVote(e: React.MouseEvent, opcionId: string) {
     e.stopPropagation();
@@ -78,40 +91,74 @@ export default function Poll({ poll, onVote, isAdmin = false }: { poll: PollData
           const count = localPoll.counts[opt.id] || 0;
           const pct = total > 0 ? Math.round((count / total) * 100) : 0;
           const isMyVote = localPoll.myVotes.includes(opt.id);
+          const voters = localPoll.voters?.[opt.id] || [];
+          const canExpandVoters = isAdmin && voters.length > 0;
+          const isExpanded = expandedOption === opt.id;
 
           return (
-            <button
-              key={opt.id}
-              onClick={(e) => handleVote(e, opt.id)}
-              disabled={voting}
-              className={`w-full relative rounded-lg border overflow-hidden transition-all text-left ${
-                isMyVote
-                  ? 'border-jjl-red/50 bg-jjl-red/10'
-                  : 'border-jjl-border hover:border-jjl-red/30 bg-white/[0.02]'
-              }`}
-            >
-              {/* Progress bar bg - only shown after voting */}
-              {showResults && (
-                <div
-                  className={`absolute inset-y-0 left-0 ${isMyVote ? 'bg-jjl-red/20' : 'bg-white/[0.04]'}`}
-                  style={{ width: `${pct}%`, transition: 'width 300ms ease-out' }}
-                />
-              )}
-              <div className="relative flex items-center justify-between px-3 py-2.5 gap-3">
-                <div className="flex items-center gap-2 min-w-0">
-                  {isMyVote && <Check className="h-3.5 w-3.5 text-jjl-red shrink-0" />}
-                  <span className={`text-sm truncate ${isMyVote ? 'text-white font-semibold' : 'text-white'}`}>
-                    {opt.texto}
-                  </span>
-                </div>
+            <div key={opt.id}>
+              <button
+                onClick={(e) => handleVote(e, opt.id)}
+                disabled={voting}
+                className={`w-full relative rounded-lg border overflow-hidden transition-all text-left ${
+                  isMyVote
+                    ? 'border-jjl-red/50 bg-jjl-red/10'
+                    : 'border-jjl-border hover:border-jjl-red/30 bg-white/[0.02]'
+                }`}
+              >
+                {/* Progress bar bg - shown after voting OR for admin */}
                 {showResults && (
-                  <span className="text-xs tabular-nums shrink-0 text-jjl-muted">
-                    <span className={isMyVote ? 'text-jjl-red font-bold' : 'text-white font-semibold'}>{pct}%</span>
-                    <span className="ml-1.5 text-[10px]">· {count}</span>
-                  </span>
+                  <div
+                    className={`absolute inset-y-0 left-0 ${isMyVote ? 'bg-jjl-red/20' : 'bg-white/[0.04]'}`}
+                    style={{ width: `${pct}%`, transition: 'width 300ms ease-out' }}
+                  />
                 )}
-              </div>
-            </button>
+                <div className="relative flex items-center justify-between px-3 py-2.5 gap-3">
+                  <div className="flex items-center gap-2 min-w-0">
+                    {isMyVote && <Check className="h-3.5 w-3.5 text-jjl-red shrink-0" />}
+                    <span className={`text-sm truncate ${isMyVote ? 'text-white font-semibold' : 'text-white'}`}>
+                      {opt.texto}
+                    </span>
+                  </div>
+                  {showResults && (
+                    <span className="text-xs tabular-nums shrink-0 text-jjl-muted">
+                      <span className={isMyVote ? 'text-jjl-red font-bold' : 'text-white font-semibold'}>{pct}%</span>
+                      <span className="ml-1.5 text-[10px]">· {count}</span>
+                    </span>
+                  )}
+                </div>
+              </button>
+
+              {/* Admin: voter list toggle. Click a chevron-style button to
+                  expand the names of who picked this option. */}
+              {canExpandVoters && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setExpandedOption(isExpanded ? null : opt.id);
+                  }}
+                  className="mt-1 ml-1 flex items-center gap-1 text-[11px] text-jjl-muted hover:text-jjl-red transition-colors"
+                >
+                  <ChevronDown className={`h-3 w-3 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                  <span>{voters.length} {voters.length === 1 ? 'votante' : 'votantes'}</span>
+                </button>
+              )}
+              {canExpandVoters && isExpanded && (
+                <div className="mt-1.5 ml-1 mb-1 flex flex-wrap gap-1.5">
+                  {voters.map((v) => (
+                    <span
+                      key={v.id}
+                      className="inline-flex items-center gap-1.5 pl-0.5 pr-2 py-0.5 rounded-full bg-white/[0.04] border border-jjl-border"
+                    >
+                      <Avatar src={v.avatar_url} name={v.nombre} size="sm" />
+                      <span className="text-[11px] text-white">{v.nombre}</span>
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
           );
         })}
       </div>

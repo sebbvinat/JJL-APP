@@ -76,11 +76,47 @@ export async function GET(request: NextRequest) {
     if (!votesByPoll[v.poll_id]) votesByPoll[v.poll_id] = [];
     votesByPoll[v.poll_id].push(v);
   });
+
+  // For admin: pre-load voter user info so we can show WHO voted on each option.
+  // Reuses `authorLookup` (service-role client) so RLS on public.users doesn't
+  // hide other users' nombres/avatars.
+  let voterMap: Record<string, { nombre: string; avatar_url: string | null; cinturon: string }> = {};
+  if (isAdmin) {
+    const allVoterIds = [...new Set((votesResult.data || []).map((v: any) => v.user_id))];
+    if (allVoterIds.length > 0) {
+      const { data: voters } = await authorLookup
+        .from('users')
+        .select('id, nombre, avatar_url, cinturon_actual, rol')
+        .in('id', allVoterIds);
+      (voters || []).forEach((u: any) => {
+        voterMap[u.id] = {
+          nombre: u.nombre || 'Usuario',
+          avatar_url: u.avatar_url || null,
+          cinturon: u.rol === 'admin' ? 'black' : (u.cinturon_actual || 'white'),
+        };
+      });
+    }
+  }
+
   (pollsResult.data || []).forEach((poll: any) => {
     const votes = votesByPoll[poll.id] || [];
     const counts: Record<string, number> = {};
     votes.forEach((v: any) => { counts[v.opcion_id] = (counts[v.opcion_id] || 0) + 1; });
     const myVotes = votes.filter((v: any) => v.user_id === user.id).map((v: any) => v.opcion_id);
+
+    // Voter breakdown by opcion_id (admin-only). We don't leak voter identity
+    // to non-admins since polls should feel anonymous to regular members.
+    let voters: Record<string, Array<{ id: string; nombre: string; avatar_url: string | null; cinturon: string }>> | undefined;
+    if (isAdmin) {
+      voters = {};
+      votes.forEach((v: any) => {
+        const u = voterMap[v.user_id];
+        if (!u) return;
+        if (!voters![v.opcion_id]) voters![v.opcion_id] = [];
+        voters![v.opcion_id].push({ id: v.user_id, ...u });
+      });
+    }
+
     pollsByPost[poll.post_id] = {
       id: poll.id,
       pregunta: poll.pregunta,
@@ -89,6 +125,7 @@ export async function GET(request: NextRequest) {
       totalVotes: votes.length,
       counts,
       myVotes,
+      voters,
     };
   });
 

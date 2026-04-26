@@ -85,6 +85,32 @@ export async function GET(
     (votes || []).forEach((v: any) => { counts[v.opcion_id] = (counts[v.opcion_id] || 0) + 1; });
     const myVotes = (votes || []).filter((v: any) => v.user_id === user.id).map((v: any) => v.opcion_id);
 
+    // Admin-only: who voted on each option. Service-role lookup bypasses
+    // the per-row RLS that would otherwise hide other users' info.
+    let voters: Record<string, Array<{ id: string; nombre: string; avatar_url: string | null; cinturon: string }>> | undefined;
+    if (isAdmin && (votes || []).length > 0) {
+      const voterIds = [...new Set((votes || []).map((v: any) => v.user_id))];
+      const { data: voterUsers } = await authorLookup
+        .from('users')
+        .select('id, nombre, avatar_url, cinturon_actual, rol')
+        .in('id', voterIds);
+      const vMap: Record<string, { nombre: string; avatar_url: string | null; cinturon: string }> = {};
+      (voterUsers || []).forEach((u: any) => {
+        vMap[u.id] = {
+          nombre: u.nombre || 'Usuario',
+          avatar_url: u.avatar_url || null,
+          cinturon: u.rol === 'admin' ? 'black' : (u.cinturon_actual || 'white'),
+        };
+      });
+      voters = {};
+      (votes || []).forEach((v: any) => {
+        const u = vMap[v.user_id];
+        if (!u) return;
+        if (!voters![v.opcion_id]) voters![v.opcion_id] = [];
+        voters![v.opcion_id].push({ id: v.user_id, ...u });
+      });
+    }
+
     pollData = {
       id: pollAny.id,
       pregunta: pollAny.pregunta,
@@ -93,6 +119,7 @@ export async function GET(
       totalVotes: (votes || []).length,
       counts,
       myVotes,
+      voters,
     };
   }
 
