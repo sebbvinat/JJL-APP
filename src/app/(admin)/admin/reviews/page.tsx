@@ -190,29 +190,61 @@ export default function ReviewsPage() {
           {showScanDetails && (
             <div className="mt-3 space-y-2">
               {scanDetails.map((d: any, i: number) => (
-                <div key={i} className="flex items-center justify-between text-sm bg-jjl-gray-light/30 rounded-lg px-3 py-2">
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold truncate">{d.nombre}</p>
-                    <a
-                      href={`https://drive.google.com/drive/folders/${d.folderId}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-[10px] text-blue-400 hover:underline truncate block"
-                    >
-                      {d.folderId} ↗
-                    </a>
-                    {d.error && (
-                      <p className="text-[10px] text-red-400 mt-1">Error: {d.error}</p>
-                    )}
+                <div key={i} className="text-sm bg-jjl-gray-light/30 rounded-lg px-3 py-2 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold truncate">{d.nombre}</p>
+                      <a
+                        href={`https://drive.google.com/drive/folders/${d.folderId}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[10px] text-blue-400 hover:underline truncate block"
+                      >
+                        {d.folderId} ↗
+                      </a>
+                      {d.error && (
+                        <p className="text-[10px] text-red-400 mt-1">Error: {d.error}</p>
+                      )}
+                    </div>
+                    <div className="text-right shrink-0 ml-2">
+                      <p className="text-xs text-jjl-muted">
+                        <span className="text-white font-bold">{d.totalFiles}</span> en Drive
+                      </p>
+                      {d.newFiles > 0 && (
+                        <p className="text-[10px] text-green-400">+{d.newFiles} nuevos</p>
+                      )}
+                      {d.skippedFiles > 0 && (
+                        <p className="text-[10px] text-jjl-muted">{d.skippedFiles} ya importados</p>
+                      )}
+                    </div>
                   </div>
-                  <div className="text-right shrink-0 ml-2">
-                    <p className="text-xs text-jjl-muted">
-                      <span className="text-white font-bold">{d.totalFiles}</span> videos
+                  {/* Show actual file names so it's obvious WHICH files Drive
+                      returned. Helps diagnose why a video isn't appearing. */}
+                  {Array.isArray(d.fileNames) && d.fileNames.length > 0 && (
+                    <div className="border-t border-jjl-border/40 pt-1.5">
+                      <p className="text-[10px] text-green-400 mb-1">Importados ahora:</p>
+                      <ul className="text-[11px] text-white/80 space-y-0.5">
+                        {d.fileNames.map((n: string, j: number) => (
+                          <li key={j} className="truncate">• {n}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {Array.isArray(d.skippedNames) && d.skippedNames.length > 0 && d.skippedNames.length <= 5 && (
+                    <div className="border-t border-jjl-border/40 pt-1.5">
+                      <p className="text-[10px] text-jjl-muted mb-1">Ya estaban:</p>
+                      <ul className="text-[11px] text-jjl-muted/80 space-y-0.5">
+                        {d.skippedNames.map((n: string, j: number) => (
+                          <li key={j} className="truncate">• {n}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {d.totalFiles === 0 && !d.error && (
+                    <p className="text-[10px] text-amber-400 border-t border-jjl-border/40 pt-1.5">
+                      Drive no devolvio archivos en esta carpeta. Verifica que el alumno realmente subio el video alli y que la cuenta de servicio tenga acceso.
                     </p>
-                    {d.newFiles > 0 && (
-                      <p className="text-[10px] text-green-400">+{d.newFiles} nuevos</p>
-                    )}
-                  </div>
+                  )}
                 </div>
               ))}
             </div>

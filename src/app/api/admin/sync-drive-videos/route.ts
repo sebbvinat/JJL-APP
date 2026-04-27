@@ -57,10 +57,25 @@ export async function POST(request: NextRequest) {
 
   const existingIds = new Set((existing || []).map((v: any) => v.drive_file_id));
 
+  // Pre-fetch the admin list once instead of inside the per-file loop. Used
+  // for fanning out notifications when new videos are imported.
+  const { data: adminList } = await admin.from('users').select('id').eq('rol', 'admin');
+  const adminIds = (adminList || []).map((a: any) => a.id);
+  const { createNotification } = await import('@/lib/notifications');
+
   let imported = 0;
   const errors: string[] = [];
-  const importedDetails: { nombre: string; count: number }[] = [];
-  const scanDetails: { nombre: string; folderId: string; totalFiles: number; newFiles: number; error?: string }[] = [];
+  const importedDetails: { nombre: string; count: number; files: string[] }[] = [];
+  const scanDetails: {
+    nombre: string;
+    folderId: string;
+    totalFiles: number;
+    newFiles: number;
+    skippedFiles: number;
+    fileNames: string[];
+    skippedNames: string[];
+    error?: string;
+  }[] = [];
 
   for (const student of students as Array<{ id: string; nombre: string; drive_folder_id: string | null }>) {
     if (!student.drive_folder_id) continue;
@@ -68,18 +83,23 @@ export async function POST(request: NextRequest) {
     try {
       const files = await listDriveFolderVideos(student.drive_folder_id);
       const newFiles = files.filter((f) => f.id && !existingIds.has(f.id));
+      const skippedFiles = files.filter((f) => f.id && existingIds.has(f.id));
 
       scanDetails.push({
         nombre: student.nombre,
         folderId: student.drive_folder_id,
         totalFiles: files.length,
         newFiles: newFiles.length,
+        skippedFiles: skippedFiles.length,
+        fileNames: newFiles.map((f) => f.name || '(sin nombre)'),
+        skippedNames: skippedFiles.map((f) => f.name || '(sin nombre)'),
       });
 
       if (newFiles.length === 0) continue;
 
       // Insert one-by-one so one bad row doesn't block others
       let insertedForStudent = 0;
+      const insertedFileNames: string[] = [];
       for (const f of newFiles) {
         const row = {
           user_id: student.id,
@@ -97,30 +117,31 @@ export async function POST(request: NextRequest) {
           errors.push(`${student.nombre} / ${f.name}: ${error.message}`);
         } else {
           insertedForStudent++;
+          insertedFileNames.push(f.name || 'Video sin titulo');
+
+          // Notify all admins about THIS specific new video. Done per-file
+          // so the bell shows one entry per video, not one bundled entry.
+          try {
+            await Promise.all(
+              adminIds.map((aid) =>
+                createNotification(
+                  aid,
+                  'system',
+                  `Nuevo video de ${student.nombre}`,
+                  f.name || 'Video sin titulo',
+                  '/admin/reviews'
+                )
+              )
+            );
+          } catch (notifErr) {
+            console.error('[sync-drive] notification failed', notifErr);
+          }
         }
       }
 
       if (insertedForStudent > 0) {
         imported += insertedForStudent;
-        importedDetails.push({ nombre: student.nombre, count: insertedForStudent });
-
-        // Notify admins of new videos
-        try {
-          const { createNotification } = await import('@/lib/notifications');
-          for (const f of newFiles) {
-            // Notify all admins (including sync trigger)
-            const { data: admins } = await admin.from('users').select('id').eq('rol', 'admin');
-            for (const a of admins || []) {
-              await createNotification(
-                (a as any).id,
-                'system',
-                `Nuevo video de ${student.nombre}`,
-                f.name || 'Video sin titulo',
-                '/admin/reviews'
-              );
-            }
-          }
-        } catch {}
+        importedDetails.push({ nombre: student.nombre, count: insertedForStudent, files: insertedFileNames });
       }
     } catch (err: any) {
       console.error(`[sync-drive] error for ${student.nombre}:`, err);
@@ -130,6 +151,9 @@ export async function POST(request: NextRequest) {
         folderId: student.drive_folder_id!,
         totalFiles: 0,
         newFiles: 0,
+        skippedFiles: 0,
+        fileNames: [],
+        skippedNames: [],
         error: err.message || String(err),
       });
     }
@@ -139,6 +163,8 @@ export async function POST(request: NextRequest) {
     success: true,
     imported,
     studentsScanned: students.length,
+    studentsWithFolder: students.length,
+    adminsNotified: adminIds.length,
     details: importedDetails,
     scanDetails,
     errors: errors.length > 0 ? errors : undefined,
