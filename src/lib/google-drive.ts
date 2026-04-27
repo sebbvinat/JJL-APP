@@ -28,20 +28,11 @@ export async function listDriveFolderVideos(folderId: string) {
 // Useful when uploads aren't being detected: you can see if Drive returns
 // nothing (permission/folder mismatch) vs returns files our filter discards
 // (mime/extension issue).
-export async function listDriveFolderAll(folderId: string) {
+export async function listDriveFolderAll(folderId: string, opts: { recursive?: boolean; maxDepth?: number } = {}) {
+  const { recursive = true, maxDepth = 5 } = opts;
   const auth = getAuth();
   const drive = google.drive({ version: 'v3', auth });
 
-  const res = await drive.files.list({
-    q: `'${folderId}' in parents and trashed = false`,
-    fields: 'files(id, name, mimeType, size, createdTime, modifiedTime, webViewLink, thumbnailLink, owners(emailAddress, displayName))',
-    pageSize: 500,
-    orderBy: 'createdTime desc',
-    supportsAllDrives: true,
-    includeItemsFromAllDrives: true,
-  });
-
-  const files = res.data.files || [];
   const videoExts = /\.(mp4|mov|avi|mkv|webm|m4v|3gp|wmv|flv|mpeg|mpg)$/i;
   const isVideo = (f: { mimeType?: string | null; name?: string | null }) => {
     const mime = f.mimeType || '';
@@ -50,12 +41,40 @@ export async function listDriveFolderAll(folderId: string) {
       mime === 'application/vnd.google-apps.video' ||
       videoExts.test(name);
   };
-  const nonFolders = files.filter((f) => f.mimeType !== 'application/vnd.google-apps.folder');
+
+  const all: any[] = [];
+  const folders: any[] = [];
+  const visited = new Set<string>();
+
+  async function walk(id: string, depth: number) {
+    if (visited.has(id) || depth > maxDepth) return;
+    visited.add(id);
+    const res = await drive.files.list({
+      q: `'${id}' in parents and trashed = false`,
+      fields: 'files(id, name, mimeType, size, createdTime, modifiedTime, webViewLink, thumbnailLink, owners(emailAddress, displayName))',
+      pageSize: 500,
+      orderBy: 'createdTime desc',
+      supportsAllDrives: true,
+      includeItemsFromAllDrives: true,
+    });
+    const files = res.data.files || [];
+    for (const f of files) {
+      if (f.mimeType === 'application/vnd.google-apps.folder') {
+        folders.push(f);
+        if (recursive && f.id) await walk(f.id, depth + 1);
+      } else {
+        all.push(f);
+      }
+    }
+  }
+
+  await walk(folderId, 0);
+
   return {
-    all: files,
-    videos: nonFolders.filter(isVideo),
-    nonVideos: nonFolders.filter((f) => !isVideo(f)),
-    folders: files.filter((f) => f.mimeType === 'application/vnd.google-apps.folder'),
+    all,
+    videos: all.filter(isVideo),
+    nonVideos: all.filter((f) => !isVideo(f)),
+    folders,
   };
 }
 
