@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
-import { listDriveFolderVideos } from '@/lib/google-drive';
+import { listDriveFolderAll } from '@/lib/google-drive';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -81,7 +81,8 @@ export async function POST(request: NextRequest) {
     if (!student.drive_folder_id) continue;
 
     try {
-      const files = await listDriveFolderVideos(student.drive_folder_id);
+      const driveResp = await listDriveFolderAll(student.drive_folder_id);
+      const files = driveResp.videos;
       const newFiles = files.filter((f) => f.id && !existingIds.has(f.id));
       const skippedFiles = files.filter((f) => f.id && existingIds.has(f.id));
 
@@ -89,6 +90,13 @@ export async function POST(request: NextRequest) {
         nombre: student.nombre,
         folderId: student.drive_folder_id,
         totalFiles: files.length,
+        // rawTotal includes everything Drive returned (videos + non-videos +
+        // subfolders). If rawTotal > 0 but totalFiles = 0, our filter is
+        // missing the file format. If rawTotal = 0, the service account
+        // can't see the folder contents.
+        rawTotal: driveResp.all.length,
+        nonVideoNames: driveResp.nonVideos.map((f) => `${f.name || '(sin nombre)'} [${f.mimeType || 'unknown'}]`),
+        subfolderNames: driveResp.folders.map((f) => f.name || '(sin nombre)'),
         newFiles: newFiles.length,
         skippedFiles: skippedFiles.length,
         fileNames: newFiles.map((f) => f.name || '(sin nombre)'),
@@ -150,6 +158,9 @@ export async function POST(request: NextRequest) {
         nombre: student.nombre,
         folderId: student.drive_folder_id!,
         totalFiles: 0,
+        rawTotal: 0,
+        nonVideoNames: [],
+        subfolderNames: [],
         newFiles: 0,
         skippedFiles: 0,
         fileNames: [],

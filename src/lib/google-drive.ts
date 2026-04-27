@@ -19,29 +19,44 @@ function getAuth() {
 
 // List all files inside a Drive folder (not trashed), filter videos client-side
 export async function listDriveFolderVideos(folderId: string) {
+  const result = await listDriveFolderAll(folderId);
+  return result.videos;
+}
+
+// Detailed listing — returns both the filtered video list and all raw files so
+// the admin diagnostic can show *exactly* what Drive returned for a folder.
+// Useful when uploads aren't being detected: you can see if Drive returns
+// nothing (permission/folder mismatch) vs returns files our filter discards
+// (mime/extension issue).
+export async function listDriveFolderAll(folderId: string) {
   const auth = getAuth();
   const drive = google.drive({ version: 'v3', auth });
 
-  // Get all non-folder files — filter video extensions client-side for flexibility
   const res = await drive.files.list({
-    q: `'${folderId}' in parents and trashed = false and mimeType != 'application/vnd.google-apps.folder'`,
-    fields: 'files(id, name, mimeType, size, createdTime, modifiedTime, webViewLink, thumbnailLink)',
-    pageSize: 200,
+    q: `'${folderId}' in parents and trashed = false`,
+    fields: 'files(id, name, mimeType, size, createdTime, modifiedTime, webViewLink, thumbnailLink, owners(emailAddress, displayName))',
+    pageSize: 500,
     orderBy: 'createdTime desc',
     supportsAllDrives: true,
     includeItemsFromAllDrives: true,
   });
 
   const files = res.data.files || [];
-  // Filter videos by mime OR extension
   const videoExts = /\.(mp4|mov|avi|mkv|webm|m4v|3gp|wmv|flv|mpeg|mpg)$/i;
-  return files.filter((f) => {
+  const isVideo = (f: { mimeType?: string | null; name?: string | null }) => {
     const mime = f.mimeType || '';
     const name = f.name || '';
     return mime.startsWith('video/') ||
       mime === 'application/vnd.google-apps.video' ||
       videoExts.test(name);
-  });
+  };
+  const nonFolders = files.filter((f) => f.mimeType !== 'application/vnd.google-apps.folder');
+  return {
+    all: files,
+    videos: nonFolders.filter(isVideo),
+    nonVideos: nonFolders.filter((f) => !isVideo(f)),
+    folders: files.filter((f) => f.mimeType === 'application/vnd.google-apps.folder'),
+  };
 }
 
 function buildFinalName(fileName: string, userName: string) {

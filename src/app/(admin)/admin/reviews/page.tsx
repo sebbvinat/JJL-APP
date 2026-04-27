@@ -40,6 +40,51 @@ export default function ReviewsPage() {
   const [scanDetails, setScanDetails] = useState<any[]>([]);
   const [showScanDetails, setShowScanDetails] = useState(false);
   const [syncErrors, setSyncErrors] = useState<string[]>([]);
+  // Manual import (rescue when Drive doesn't return the file)
+  const [showManual, setShowManual] = useState(false);
+  const [manualUrl, setManualUrl] = useState('');
+  const [manualUserId, setManualUserId] = useState('');
+  const [manualMsg, setManualMsg] = useState('');
+  const [manualSaving, setManualSaving] = useState(false);
+  const [students, setStudents] = useState<Array<{ id: string; nombre: string }>>([]);
+
+  useEffect(() => {
+    // Pre-load students for the manual-import dropdown
+    fetch('/api/admin/students').then((r) => r.ok ? r.json() : null).then((d) => {
+      if (d?.students) {
+        setStudents(d.students.map((s: any) => ({ id: s.id, nombre: s.nombre })));
+      }
+    }).catch(() => {});
+  }, []);
+
+  async function handleManualImport() {
+    if (!manualUrl.trim() || !manualUserId) {
+      setManualMsg('Faltan datos');
+      return;
+    }
+    setManualSaving(true);
+    setManualMsg('');
+    try {
+      const res = await fetch('/api/admin/import-drive-video', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fileIdOrUrl: manualUrl.trim(), userId: manualUserId }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setManualMsg('✓ Importado');
+        setManualUrl('');
+        await loadVideos();
+        setTimeout(() => { setManualMsg(''); setShowManual(false); }, 1500);
+      } else {
+        setManualMsg(data.error || 'Error');
+      }
+    } catch {
+      setManualMsg('Error de conexion');
+    }
+    setManualSaving(false);
+  }
+
 
   useEffect(() => {
     // Auto-sync drive videos then load
@@ -240,9 +285,47 @@ export default function ReviewsPage() {
                       </ul>
                     </div>
                   )}
-                  {d.totalFiles === 0 && !d.error && (
+                  {/* Surface non-video files so admin sees if Drive returned
+                      something the filter is discarding (wrong extension,
+                      shortcut, etc). */}
+                  {Array.isArray(d.nonVideoNames) && d.nonVideoNames.length > 0 && (
+                    <div className="border-t border-jjl-border/40 pt-1.5">
+                      <p className="text-[10px] text-amber-400 mb-1">Archivos no-video en la carpeta:</p>
+                      <ul className="text-[11px] text-amber-200/90 space-y-0.5">
+                        {d.nonVideoNames.map((n: string, j: number) => (
+                          <li key={j} className="truncate">• {n}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {Array.isArray(d.subfolderNames) && d.subfolderNames.length > 0 && (
+                    <div className="border-t border-jjl-border/40 pt-1.5">
+                      <p className="text-[10px] text-blue-400 mb-1">Subcarpetas dentro (no escaneadas):</p>
+                      <ul className="text-[11px] text-blue-200/90 space-y-0.5">
+                        {d.subfolderNames.map((n: string, j: number) => (
+                          <li key={j} className="truncate">• {n}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {d.rawTotal === 0 && d.totalFiles === 0 && !d.error && (
+                    <div className="border-t border-jjl-border/40 pt-1.5 space-y-1">
+                      <p className="text-[10px] text-amber-400">
+                        Drive devolvio 0 archivos. Causas tipicas:
+                      </p>
+                      <ul className="text-[10px] text-amber-200/90 space-y-0.5 ml-2">
+                        <li>• El alumno no subio nada en esta carpeta especifica.</li>
+                        <li>• Subio el video pero a un Drive personal (no compartio con la cuenta de servicio).</li>
+                        <li>• Hay subcarpetas y subio el video adentro de una.</li>
+                      </ul>
+                      <p className="text-[10px] text-jjl-muted">
+                        Solucion rapida: pedile el link del video al alumno y usalo en "Importar manualmente" abajo.
+                      </p>
+                    </div>
+                  )}
+                  {d.rawTotal > 0 && d.totalFiles === 0 && !d.error && (
                     <p className="text-[10px] text-amber-400 border-t border-jjl-border/40 pt-1.5">
-                      Drive no devolvio archivos en esta carpeta. Verifica que el alumno realmente subio el video alli y que la cuenta de servicio tenga acceso.
+                      Drive devolvio {d.rawTotal} archivo{d.rawTotal !== 1 ? 's' : ''} pero ninguno paso el filtro de video.
                     </p>
                   )}
                 </div>
@@ -251,6 +334,47 @@ export default function ReviewsPage() {
           )}
         </Card>
       )}
+
+      {/* Manual import — for videos Drive sync can't see */}
+      <Card>
+        <button
+          onClick={() => setShowManual(!showManual)}
+          className="w-full flex items-center justify-between"
+        >
+          <span className="text-sm font-semibold">Importar video manualmente</span>
+          <span className="text-xs text-jjl-muted">{showManual ? 'Cerrar' : 'Pegar link de Drive'}</span>
+        </button>
+        {showManual && (
+          <div className="mt-3 space-y-2">
+            <input
+              type="text"
+              value={manualUrl}
+              onChange={(e) => setManualUrl(e.target.value)}
+              placeholder="Link o ID del video en Drive"
+              className="w-full bg-jjl-gray-light/50 border border-jjl-border rounded-lg px-3 py-2 text-sm placeholder:text-jjl-muted/60 focus:outline-none focus:border-jjl-red"
+            />
+            <select
+              value={manualUserId}
+              onChange={(e) => setManualUserId(e.target.value)}
+              className="w-full bg-jjl-gray-light/50 border border-jjl-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-jjl-red"
+            >
+              <option value="">Seleccionar alumno...</option>
+              {students.map((s) => (
+                <option key={s.id} value={s.id}>{s.nombre}</option>
+              ))}
+            </select>
+            <div className="flex items-center gap-2">
+              <Button onClick={handleManualImport} loading={manualSaving} disabled={!manualUrl.trim() || !manualUserId} size="sm">
+                Importar
+              </Button>
+              {manualMsg && <span className="text-xs text-jjl-muted">{manualMsg}</span>}
+            </div>
+            <p className="text-[10px] text-jjl-muted">
+              Si el alumno subio el video a su propio Drive, primero pedile que lo comparta con la cuenta de servicio (rol Lector basta).
+            </p>
+          </div>
+        )}
+      </Card>
 
       {/* Filter tabs */}
       <div className="flex gap-1 bg-jjl-gray-light/50 rounded-xl p-1 overflow-x-auto">
