@@ -70,6 +70,9 @@ export async function POST(request: NextRequest) {
     nombre: string;
     folderId: string;
     totalFiles: number;
+    rawTotal: number;
+    nonVideoNames: string[];
+    subfolderNames: string[];
     newFiles: number;
     skippedFiles: number;
     fileNames: string[];
