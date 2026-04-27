@@ -40,6 +40,13 @@ export default function ReviewsPage() {
   const [scanDetails, setScanDetails] = useState<any[]>([]);
   const [showScanDetails, setShowScanDetails] = useState(false);
   const [syncErrors, setSyncErrors] = useState<string[]>([]);
+  const [unlinkedStudents, setUnlinkedStudents] = useState<Array<{ id: string; nombre: string }>>([]);
+  const [autoLinked, setAutoLinked] = useState<Array<{ nombre: string; folderId: string }>>([]);
+  // Manual folder linking (for students whose folder Drive sync can't find)
+  const [linkFolderUrl, setLinkFolderUrl] = useState('');
+  const [linkUserId, setLinkUserId] = useState('');
+  const [linkSaving, setLinkSaving] = useState(false);
+  const [linkMsg, setLinkMsg] = useState('');
   // Manual import (rescue when Drive doesn't return the file)
   const [showManual, setShowManual] = useState(false);
   const [manualUrl, setManualUrl] = useState('');
@@ -56,6 +63,37 @@ export default function ReviewsPage() {
       }
     }).catch(() => {});
   }, []);
+
+  async function handleLinkFolder() {
+    if (!linkFolderUrl.trim() || !linkUserId) {
+      setLinkMsg('Faltan datos');
+      return;
+    }
+    setLinkSaving(true);
+    setLinkMsg('');
+    try {
+      const res = await fetch('/api/admin/link-drive-folder', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ folderIdOrUrl: linkFolderUrl.trim(), userId: linkUserId }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setLinkMsg('✓ Vinculado');
+        setLinkFolderUrl('');
+        setLinkUserId('');
+        // Re-run sync to scan the just-linked folder
+        await handleSync(true);
+        await loadVideos();
+        setTimeout(() => setLinkMsg(''), 1500);
+      } else {
+        setLinkMsg(data.error || 'Error');
+      }
+    } catch {
+      setLinkMsg('Error de conexion');
+    }
+    setLinkSaving(false);
+  }
 
   async function handleManualImport() {
     if (!manualUrl.trim() || !manualUserId) {
@@ -124,6 +162,8 @@ export default function ReviewsPage() {
       console.log('[sync] result', data);
       setScanDetails(data.scanDetails || []);
       setSyncErrors(data.errors || []);
+      setUnlinkedStudents(data.unlinkedStudents || []);
+      setAutoLinked(data.autoLinked || []);
 
       if (!silent) {
         if (data.imported > 0) {
@@ -332,6 +372,65 @@ export default function ReviewsPage() {
               ))}
             </div>
           )}
+        </Card>
+      )}
+
+      {/* Auto-linked folders summary */}
+      {autoLinked.length > 0 && (
+        <Card className="border-green-500/30 bg-green-500/5">
+          <p className="text-sm font-semibold text-green-300">
+            Carpetas vinculadas automaticamente por nombre
+          </p>
+          <ul className="mt-2 space-y-0.5 text-[12px] text-green-200/90">
+            {autoLinked.map((a, i) => (
+              <li key={i}>• {a.nombre}</li>
+            ))}
+          </ul>
+        </Card>
+      )}
+
+      {/* Students without a Drive folder — admin can link one manually */}
+      {unlinkedStudents.length > 0 && (
+        <Card className="border-amber-500/30 bg-amber-500/5">
+          <p className="text-sm font-semibold text-amber-300 mb-2">
+            Alumnos sin carpeta vinculada ({unlinkedStudents.length})
+          </p>
+          <p className="text-[11px] text-amber-200/80 mb-3">
+            Estos alumnos no tienen una carpeta de Drive asociada. Si vos ya tenes su carpeta en tu Drive, vinculala aca pegando el link y eligiendo el alumno.
+          </p>
+          <ul className="text-[11px] text-amber-200/90 space-y-0.5 mb-3">
+            {unlinkedStudents.slice(0, 12).map((s) => (
+              <li key={s.id}>• {s.nombre}</li>
+            ))}
+            {unlinkedStudents.length > 12 && (
+              <li className="text-jjl-muted">... y {unlinkedStudents.length - 12} mas</li>
+            )}
+          </ul>
+          <div className="space-y-2">
+            <input
+              type="text"
+              value={linkFolderUrl}
+              onChange={(e) => setLinkFolderUrl(e.target.value)}
+              placeholder="Link de la carpeta de Drive"
+              className="w-full bg-jjl-gray-light/50 border border-jjl-border rounded-lg px-3 py-2 text-sm placeholder:text-jjl-muted/60 focus:outline-none focus:border-jjl-red"
+            />
+            <select
+              value={linkUserId}
+              onChange={(e) => setLinkUserId(e.target.value)}
+              className="w-full bg-jjl-gray-light/50 border border-jjl-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-jjl-red"
+            >
+              <option value="">Seleccionar alumno...</option>
+              {unlinkedStudents.map((s) => (
+                <option key={s.id} value={s.id}>{s.nombre}</option>
+              ))}
+            </select>
+            <div className="flex items-center gap-2">
+              <Button onClick={handleLinkFolder} loading={linkSaving} disabled={!linkFolderUrl.trim() || !linkUserId} size="sm">
+                Vincular carpeta
+              </Button>
+              {linkMsg && <span className="text-xs text-jjl-muted">{linkMsg}</span>}
+            </div>
+          </div>
         </Card>
       )}
 

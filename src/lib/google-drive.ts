@@ -59,6 +59,25 @@ export async function listDriveFolderAll(folderId: string) {
   };
 }
 
+// List subfolders inside the main JJL Drive folder. Used by sync to match
+// student names to folders for users that never created their folder via the
+// app (so users.drive_folder_id is null).
+export async function listMainSubfolders() {
+  const auth = getAuth();
+  const drive = google.drive({ version: 'v3', auth });
+  const parentId = process.env.GOOGLE_DRIVE_FOLDER_ID;
+  if (!parentId) return [];
+
+  const res = await drive.files.list({
+    q: `'${parentId}' in parents and trashed = false and mimeType = 'application/vnd.google-apps.folder'`,
+    fields: 'files(id, name)',
+    pageSize: 500,
+    supportsAllDrives: true,
+    includeItemsFromAllDrives: true,
+  });
+  return res.data.files || [];
+}
+
 function buildFinalName(fileName: string, userName: string) {
   const date = new Date().toISOString().split('T')[0];
   const ext = fileName.split('.').pop() || 'mp4';

@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
-import { listDriveFolderAll } from '@/lib/google-drive';
+import { listDriveFolderAll, listMainSubfolders } from '@/lib/google-drive';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -30,22 +30,59 @@ export async function POST(request: NextRequest) {
     { auth: { autoRefreshToken: false, persistSession: false } }
   );
 
-  // Get all students with drive folders
-  const { data: students, error: studentsErr } = await admin
+  // Get ALL students. Some may not have drive_folder_id set yet (never opened
+  // "Subir video" in app); we'll try to match them to a Drive subfolder by
+  // name and auto-link.
+  const { data: allStudents, error: studentsErr } = await admin
     .from('users')
-    .select('id, nombre, drive_folder_id')
-    .not('drive_folder_id', 'is', null);
+    .select('id, nombre, drive_folder_id, rol')
+    .neq('rol', 'admin');
 
   if (studentsErr) {
     console.error('[sync-drive] students query error', studentsErr);
     return NextResponse.json({ error: studentsErr.message }, { status: 500 });
   }
 
-  if (!students || students.length === 0) {
+  const studentList = allStudents || [];
+
+  // Auto-link: for students without a folder, look for a subfolder in the
+  // main JJL Drive folder whose name matches the student's name.
+  const autoLinked: { nombre: string; folderId: string }[] = [];
+  try {
+    const subfolders = await listMainSubfolders();
+    const norm = (s: string) =>
+      s.toLowerCase()
+        .normalize('NFD')
+        .replace(/[̀-ͯ]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+    const folderByName = new Map<string, string>();
+    subfolders.forEach((f) => {
+      if (f.name && f.id) folderByName.set(norm(f.name), f.id);
+    });
+    for (const s of studentList as Array<{ id: string; nombre: string; drive_folder_id: string | null }>) {
+      if (s.drive_folder_id) continue;
+      const match = folderByName.get(norm(s.nombre));
+      if (match) {
+        await admin.from('users').update({ drive_folder_id: match }).eq('id', s.id);
+        s.drive_folder_id = match;
+        autoLinked.push({ nombre: s.nombre, folderId: match });
+      }
+    }
+  } catch (err) {
+    console.error('[sync-drive] auto-link failed', err);
+  }
+
+  // From here on we only process students with a folder (after auto-link).
+  const students = studentList.filter((s: any) => !!s.drive_folder_id);
+
+  if (students.length === 0) {
     return NextResponse.json({
       imported: 0,
-      message: 'No hay alumnos con carpeta de Drive creada. Pedile a los alumnos que entren a "Subir video" para crear su carpeta.',
+      message: 'No hay alumnos con carpeta de Drive vinculada. Pedile que entren a "Subir video" para crear su carpeta, o vinculala manualmente.',
       studentsWithFolder: 0,
+      unlinkedStudents: studentList.map((s: any) => ({ id: s.id, nombre: s.nombre })),
+      autoLinked,
     });
   }
 
@@ -181,6 +218,10 @@ export async function POST(request: NextRequest) {
     adminsNotified: adminIds.length,
     details: importedDetails,
     scanDetails,
+    autoLinked,
+    unlinkedStudents: studentList
+      .filter((s: any) => !s.drive_folder_id)
+      .map((s: any) => ({ id: s.id, nombre: s.nombre })),
     errors: errors.length > 0 ? errors : undefined,
   });
 }
