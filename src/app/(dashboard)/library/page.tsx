@@ -1,7 +1,8 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import useSWR from 'swr';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -20,6 +21,8 @@ import {
   Save,
   X,
   Plus,
+  Camera,
+  ClipboardPaste,
 } from 'lucide-react';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
@@ -29,6 +32,8 @@ import { useToast } from '@/components/ui/Toast';
 import { fetcher } from '@/lib/fetcher';
 import { logger } from '@/lib/logger';
 import { TOPIC_LABELS, TOPIC_TONE, type LibraryTopic } from '@/lib/library-topics';
+import MyMoves from '@/components/library/MyMoves';
+import TryLater from '@/components/library/TryLater';
 
 type EntryKind = 'aprendizaje' | 'observacion' | 'nota';
 
@@ -58,7 +63,7 @@ interface Response {
   links: LinkItem[];
 }
 
-type Tab = 'entries' | 'links';
+type Tab = 'movimientos' | 'probar' | 'entries' | 'links';
 
 const KIND_META: Record<EntryKind, { label: string; icon: typeof NotebookPen; tone: string }> = {
   aprendizaje: {
@@ -100,8 +105,22 @@ function renderLinkified(text: string) {
 }
 
 export default function LibraryPage() {
-  const [tab, setTab] = useState<Tab>('links');
+  const searchParams = useSearchParams();
+  const initialTab: Tab = (() => {
+    const t = searchParams.get('tab');
+    if (t === 'probar' || t === 'entries' || t === 'links' || t === 'movimientos') return t;
+    return 'movimientos';
+  })();
+  const [tab, setTab] = useState<Tab>(initialTab);
   const [months, setMonths] = useState(6);
+
+  // Sync from URL when changed externally (e.g. after share-target redirect)
+  useEffect(() => {
+    const t = searchParams.get('tab');
+    if (t === 'probar' || t === 'entries' || t === 'links' || t === 'movimientos') {
+      setTab(t);
+    }
+  }, [searchParams]);
   const [query, setQuery] = useState('');
   const [activeTopic, setActiveTopic] = useState<LibraryTopic | 'all'>('all');
   const [quickKind, setQuickKind] = useState<'nota' | 'aprendizaje' | 'observacion' | null>(null);
@@ -263,9 +282,11 @@ export default function LibraryPage() {
       )}
 
       {/* Tabs */}
-      <div className="flex items-center gap-1 bg-white/[0.03] border border-jjl-border rounded-xl p-1 w-fit">
+      <div className="flex items-center gap-1 bg-white/[0.03] border border-jjl-border rounded-xl p-1 overflow-x-auto">
         {[
-          { key: 'links', label: 'Links', count: data?.counts.links, icon: LinkIcon },
+          { key: 'movimientos', label: 'Mis movimientos', icon: Camera },
+          { key: 'probar', label: 'Para probar', icon: ClipboardPaste },
+          { key: 'links', label: 'Links del diario', count: data?.counts.links, icon: LinkIcon },
           {
             key: 'entries',
             label: 'Aprendizajes',
@@ -279,7 +300,7 @@ export default function LibraryPage() {
             <button
               key={t.key}
               onClick={() => setTab(t.key as Tab)}
-              className={`inline-flex items-center gap-2 px-3.5 h-9 rounded-lg text-[13px] font-semibold transition-all ${
+              className={`shrink-0 inline-flex items-center gap-2 px-3.5 h-9 rounded-lg text-[13px] font-semibold transition-all ${
                 active
                   ? 'bg-white/[0.06] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]'
                   : 'text-jjl-muted hover:text-white'
@@ -295,50 +316,56 @@ export default function LibraryPage() {
         })}
       </div>
 
-      {/* Search + topic filters */}
-      <div className="space-y-3">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-jjl-muted pointer-events-none" />
-          <input
-            type="search"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Buscar texto, URL, dominio..."
-            className="w-full h-10 pl-10 pr-4 bg-white/[0.03] border border-jjl-border rounded-lg text-[13px] text-white placeholder:text-jjl-muted/50 focus:outline-none focus:border-jjl-red focus:ring-2 focus:ring-jjl-red/25"
-          />
-        </div>
-
-        {availableTopics.length > 0 && (
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 -mx-1 px-1">
-            <span className="flex items-center gap-1 text-[11px] text-jjl-muted uppercase tracking-wider font-semibold shrink-0">
-              <Filter className="h-3 w-3" />
-              Tema
-            </span>
-            <TopicChip
-              label="Todos"
-              count={
-                (tab === 'links' ? data?.counts.links : data?.counts.entries) ?? 0
-              }
-              active={activeTopic === 'all'}
-              onClick={() => setActiveTopic('all')}
-              tone="bg-white/[0.04] border-jjl-border text-white"
+      {/* Search + topic filters — only for tabs that need them */}
+      {(tab === 'links' || tab === 'entries') && (
+        <div className="space-y-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-jjl-muted pointer-events-none" />
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Buscar texto, URL, dominio..."
+              className="w-full h-10 pl-10 pr-4 bg-white/[0.03] border border-jjl-border rounded-lg text-[13px] text-white placeholder:text-jjl-muted/50 focus:outline-none focus:border-jjl-red focus:ring-2 focus:ring-jjl-red/25"
             />
-            {availableTopics.map(({ topic, count }) => (
-              <TopicChip
-                key={topic}
-                label={TOPIC_LABELS[topic]}
-                count={count}
-                active={activeTopic === topic}
-                onClick={() => setActiveTopic(topic)}
-                tone={TOPIC_TONE[topic]}
-              />
-            ))}
           </div>
-        )}
-      </div>
+
+          {availableTopics.length > 0 && (
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+              <span className="flex items-center gap-1 text-[11px] text-jjl-muted uppercase tracking-wider font-semibold shrink-0">
+                <Filter className="h-3 w-3" />
+                Tema
+              </span>
+              <TopicChip
+                label="Todos"
+                count={
+                  (tab === 'links' ? data?.counts.links : data?.counts.entries) ?? 0
+                }
+                active={activeTopic === 'all'}
+                onClick={() => setActiveTopic('all')}
+                tone="bg-white/[0.04] border-jjl-border text-white"
+              />
+              {availableTopics.map(({ topic, count }) => (
+                <TopicChip
+                  key={topic}
+                  label={TOPIC_LABELS[topic]}
+                  count={count}
+                  active={activeTopic === topic}
+                  onClick={() => setActiveTopic(topic)}
+                  tone={TOPIC_TONE[topic]}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Content */}
-      {isLoading && !data ? (
+      {tab === 'movimientos' ? (
+        <MyMoves />
+      ) : tab === 'probar' ? (
+        <TryLater />
+      ) : isLoading && !data ? (
         <div className="space-y-3">
           {[0, 1, 2].map((i) => (
             <SkeletonCard key={i} />

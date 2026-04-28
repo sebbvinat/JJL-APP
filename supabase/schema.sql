@@ -582,3 +582,32 @@ CREATE TRIGGER update_users_updated_at
 CREATE TRIGGER update_posts_updated_at
   BEFORE UPDATE ON public.posts
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
+
+-- ============================================
+-- personal_techniques + saved_links (myBJJ-style "My Moves")
+-- See migration 2026_04_28_personal_techniques.sql for the canonical version.
+-- ============================================
+CREATE TABLE IF NOT EXISTS public.personal_techniques (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  nombre TEXT NOT NULL,
+  topic TEXT NOT NULL DEFAULT 'otro',
+  notas TEXT,
+  steps JSONB NOT NULL DEFAULT '[]'::jsonb,
+  photos JSONB NOT NULL DEFAULT '[]'::jsonb,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS public.saved_links (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  url TEXT NOT NULL,
+  source TEXT,
+  titulo TEXT,
+  notas TEXT,
+  thumbnail_url TEXT,
+  topic TEXT NOT NULL DEFAULT 'otro',
+  status TEXT NOT NULL DEFAULT 'pending',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);

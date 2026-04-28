@@ -197,7 +197,7 @@ export default function MaquinaTiempoPage() {
         <div className="relative">
           <div className="flex items-center gap-2 mb-1">
             <Sparkles className="h-5 w-5 text-jjl-red" />
-            <p className="text-[10px] uppercase tracking-[0.2em] font-bold text-jjl-red">Maquina del Tiempo</p>
+            <p className="text-[10px] uppercase tracking-[0.2em] font-bold text-jjl-red">Habilidades</p>
           </div>
           <h1 className="text-3xl font-black tracking-tight">Tu evolucion</h1>
           <p className="text-sm text-jjl-muted mt-1">Tick cada cosa que mejoras y subi de nivel</p>

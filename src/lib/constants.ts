@@ -21,7 +21,7 @@ export const NAV_ITEMS = [
   { label: 'Semana', href: '/weekly', icon: CalendarCheck },
   { label: 'Modulos', href: '/modules', icon: BookOpen },
   { label: 'Biblioteca', href: '/library', icon: Library },
-  { label: 'Maquina del Tiempo', href: '/maquina-tiempo', icon: Clock },
+  { label: 'Habilidades', href: '/maquina-tiempo', icon: Clock },
   { label: 'Ranking', href: '/leaderboard', icon: Medal },
   { label: 'Eventos', href: '/events', icon: CalendarDays },
   { label: 'Comunidad', href: '/community', icon: Users },
