@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import useSWR from 'swr';
@@ -105,6 +105,14 @@ function renderLinkified(text: string) {
 }
 
 export default function LibraryPage() {
+  return (
+    <Suspense fallback={null}>
+      <LibraryPageInner />
+    </Suspense>
+  );
+}
+
+function LibraryPageInner() {
   const searchParams = useSearchParams();
   const initialTab: Tab = (() => {
     const t = searchParams.get('tab');

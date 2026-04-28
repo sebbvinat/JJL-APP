@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Loader2, Save, X } from 'lucide-react';
 import Card from '@/components/ui/Card';
@@ -12,6 +12,14 @@ import { TOPIC_LABELS, hostOf, type LibraryTopic } from '@/lib/library-topics';
 // intents from Instagram/TikTok/YouTube here as ?text=<url> (or ?url=<url>).
 // We pre-fill a small form, the user can add notes + pick a topic, then save.
 export default function ShareSavePage() {
+  return (
+    <Suspense fallback={null}>
+      <ShareSavePageInner />
+    </Suspense>
+  );
+}
+
+function ShareSavePageInner() {
   const router = useRouter();
   const params = useSearchParams();
   const toast = useToast();
