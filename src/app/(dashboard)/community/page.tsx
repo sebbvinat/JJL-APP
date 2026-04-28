@@ -15,6 +15,7 @@ import EmptyState from '@/components/ui/EmptyState';
 import { SkeletonCard } from '@/components/ui/Skeleton';
 import PostForm from '@/components/community/PostForm';
 import Poll from '@/components/community/Poll';
+import { Linkify } from '@/components/community/Linkify';
 import { fetcher } from '@/lib/fetcher';
 import { useToast } from '@/components/ui/Toast';
 import { logger } from '@/lib/logger';
@@ -251,7 +252,7 @@ export default function CommunityPage() {
                       {post.titulo}
                     </h3>
                     <p className="text-[13px] text-jjl-muted mt-1 line-clamp-2 leading-relaxed">
-                      {post.contenido}
+                      <Linkify text={post.contenido} />
                     </p>
                     {post.poll && <Poll poll={post.poll} isAdmin={isAdmin} />}
                     <div className="flex items-center gap-4 mt-3">

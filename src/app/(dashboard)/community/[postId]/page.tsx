@@ -8,6 +8,7 @@ import { es } from 'date-fns/locale';
 import Card from '@/components/ui/Card';
 import Avatar from '@/components/ui/Avatar';
 import Poll from '@/components/community/Poll';
+import { Linkify } from '@/components/community/Linkify';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 
@@ -193,8 +194,8 @@ export default function PostDetailPage() {
         </div>
 
         <h1 className="text-xl font-bold">{post.titulo}</h1>
-        <div className="mt-3 text-jjl-muted whitespace-pre-line text-sm leading-relaxed">
-          {post.contenido}
+        <div className="mt-3 text-jjl-muted whitespace-pre-line text-sm leading-relaxed break-words">
+          <Linkify text={post.contenido} />
         </div>
 
         {post.poll && <Poll poll={post.poll} isAdmin={isAdmin} />}
@@ -229,7 +230,9 @@ export default function PostDetailPage() {
                     <Badge belt={comment.cinturon} />
                     <span className="text-xs text-jjl-muted">{timeAgo(comment.createdAt)}</span>
                   </div>
-                  <p className="text-sm text-jjl-muted mt-1">{comment.contenido}</p>
+                  <p className="text-sm text-jjl-muted mt-1 whitespace-pre-line break-words">
+                    <Linkify text={comment.contenido} />
+                  </p>
                 </div>
                 {comment.canDelete && (
                   <button
