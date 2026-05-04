@@ -395,27 +395,41 @@ function TechniqueEditor({
 
   // Each upload needs an existing technique id (for storage path scoping). On
   // first save we create the row, then subsequent photo uploads target it.
-  const [techniqueId, setTechniqueId] = useState<string | null>(initial?.id || null);
+  // The id lives in a ref so sequential awaits inside a single handler call
+  // see the freshly-created id immediately — useState wouldn't be visible to
+  // later iterations of the same for-loop and we'd create duplicate drafts.
+  const techniqueIdRef = useRef<string | null>(initial?.id || null);
+  // Coalesce concurrent callers onto a single in-flight create request so
+  // multi-file uploads can't race past the ref check before it's populated.
+  const ensureInFlight = useRef<Promise<string | null> | null>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
 
   async function ensureTechniqueId(): Promise<string | null> {
-    if (techniqueId) return techniqueId;
-    // Create a draft so we have an id for photo uploads
-    const res = await fetch('/api/techniques', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        nombre: nombre.trim() || 'Sin titulo',
-        topic,
-        notas,
-        steps,
-        photos,
-      }),
-    });
-    if (!res.ok) return null;
-    const { technique } = await res.json();
-    setTechniqueId(technique.id);
-    return technique.id;
+    if (techniqueIdRef.current) return techniqueIdRef.current;
+    if (ensureInFlight.current) return ensureInFlight.current;
+    const promise = (async () => {
+      const res = await fetch('/api/techniques', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nombre: nombre.trim() || 'Sin titulo',
+          topic,
+          notas,
+          steps,
+          photos,
+        }),
+      });
+      if (!res.ok) return null;
+      const { technique } = await res.json();
+      techniqueIdRef.current = technique.id;
+      return technique.id as string;
+    })();
+    ensureInFlight.current = promise;
+    try {
+      return await promise;
+    } finally {
+      ensureInFlight.current = null;
+    }
   }
 
   async function uploadPhoto(file: File): Promise<string | null> {
