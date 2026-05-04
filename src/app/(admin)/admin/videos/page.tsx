@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import {
   ArrowLeft,
@@ -48,9 +48,25 @@ interface SearchHit {
   thumbnailUrl: string | null;
 }
 
+// Lesson stored in course_data (admin canonical view)
+interface DBLesson {
+  id: string;
+  titulo: string;
+  tipo: 'video' | 'reflection';
+  youtube_id?: string;
+  descripcion?: string;
+}
+
+const normTitulo = (s: string) =>
+  s.toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '').trim();
+
 export default function AdminVideosPage() {
   const [query, setQuery] = useState('');
   const [expanded, setExpanded] = useState<Set<string>>(new Set(['mod-0']));
+  // Cache of DB-current lessons per module so the editor reflects what's
+  // actually saved instead of MOCK_LESSONS (whose youtube_id is mostly empty).
+  const [dbModules, setDbModules] = useState<Record<string, DBLesson[]>>({});
+  const [loadingModules, setLoadingModules] = useState<Set<string>>(new Set());
 
   const q = query.trim().toLowerCase();
   const filteredModules = useMemo(() => {
@@ -62,14 +78,68 @@ export default function AdminVideosPage() {
     });
   }, [q]);
 
+  const fetchModule = useCallback(async (moduleId: string) => {
+    setLoadingModules((prev) => {
+      const next = new Set(prev);
+      next.add(moduleId);
+      return next;
+    });
+    try {
+      const res = await fetch(`/api/course-data?moduleId=${moduleId}`);
+      if (res.ok) {
+        const data = await res.json();
+        const dbLessons: DBLesson[] = Array.isArray(data?.module?.lessons) ? data.module.lessons : [];
+        setDbModules((prev) => ({ ...prev, [moduleId]: dbLessons }));
+      }
+    } catch {
+      /* silent — fall back to mock display */
+    }
+    setLoadingModules((prev) => {
+      const next = new Set(prev);
+      next.delete(moduleId);
+      return next;
+    });
+  }, []);
+
+  // Pre-fetch the initially-expanded module so its inputs show DB values on first render.
+  useEffect(() => {
+    if (expanded.has('mod-0') && !dbModules['mod-0'] && !loadingModules.has('mod-0')) {
+      void fetchModule('mod-0');
+    }
+    // Only on mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   function toggle(moduleId: string) {
     setExpanded((prev) => {
       const next = new Set(prev);
-      if (next.has(moduleId)) next.delete(moduleId);
-      else next.add(moduleId);
+      if (next.has(moduleId)) {
+        next.delete(moduleId);
+      } else {
+        next.add(moduleId);
+        if (!dbModules[moduleId] && !loadingModules.has(moduleId)) {
+          void fetchModule(moduleId);
+        }
+      }
       return next;
     });
   }
+
+  // After a successful save, the LessonRow calls this so the row's
+  // canonical state in dbModules stays in sync with what was just written.
+  const onLessonSaved = useCallback(
+    (moduleId: string, originalTitulo: string, patch: Partial<DBLesson>) => {
+      setDbModules((prev) => {
+        const lessons = prev[moduleId] || [];
+        const target = normTitulo(originalTitulo);
+        const next = lessons.map((l) =>
+          normTitulo(l.titulo) === target ? { ...l, ...patch } : l,
+        );
+        return { ...prev, [moduleId]: next };
+      });
+    },
+    [],
+  );
 
   return (
     <div className="max-w-4xl mx-auto space-y-5 pb-12">
@@ -135,9 +205,33 @@ export default function AdminVideosPage() {
 
               {isOpen && (
                 <div className="border-t border-jjl-border/60 bg-black/20 p-3 space-y-3 animate-slide-down">
-                  {lessons.map((lesson) => (
-                    <LessonRow key={lesson.id} moduleId={mod.id} lesson={lesson} />
-                  ))}
+                  {loadingModules.has(mod.id) && !dbModules[mod.id] && (
+                    <p className="text-[11px] text-jjl-muted italic py-2 text-center">
+                      Cargando datos guardados...
+                    </p>
+                  )}
+                  {lessons.map((lesson) => {
+                    const dbLessons = dbModules[mod.id];
+                    const target = normTitulo(lesson.titulo);
+                    const dbLesson = dbLessons?.find((l) => normTitulo(l.titulo) === target);
+                    const merged = dbLesson
+                      ? {
+                          ...lesson,
+                          titulo: dbLesson.titulo,
+                          youtube_id: dbLesson.youtube_id || '',
+                          descripcion: dbLesson.descripcion || lesson.descripcion,
+                        }
+                      : lesson;
+                    return (
+                      <LessonRow
+                        // Remount when DB data arrives so initial state reflects it.
+                        key={`${lesson.id}-${dbLesson?.youtube_id ?? 'mock'}-${dbLesson?.titulo ?? ''}`}
+                        moduleId={mod.id}
+                        lesson={merged}
+                        onSaved={onLessonSaved}
+                      />
+                    );
+                  })}
                   {lessons.length === 0 && (
                     <p className="text-[12px] text-jjl-muted italic py-3 text-center">
                       Sin videos en este modulo.
@@ -164,7 +258,19 @@ export default function AdminVideosPage() {
 // LessonRow — search-by-title or paste-ID, preview, save
 // ---------------------------------------------------------------------------
 
-function LessonRow({ moduleId, lesson }: { moduleId: string; lesson: MockLesson }) {
+function LessonRow({
+  moduleId,
+  lesson,
+  onSaved,
+}: {
+  moduleId: string;
+  lesson: MockLesson;
+  onSaved?: (
+    moduleId: string,
+    originalTitulo: string,
+    patch: { youtube_id?: string; titulo?: string; descripcion?: string },
+  ) => void;
+}) {
   const toast = useToast();
 
   const [currentId, setCurrentId] = useState<string>(lesson.youtube_id || '');
@@ -340,9 +446,18 @@ function LessonRow({ moduleId, lesson }: { moduleId: string; lesson: MockLesson 
           ? `Actualizado en ${body.updated} alumno${body.updated === 1 ? '' : 's'}`
           : 'Guardado (nadie tiene este modulo asignado todavia)'
       );
+      // Snapshot what we'll commit locally BEFORE we mutate originals,
+      // so the parent cache update uses the right "old" titulo as key.
+      const savedFromTitulo = originalTitulo;
+      const savedPatch: { youtube_id?: string; titulo?: string; descripcion?: string } = {};
+      if (idChanged) savedPatch.youtube_id = pendingId;
+      if (tituloChanged) savedPatch.titulo = titulo.trim();
+      if (descripcionChanged) savedPatch.descripcion = descripcion;
+
       if (idChanged) setCurrentId(pendingId);
       if (tituloChanged) setOriginalTitulo(titulo.trim());
       if (descripcionChanged) setOriginalDescripcion(descripcion);
+      onSaved?.(moduleId, savedFromTitulo, savedPatch);
     } catch (err) {
       logger.error('admin.videos.save.failed', { err, moduleId, lessonId: lesson.id });
       toast.error(err instanceof Error ? err.message : 'Error al guardar');
