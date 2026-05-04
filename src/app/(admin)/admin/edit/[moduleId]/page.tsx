@@ -1,13 +1,23 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, Save, Plus, Trash2, GripVertical, Play, Check, ExternalLink } from 'lucide-react';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import { getModuleFromMock, type ModuleData, type LessonData } from '@/lib/course-data';
 
+// Next.js 16 requires useSearchParams() to be inside a Suspense boundary or
+// the page can't statically generate.
 export default function EditModulePage() {
+  return (
+    <Suspense fallback={null}>
+      <EditModulePageInner />
+    </Suspense>
+  );
+}
+
+function EditModulePageInner() {
   const params = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
