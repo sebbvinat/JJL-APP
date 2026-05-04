@@ -83,9 +83,9 @@ const SHARED_MONTH_1: PlanillaWeek[] = [
     titulo: 'Guardia Cerrada + Toreos IV',
     lessons: [
       v('Guardia cerrada: Flower / Péndulo', 'x9mk1ixKO34'),
-      v('Toreos Variante 4', 'ZczYrhiclUo'),
+      v('Toreos Variante 4', '9bapjjLu8z8'),
       v('Drill 1: Guardia cerrada', 'J2Qpa2-KPKo'),
-      v('Drill 2: Toreos', 'ojOVMLUujak'),
+      v('Drill 2: Toreos', 'R3mhOdD-Zck'),
       v('Específico de guardia cerrada', 'YXkwsg4Wy3g'),
       r(),
     ],
