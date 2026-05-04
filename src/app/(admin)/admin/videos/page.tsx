@@ -319,6 +319,10 @@ function LessonRow({ moduleId, lesson }: { moduleId: string; lesson: MockLesson 
       const payload: Record<string, string> = {
         module_id: moduleId,
         lesson_id: lesson.id,
+        // Mock-data lesson IDs (les-4-2 etc.) don't match the planilla-generated
+        // IDs in DB rows (livianos-s4-1 etc.), so the endpoint falls back to
+        // matching by the lesson's original titulo.
+        lesson_titulo_original: originalTitulo,
       };
       if (idChanged) payload.youtube_id = pendingId;
       if (tituloChanged) payload.titulo = titulo.trim();
