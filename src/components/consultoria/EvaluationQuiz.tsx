@@ -1,0 +1,293 @@
+'use client';
+
+import { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  Activity,
+  ArrowLeft,
+  Brain,
+  CheckCircle2,
+  Clock,
+  Dumbbell,
+  Footprints,
+  Flame,
+  Gauge,
+  Hourglass,
+  Sparkles,
+  Wind,
+  Zap,
+} from 'lucide-react';
+import CalendlyEmbed from './CalendlyEmbed';
+
+type AnswerKey = 'fortaleza' | 'limitacion' | 'experiencia';
+
+interface Option {
+  value: string;
+  label: string;
+  Icon: typeof Activity;
+}
+
+interface QuizQuestion {
+  key: AnswerKey;
+  eyebrow: string;
+  title: string;
+  hint?: string;
+  options: Option[];
+}
+
+const QUESTIONS: QuizQuestion[] = [
+  {
+    key: 'fortaleza',
+    eyebrow: 'Tu fortaleza',
+    title: '¿Cuál sentís que es tu principal fortaleza física?',
+    hint: 'Tu juego se construye sobre lo que ya hacés bien.',
+    options: [
+      { value: 'fuerza', label: 'Fuerza / potencia', Icon: Dumbbell },
+      { value: 'cardio', label: 'Resistencia / cardio', Icon: Wind },
+      { value: 'flexibilidad', label: 'Flexibilidad / movilidad', Icon: Footprints },
+      { value: 'velocidad', label: 'Velocidad / explosividad', Icon: Zap },
+    ],
+  },
+  {
+    key: 'limitacion',
+    eyebrow: 'Tu limitante',
+    title: '¿Qué es lo que más te frena en el tatami?',
+    hint: 'El obstáculo principal que sentís cuando entrenás o luchás.',
+    options: [
+      { value: 'cardio', label: 'Me canso rápido — falta resistencia', Icon: Wind },
+      { value: 'movilidad', label: 'Me cuesta moverme / desplazarme', Icon: Footprints },
+      { value: 'flexibilidad', label: 'Me falta flexibilidad', Icon: Activity },
+      { value: 'coordinacion', label: 'Me cuesta coordinar movimientos', Icon: Gauge },
+      { value: 'mental', label: 'Mental — confianza, foco', Icon: Brain },
+    ],
+  },
+  {
+    key: 'experiencia',
+    eyebrow: 'Tu recorrido',
+    title: '¿Hace cuánto entrenás Jiu Jitsu?',
+    options: [
+      { value: 'menos1', label: 'Menos de 1 año', Icon: Sparkles },
+      { value: '1a3', label: 'Entre 1 y 3 años', Icon: Flame },
+      { value: '3a5', label: 'Entre 3 y 5 años', Icon: Hourglass },
+      { value: 'mas5', label: 'Más de 5 años', Icon: Clock },
+    ],
+  },
+];
+
+interface EvaluationQuizProps {
+  calendlyUrl: string;
+}
+
+export default function EvaluationQuiz({ calendlyUrl }: EvaluationQuizProps) {
+  const [step, setStep] = useState(0); // 0..QUESTIONS.length, last = done
+  const [answers, setAnswers] = useState<Partial<Record<AnswerKey, string>>>({});
+  const [pickedValue, setPickedValue] = useState<string | null>(null);
+  const advanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const sessionId = useMemo(() => {
+    if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
+      return crypto.randomUUID();
+    }
+    return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  }, []);
+
+  const total = QUESTIONS.length;
+  const isDone = step >= total;
+  const currentQuestion = !isDone ? QUESTIONS[step] : null;
+  const progressPct = isDone ? 100 : Math.round((step / total) * 100);
+
+  // Persist answers when the quiz is finished. Best-effort, ignore failures.
+  useEffect(() => {
+    if (!isDone) return;
+    const payload = {
+      session_id: sessionId,
+      fortaleza: answers.fortaleza,
+      limitacion: answers.limitacion,
+      experiencia: answers.experiencia,
+    };
+    if (!payload.fortaleza || !payload.limitacion || !payload.experiencia) return;
+    void fetch('/api/leads/quiz', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    }).catch(() => undefined);
+  }, [isDone, answers, sessionId]);
+
+  // Cleanup any pending auto-advance timer on unmount.
+  useEffect(() => {
+    return () => {
+      if (advanceTimer.current) clearTimeout(advanceTimer.current);
+    };
+  }, []);
+
+  function pick(value: string) {
+    if (!currentQuestion) return;
+    if (advanceTimer.current) clearTimeout(advanceTimer.current);
+    setPickedValue(value);
+    setAnswers((prev) => ({ ...prev, [currentQuestion.key]: value }));
+    // Small delay so the user sees their selection animate before advancing.
+    advanceTimer.current = setTimeout(() => {
+      setPickedValue(null);
+      setStep((s) => s + 1);
+    }, 320);
+  }
+
+  function back() {
+    if (advanceTimer.current) clearTimeout(advanceTimer.current);
+    setPickedValue(null);
+    setStep((s) => Math.max(0, s - 1));
+  }
+
+  if (isDone) {
+    return <QuizResult answers={answers} calendlyUrl={calendlyUrl} />;
+  }
+
+  const q = currentQuestion!;
+  const selected = answers[q.key];
+
+  return (
+    <div className="bg-jjl-gray rounded-2xl border border-jjl-red/30 p-6 sm:p-7 shadow-[0_30px_60px_-30px_rgba(220,38,38,0.35)]">
+      {/* Progress */}
+      <div className="flex items-center justify-between mb-1">
+        <span className="text-[11px] font-semibold text-jjl-red tracking-[0.18em] uppercase">
+          {q.eyebrow}
+        </span>
+        <span className="text-[11px] text-jjl-muted font-mono">
+          {step + 1} / {total}
+        </span>
+      </div>
+      <div className="h-1 bg-jjl-border rounded-full overflow-hidden">
+        <div
+          className="h-full bg-gradient-to-r from-jjl-red to-jjl-red-hover transition-[width] duration-300 ease-out"
+          style={{ width: `${progressPct}%` }}
+        />
+      </div>
+
+      {/* Question */}
+      <h3 className="mt-5 text-xl sm:text-2xl font-bold leading-snug">{q.title}</h3>
+      {q.hint && <p className="mt-1.5 text-[13px] text-jjl-muted">{q.hint}</p>}
+
+      {/* Options */}
+      <div className="mt-5 space-y-2.5">
+        {q.options.map(({ value, label, Icon }) => {
+          const isPicked = pickedValue === value || (!pickedValue && selected === value);
+          return (
+            <button
+              key={value}
+              type="button"
+              onClick={() => pick(value)}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border text-left transition-all duration-150 ${
+                isPicked
+                  ? 'bg-jjl-red/10 border-jjl-red text-white shadow-[0_0_0_3px_rgba(220,38,38,0.18)]'
+                  : 'bg-white/[0.02] border-jjl-border text-white/85 hover:border-jjl-red/40 hover:bg-white/[0.04]'
+              }`}
+            >
+              <span
+                className={`h-9 w-9 shrink-0 rounded-lg flex items-center justify-center transition-colors ${
+                  isPicked ? 'bg-jjl-red/20 text-jjl-red' : 'bg-jjl-border/50 text-jjl-muted'
+                }`}
+              >
+                <Icon className="h-[18px] w-[18px]" />
+              </span>
+              <span className="text-[14px] font-medium">{label}</span>
+              {isPicked && <CheckCircle2 className="h-4 w-4 ml-auto text-jjl-red shrink-0" />}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Footer */}
+      <div className="mt-5 flex items-center justify-between text-[12px] text-jjl-muted">
+        {step > 0 ? (
+          <button
+            type="button"
+            onClick={back}
+            className="inline-flex items-center gap-1 hover:text-white transition-colors"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" /> Anterior
+          </button>
+        ) : (
+          <span>60 segundos · Sin email</span>
+        )}
+        <span>Pregunta {step + 1} de {total}</span>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Result screen — personalized hook + Calendly embed
+// ---------------------------------------------------------------------------
+
+const FORTALEZA_LABEL: Record<string, string> = {
+  fuerza: 'fuerza y potencia',
+  cardio: 'resistencia y cardio',
+  flexibilidad: 'flexibilidad y movilidad',
+  velocidad: 'velocidad y explosividad',
+};
+
+const LIMITACION_HOOK: Record<string, string> = {
+  cardio: 'Trabajamos un juego que no se basa en quemar gas — sobrevivís lucha tras lucha.',
+  movilidad: 'Diseñamos un estilo que no exige desplazamientos largos — economía de movimiento.',
+  flexibilidad: 'Construimos un juego que no depende de guardias extremas — lo armás con lo que tenés.',
+  coordinacion: 'Patrones simples y repetibles que entran en automático con menos repeticiones.',
+  mental: 'Plan claro semana a semana: dejás de improvisar y la confianza vuelve sola.',
+};
+
+const EXPERIENCIA_HOOK: Record<string, string> = {
+  menos1: 'Te ahorrás años de prueba y error armando una base sólida desde el día 1.',
+  '1a3': 'Es el momento exacto para consolidar — antes de que los vicios se vuelvan permanentes.',
+  '3a5': 'Salís del estancamiento de los faixas intermedios con un sistema, no con más técnicas.',
+  mas5: 'Renovás tu juego sin tener que reaprender todo — adaptado a tu cuerpo y tu tiempo.',
+};
+
+function QuizResult({
+  answers,
+  calendlyUrl,
+}: {
+  answers: Partial<Record<AnswerKey, string>>;
+  calendlyUrl: string;
+}) {
+  const fortaleza = answers.fortaleza ? FORTALEZA_LABEL[answers.fortaleza] : null;
+  const limitacionHook = answers.limitacion ? LIMITACION_HOOK[answers.limitacion] : null;
+  const experienciaHook = answers.experiencia ? EXPERIENCIA_HOOK[answers.experiencia] : null;
+
+  return (
+    <div className="bg-jjl-gray rounded-2xl border border-jjl-red/30 p-6 sm:p-7 shadow-[0_30px_60px_-30px_rgba(220,38,38,0.35)]">
+      <div className="flex items-center gap-2 text-jjl-red text-[11px] font-semibold tracking-[0.18em] uppercase">
+        <CheckCircle2 className="h-4 w-4" />
+        Evaluación lista
+      </div>
+      <h3 className="mt-3 text-2xl font-bold leading-tight">
+        Tu juego se construye sobre tu {fortaleza ? <span className="text-jjl-red">{fortaleza}</span> : 'perfil'}.
+      </h3>
+      <ul className="mt-4 space-y-2 text-[14px] text-white/85">
+        {limitacionHook && (
+          <li className="flex items-start gap-2.5">
+            <span className="mt-1 h-1.5 w-1.5 rounded-full bg-jjl-red shrink-0" />
+            <span>{limitacionHook}</span>
+          </li>
+        )}
+        {experienciaHook && (
+          <li className="flex items-start gap-2.5">
+            <span className="mt-1 h-1.5 w-1.5 rounded-full bg-jjl-red shrink-0" />
+            <span>{experienciaHook}</span>
+          </li>
+        )}
+      </ul>
+
+      <div className="mt-5 rounded-xl bg-black/30 border border-jjl-border p-4">
+        <p className="text-[13px] text-white/90 leading-relaxed">
+          <strong className="text-white">Reservá tu sesión 1 a 1 de 45 min</strong> y te mostramos
+          en vivo el mapa de juego que se ajusta a tu perfil. Sin costo y sin compromiso.
+        </p>
+      </div>
+
+      <div className="mt-5">
+        <CalendlyEmbed url={calendlyUrl} />
+      </div>
+
+      <p className="mt-3 text-[11px] text-jjl-muted text-center">
+        45 min · Sin costo · Sin obligación · Con un coach real
+      </p>
+    </div>
+  );
+}
