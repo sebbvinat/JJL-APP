@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, Save, Plus, Trash2, GripVertical, Play, Check, ExternalLink } from 'lucide-react';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
@@ -10,7 +10,9 @@ import { getModuleFromMock, type ModuleData, type LessonData } from '@/lib/cours
 export default function EditModulePage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const moduleId = params.moduleId as string;
+  const targetUserId = searchParams.get('userId') || '';
 
   const [module, setModule] = useState<ModuleData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -25,9 +27,13 @@ export default function EditModulePage() {
 
   useEffect(() => {
     async function load() {
-      // Try loading from Supabase first
+      // Try loading from Supabase first. When a userId query param is present
+      // (editor opened from /admin/[userId]), load THAT student's row so the
+      // edits we save line up with what the editor sees on reload.
       try {
-        const res = await fetch(`/api/course-data?moduleId=${moduleId}`);
+        const qs = new URLSearchParams({ moduleId });
+        if (targetUserId) qs.set('userId', targetUserId);
+        const res = await fetch(`/api/course-data?${qs.toString()}`);
         if (res.ok) {
           const data = await res.json();
           if (data.module) {
@@ -44,7 +50,7 @@ export default function EditModulePage() {
       setLoading(false);
     }
     load();
-  }, [moduleId]);
+  }, [moduleId, targetUserId]);
 
   function updateModuleTitle(val: string) {
     if (!module) return;
@@ -131,6 +137,7 @@ export default function EditModulePage() {
           titulo: module.titulo,
           descripcion: module.descripcion,
           lessons: module.lessons,
+          ...(targetUserId ? { userId: targetUserId } : {}),
         }),
       });
 
