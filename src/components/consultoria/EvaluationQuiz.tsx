@@ -441,6 +441,22 @@ const VISION_HOOK: Record<string, string> = {
   solidez: 'Construimos un juego sólido en ataque y en defensa — sin huecos.',
 };
 
+/**
+ * Anexa nuestro session_id como `utm_content` al link de Calendly. Calendly
+ * propaga ese valor al webhook `invitee.created`, lo que nos permite asociar
+ * la reserva con la fila del lead en `lead_quiz_responses`.
+ */
+function withSession(url: string, sessionId: string): string {
+  try {
+    const u = new URL(url);
+    u.searchParams.set('utm_content', sessionId);
+    return u.toString();
+  } catch {
+    const sep = url.includes('?') ? '&' : '?';
+    return `${url}${sep}utm_content=${encodeURIComponent(sessionId)}`;
+  }
+}
+
 function QuizResult({
   answers,
   calendlyUrl,
@@ -519,7 +535,7 @@ function QuizResult({
       </div>
 
       <div className="mt-5">
-        <CalendlyEmbed url={calendlyUrl} />
+        <CalendlyEmbed url={withSession(calendlyUrl, sessionId)} />
       </div>
 
       <p className="mt-3 text-[11px] text-jjl-muted text-center">

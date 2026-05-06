@@ -170,18 +170,35 @@ function LeadCard({
   const flag = flagFor(lead.pais);
   const waDigits = phoneToWaMe(lead.telefono);
   const created = new Date(lead.created_at);
-  const dateStr = created.toLocaleString('es-AR', {
+  const createdStr = created.toLocaleString('es-AR', {
     day: '2-digit',
     month: 'short',
     hour: '2-digit',
     minute: '2-digit',
   });
 
+  const scheduled = lead.scheduled_at ? new Date(lead.scheduled_at) : null;
+  const scheduledStr = scheduled
+    ? scheduled.toLocaleString('es-AR', {
+        weekday: 'short',
+        day: '2-digit',
+        month: 'short',
+        hour: '2-digit',
+        minute: '2-digit',
+      })
+    : null;
+
   const status = lead.disqualified
     ? { label: 'Descartado', className: 'text-jjl-muted bg-white/[0.04]' }
     : lead.booked
     ? { label: 'Agendado', className: 'text-emerald-400 bg-emerald-500/10' }
     : { label: 'Sin agendar', className: 'text-amber-400 bg-amber-500/10' };
+
+  const headline =
+    lead.nombre?.trim() ||
+    lead.email?.trim() ||
+    lead.telefono?.trim() ||
+    'Lead anónimo';
 
   return (
     <div className="rounded-xl border border-jjl-border bg-white/[0.02] overflow-hidden">
@@ -195,18 +212,23 @@ function LeadCard({
         </span>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-semibold text-white">
-              {lead.telefono || 'Sin teléfono'}
-            </span>
+            <span className="font-semibold text-white truncate">{headline}</span>
             <span
               className={`text-[10px] uppercase tracking-[0.14em] font-bold rounded-full px-2 py-0.5 ${status.className}`}
             >
               {status.label}
             </span>
           </div>
-          <p className="text-[12px] text-jjl-muted mt-0.5">
-            {dateStr} · {summarizeAnswers(lead)}
-          </p>
+          {scheduledStr ? (
+            <p className="text-[12px] text-emerald-400 mt-0.5 flex items-center gap-1.5">
+              <CalendarCheck className="h-3.5 w-3.5 shrink-0" />
+              <span className="truncate">Agendado para {scheduledStr}</span>
+            </p>
+          ) : (
+            <p className="text-[12px] text-jjl-muted mt-0.5 truncate">
+              {createdStr} · {summarizeAnswers(lead)}
+            </p>
+          )}
         </div>
         {waDigits && (
           <a
@@ -229,6 +251,22 @@ function LeadCard({
 
       {expanded && (
         <div className="border-t border-jjl-border px-4 py-4 bg-black/20 space-y-3">
+          {/* Datos del agendamiento — vienen del webhook de Calendly */}
+          {(scheduledStr || lead.nombre || lead.email) && (
+            <div className="rounded-xl border border-emerald-500/25 bg-emerald-500/[0.06] p-3">
+              <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.16em] text-emerald-400 font-bold">
+                <CalendarCheck className="h-3.5 w-3.5" />
+                Datos de la agenda
+              </div>
+              <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1.5 text-[13px]">
+                <Field label="Nombre" value={lead.nombre} />
+                <Field label="Email" value={lead.email} />
+                <Field label="Fecha y hora" value={scheduledStr} />
+                <Field label="Teléfono" value={lead.telefono} />
+              </div>
+            </div>
+          )}
+
           {waDigits && (
             <div className="sm:hidden">
               <a

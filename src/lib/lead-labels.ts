@@ -59,6 +59,8 @@ export interface LeadRow {
   pais: string | null;
   nombre: string | null;
   email: string | null;
+  scheduled_at: string | null;
+  calendly_event_uri: string | null;
   disqualified: boolean;
   booked: boolean;
   user_agent: string | null;

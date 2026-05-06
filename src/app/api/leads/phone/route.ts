@@ -68,9 +68,7 @@ export async function POST(request: NextRequest) {
         },
         { onConflict: 'session_id' },
       )
-      .select(
-        'id, fortaleza, limitacion, estado, vision, compromiso, urgencia, telefono, pais, disqualified',
-      )
+      .select(LEAD_SELECT)
       .single();
 
     if (error) {
@@ -78,13 +76,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    // Disparar notificaciones. Hacemos await para que Vercel no mate las
-    // promesas pendientes al cerrar el handler — el cliente igual ya vio
-    // "Reservamos tu sesión" en la pantalla anterior, así que un par de
-    // segundos extra acá son tolerables. Cualquier fallo se logea y NO
-    // rompe la respuesta.
+    // El webhook de Calendly suele llegar muy cerca de este POST (a veces
+    // antes, a veces después). Si todavía no tenemos la fecha agendada ni
+    // el nombre del invitee, esperamos un toque a que aparezcan para mandar
+    // un WhatsApp con todo el contexto. Si no aparece, mandamos lo que hay.
+    let enriched = lead as LeadForNotification | null;
+    if (enriched && (!enriched.scheduled_at || !enriched.nombre)) {
+      enriched = await waitForCalendlyEnrichment(admin, session_id.trim(), enriched);
+    }
+
+    // Disparar notificaciones. Best-effort: cualquier fallo se logea y NO
+    // rompe la respuesta — el lead ya quedó guardado y eso es lo crítico.
     try {
-      await fanOutLeadNotifications(admin, lead);
+      await fanOutLeadNotifications(admin, enriched);
     } catch (err) {
       logger.warn('leads.phone.notify.threw', { err });
     }
@@ -108,7 +112,45 @@ interface LeadForNotification {
   urgencia: string | null;
   telefono: string | null;
   pais: string | null;
+  nombre: string | null;
+  email: string | null;
+  scheduled_at: string | null;
   disqualified: boolean;
+}
+
+const LEAD_SELECT =
+  'id, fortaleza, limitacion, estado, vision, compromiso, urgencia, telefono, pais, nombre, email, scheduled_at, disqualified';
+
+const ENRICHMENT_TIMEOUT_MS = 3500;
+const ENRICHMENT_POLL_MS = 500;
+
+/**
+ * Polea la fila del lead durante un breve período hasta que el webhook de
+ * Calendly haya escrito `scheduled_at` y `nombre`. Si el webhook nunca
+ * llega, devolvemos lo último que vimos.
+ */
+async function waitForCalendlyEnrichment(
+  adminClient: ReturnType<typeof createAdminSupabaseClient>,
+  sessionId: string,
+  initial: LeadForNotification,
+): Promise<LeadForNotification> {
+  let latest = initial;
+  const deadline = Date.now() + ENRICHMENT_TIMEOUT_MS;
+  while (Date.now() < deadline) {
+    if (latest.scheduled_at && latest.nombre) return latest;
+    await sleep(ENRICHMENT_POLL_MS);
+    const { data } = await adminClient
+      .from('lead_quiz_responses')
+      .select(LEAD_SELECT)
+      .eq('session_id', sessionId)
+      .single();
+    if (data) latest = data as LeadForNotification;
+  }
+  return latest;
+}
+
+function sleep(ms: number) {
+  return new Promise((res) => setTimeout(res, ms));
 }
 
 async function fanOutLeadNotifications(
@@ -165,12 +207,31 @@ function buildLeadSummary(lead: LeadForNotification): { short: string; long: str
     : '—';
   const prettyUrgencia = lead.urgencia ? URGENCIA_LABEL[lead.urgencia] || lead.urgencia : '—';
 
-  const short = `${flag} ${phoneDisplay} agendó una sesión.`;
+  const personDisplay = lead.nombre?.trim() || phoneDisplay;
+  const scheduledLine = lead.scheduled_at
+    ? `📅 *Agenda:* ${new Date(lead.scheduled_at).toLocaleString('es-AR', {
+        weekday: 'long',
+        day: '2-digit',
+        month: 'long',
+        hour: '2-digit',
+        minute: '2-digit',
+        timeZone: 'America/Argentina/Buenos_Aires',
+      })} (hora AR)\n`
+    : '';
+  const emailLine = lead.email?.trim() ? `📧 ${lead.email.trim()}\n` : '';
+  const phoneLine = lead.nombre?.trim() ? `📞 ${phoneDisplay}\n` : '';
+
+  const short = lead.scheduled_at
+    ? `${flag} ${personDisplay} agendó una sesión.`
+    : `${flag} ${personDisplay} dejó su número.`;
 
   const long =
     `🥋 *Nueva agenda JJL*\n` +
     `\n` +
-    `${flag} ${phoneDisplay}\n` +
+    `${flag} *${personDisplay}*\n` +
+    phoneLine +
+    emailLine +
+    scheduledLine +
     `\n` +
     `*Fortaleza:* ${prettyFortaleza}\n` +
     `*Limitante:* ${prettyLimitacion}\n` +
