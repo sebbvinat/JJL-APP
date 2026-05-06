@@ -4,26 +4,40 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Activity,
   ArrowLeft,
-  Brain,
+  Battery,
   CheckCircle2,
-  Clock,
+  Crown,
   Dumbbell,
-  Footprints,
+  Eye,
   Flame,
+  Footprints,
   Gauge,
-  Hourglass,
+  HeartPulse,
+  Layers,
+  Map as MapIcon,
+  Pause,
+  RefreshCcw,
+  ShieldQuestion,
   Sparkles,
+  Target,
+  ThumbsUp,
+  Trophy,
   Wind,
   Zap,
 } from 'lucide-react';
 import CalendlyEmbed from './CalendlyEmbed';
+import PhoneCollect from './PhoneCollect';
 
-type AnswerKey = 'fortaleza' | 'limitacion' | 'experiencia';
+type AnswerKey = 'fortaleza' | 'vision' | 'estado' | 'compromiso' | 'urgencia';
 
 interface Option {
   value: string;
   label: string;
   Icon: typeof Activity;
+  // Si el lead elige una opción con disqualifies=true, no le mostramos el
+  // calendario al final — recibe un mensaje pidiendo que vuelva cuando esté
+  // listo.
+  disqualifies?: boolean;
 }
 
 interface QuizQuestion {
@@ -48,27 +62,118 @@ const QUESTIONS: QuizQuestion[] = [
     ],
   },
   {
-    key: 'limitacion',
-    eyebrow: 'Tu limitante',
-    title: '¿Qué es lo que más te frena en el tatami?',
-    hint: 'El obstáculo principal que sentís cuando entrenás o luchás.',
+    key: 'vision',
+    eyebrow: 'Tu visión',
+    title: '¿Cómo te gustaría que se vea tu juego de acá a 6 meses?',
+    hint: 'A dónde querés llegar — el destino marca el camino.',
     options: [
-      { value: 'cardio', label: 'Me canso rápido — falta resistencia', Icon: Wind },
-      { value: 'movilidad', label: 'Me cuesta moverme / desplazarme', Icon: Footprints },
-      { value: 'flexibilidad', label: 'Me falta flexibilidad', Icon: Activity },
-      { value: 'coordinacion', label: 'Me cuesta coordinar movimientos', Icon: Gauge },
-      { value: 'mental', label: 'Mental — confianza, foco', Icon: Brain },
+      {
+        value: 'claridad',
+        label: 'Tener un juego claro donde sé qué hacer en cada situación',
+        Icon: MapIcon,
+      },
+      {
+        value: 'ritmo',
+        label: 'Poder imponer mi ritmo y no depender del rival',
+        Icon: Crown,
+      },
+      {
+        value: 'estrategia',
+        label: 'Dejar de improvisar y empezar a luchar con estrategia',
+        Icon: Target,
+      },
+      {
+        value: 'solidez',
+        label: 'Sentirme sólido tanto atacando como defendiendo',
+        Icon: Layers,
+      },
     ],
   },
   {
-    key: 'experiencia',
-    eyebrow: 'Tu recorrido',
-    title: '¿Hace cuánto entrenás Jiu Jitsu?',
+    key: 'estado',
+    eyebrow: 'Tu punto de partida',
+    title: '¿En qué punto sentís que está hoy tu juego?',
+    hint: 'Diagnóstico honesto — así el plan es real, no genérico.',
     options: [
-      { value: 'menos1', label: 'Menos de 1 año', Icon: Sparkles },
-      { value: '1a3', label: 'Entre 1 y 3 años', Icon: Flame },
-      { value: '3a5', label: 'Entre 3 y 5 años', Icon: Hourglass },
-      { value: 'mas5', label: 'Más de 5 años', Icon: Clock },
+      {
+        value: 'estancado',
+        label: 'Entreno, pero siento que mi nivel está estancado hace tiempo',
+        Icon: Pause,
+      },
+      {
+        value: 'noaplico',
+        label: 'Me cuesta aplicar en lucha lo que entreno',
+        Icon: ShieldQuestion,
+      },
+      {
+        value: 'improviso',
+        label: 'Improviso y no tengo una estrategia clara',
+        Icon: Sparkles,
+      },
+      {
+        value: 'inconsistente',
+        label: 'Algunos días rindo bien, pero no soy consistente',
+        Icon: Gauge,
+      },
+      {
+        value: 'canso',
+        label: 'Me canso rápido y mi nivel baja en los sparrings',
+        Icon: Battery,
+      },
+      {
+        value: 'cuerpo',
+        label: 'Siento que mi cuerpo ya no responde igual y tengo que adaptar mi juego',
+        Icon: HeartPulse,
+      },
+    ],
+  },
+  {
+    key: 'compromiso',
+    eyebrow: 'Tu compromiso',
+    title: '¿Qué tan comprometido estás con mejorar tu juego hoy?',
+    hint: 'Sin filtros — la respuesta honesta nos dice cómo ayudarte.',
+    options: [
+      {
+        value: 'serio',
+        label: 'Quiero ordenar mi juego en serio y adaptarlo a mi realidad para subir de nivel',
+        Icon: Trophy,
+      },
+      {
+        value: 'moderado',
+        label: 'Quiero mejorar, pero sin cambiar demasiado lo que ya vengo haciendo',
+        Icon: Flame,
+      },
+      {
+        value: 'viendo',
+        label: 'Solo estoy viendo / no busco nada puntual',
+        Icon: Eye,
+        disqualifies: true,
+      },
+    ],
+  },
+  {
+    key: 'urgencia',
+    eyebrow: 'Tu momento',
+    title:
+      'Si vemos que te podemos ayudar y tiene sentido para tu juego… ¿estarías dispuesto a avanzar ahora?',
+    hint: 'Solo agendamos con personas listas para avanzar.',
+    options: [
+      {
+        value: 'si',
+        label: 'Sí, si me cierra, quisiera avanzar',
+        Icon: Zap,
+      },
+      {
+        value: 'depende',
+        label: 'Me interesa, pero necesito evaluarlo bien',
+        Icon: ThumbsUp,
+      },
+      {
+        value: 'no',
+        label: 'No, por ahora solo estoy viendo',
+        Icon: Eye,
+        disqualifies: true,
+      },
     ],
   },
 ];
@@ -94,22 +199,43 @@ export default function EvaluationQuiz({ calendlyUrl }: EvaluationQuizProps) {
   const currentQuestion = !isDone ? QUESTIONS[step] : null;
   const progressPct = isDone ? 100 : Math.round((step / total) * 100);
 
+  // ¿El lead se autoexcluyó en alguna respuesta?
+  const isDisqualified = useMemo(() => {
+    return QUESTIONS.some((q) => {
+      const ans = answers[q.key];
+      if (!ans) return false;
+      const opt = q.options.find((o) => o.value === ans);
+      return Boolean(opt?.disqualifies);
+    });
+  }, [answers]);
+
   // Persist answers when the quiz is finished. Best-effort, ignore failures.
   useEffect(() => {
     if (!isDone) return;
     const payload = {
       session_id: sessionId,
       fortaleza: answers.fortaleza,
-      limitacion: answers.limitacion,
-      experiencia: answers.experiencia,
+      vision: answers.vision,
+      estado: answers.estado,
+      compromiso: answers.compromiso,
+      urgencia: answers.urgencia,
+      disqualified: isDisqualified,
     };
-    if (!payload.fortaleza || !payload.limitacion || !payload.experiencia) return;
+    if (
+      !payload.fortaleza ||
+      !payload.vision ||
+      !payload.estado ||
+      !payload.compromiso ||
+      !payload.urgencia
+    ) {
+      return;
+    }
     void fetch('/api/leads/quiz', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     }).catch(() => undefined);
-  }, [isDone, answers, sessionId]);
+  }, [isDone, answers, sessionId, isDisqualified]);
 
   // Cleanup any pending auto-advance timer on unmount.
   useEffect(() => {
@@ -136,8 +262,19 @@ export default function EvaluationQuiz({ calendlyUrl }: EvaluationQuizProps) {
     setStep((s) => Math.max(0, s - 1));
   }
 
+  function reset() {
+    setAnswers({});
+    setStep(0);
+    setPickedValue(null);
+  }
+
   if (isDone) {
-    return <QuizResult answers={answers} calendlyUrl={calendlyUrl} />;
+    if (isDisqualified) {
+      return <DisqualifiedScreen onReset={reset} />;
+    }
+    return (
+      <QuizResult answers={answers} calendlyUrl={calendlyUrl} sessionId={sessionId} />
+    );
   }
 
   const q = currentQuestion!;
@@ -207,14 +344,48 @@ export default function EvaluationQuiz({ calendlyUrl }: EvaluationQuizProps) {
         ) : (
           <span>60 segundos · Sin email</span>
         )}
-        <span>Pregunta {step + 1} de {total}</span>
+        <span>
+          Pregunta {step + 1} de {total}
+        </span>
       </div>
     </div>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Result screen — personalized hook + Calendly embed
+// Disqualified screen — el lead se autoexcluyó en compromiso o urgencia.
+// ---------------------------------------------------------------------------
+
+function DisqualifiedScreen({ onReset }: { onReset: () => void }) {
+  return (
+    <div className="bg-jjl-gray rounded-2xl border border-jjl-border p-6 sm:p-7">
+      <div className="flex items-center gap-2 text-jjl-muted text-[11px] font-semibold tracking-[0.18em] uppercase">
+        <Eye className="h-4 w-4" />
+        Sin agendar
+      </div>
+      <h3 className="mt-3 text-2xl font-bold leading-tight">
+        De momento no podemos ayudarte.
+      </h3>
+      <p className="mt-3 text-[14px] text-white/85 leading-relaxed">
+        Trabajamos solo con practicantes listos para ordenar su juego en serio. Cuando
+        estés en ese momento, volvé a llenar el formulario y agendamos.
+      </p>
+      <div className="mt-5">
+        <button
+          type="button"
+          onClick={onReset}
+          className="inline-flex items-center gap-2 text-[13px] text-jjl-muted hover:text-white transition-colors"
+        >
+          <RefreshCcw className="h-3.5 w-3.5" />
+          Volver a empezar
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Result screen — personalized hook + Calendly embed → phone collect.
 // ---------------------------------------------------------------------------
 
 const FORTALEZA_LABEL: Record<string, string> = {
@@ -224,31 +395,59 @@ const FORTALEZA_LABEL: Record<string, string> = {
   velocidad: 'velocidad y explosividad',
 };
 
-const LIMITACION_HOOK: Record<string, string> = {
-  cardio: 'Trabajamos un juego que no se basa en quemar gas — sobrevivís lucha tras lucha.',
-  movilidad: 'Diseñamos un estilo que no exige desplazamientos largos — economía de movimiento.',
-  flexibilidad: 'Construimos un juego que no depende de guardias extremas — lo armás con lo que tenés.',
-  coordinacion: 'Patrones simples y repetibles que entran en automático con menos repeticiones.',
-  mental: 'Plan claro semana a semana: dejás de improvisar y la confianza vuelve sola.',
+const VISION_HOOK: Record<string, string> = {
+  claridad: 'Vamos a darte un mapa de juego claro: en cada situación sabés qué hacer.',
+  ritmo: 'Diseñamos un estilo donde imponés tu ritmo y dejás de reaccionar al rival.',
+  estrategia: 'Te sacamos de la improvisación con un sistema repetible y estratégico.',
+  solidez: 'Construimos un juego sólido en ataque y en defensa — sin huecos.',
 };
 
-const EXPERIENCIA_HOOK: Record<string, string> = {
-  menos1: 'Te ahorrás años de prueba y error armando una base sólida desde el día 1.',
-  '1a3': 'Es el momento exacto para consolidar — antes de que los vicios se vuelvan permanentes.',
-  '3a5': 'Salís del estancamiento de los faixas intermedios con un sistema, no con más técnicas.',
-  mas5: 'Renovás tu juego sin tener que reaprender todo — adaptado a tu cuerpo y tu tiempo.',
+const ESTADO_HOOK: Record<string, string> = {
+  estancado: 'Identificamos qué te tiene estancado y rompemos esa meseta en semanas.',
+  noaplico: 'Cerramos la brecha entre lo que entrenás y lo que aplicás en lucha real.',
+  improviso: 'Reemplazamos la improvisación por un plan claro semana a semana.',
+  inconsistente: 'Volvés tu rendimiento consistente: lo bueno deja de ser casualidad.',
+  canso: 'Trabajamos un juego que no se basa en quemar gas — economía de movimiento.',
+  cuerpo: 'Adaptamos el juego a tu cuerpo de hoy — sin pelear contra él.',
 };
 
 function QuizResult({
   answers,
   calendlyUrl,
+  sessionId,
 }: {
   answers: Partial<Record<AnswerKey, string>>;
   calendlyUrl: string;
+  sessionId: string;
 }) {
   const fortaleza = answers.fortaleza ? FORTALEZA_LABEL[answers.fortaleza] : null;
-  const limitacionHook = answers.limitacion ? LIMITACION_HOOK[answers.limitacion] : null;
-  const experienciaHook = answers.experiencia ? EXPERIENCIA_HOOK[answers.experiencia] : null;
+  const visionHook = answers.vision ? VISION_HOOK[answers.vision] : null;
+  const estadoHook = answers.estado ? ESTADO_HOOK[answers.estado] : null;
+
+  const [scheduled, setScheduled] = useState(false);
+
+  // Calendly emite postMessage cuando el lead termina de agendar.
+  useEffect(() => {
+    function handler(e: MessageEvent) {
+      const data = e.data as { event?: unknown } | null;
+      if (!data || typeof data.event !== 'string') return;
+      if (data.event === 'calendly.event_scheduled') {
+        // Avisar al backend que esta sesión ya agendó (best-effort).
+        void fetch('/api/leads/quiz', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ session_id: sessionId, booked: true }),
+        }).catch(() => undefined);
+        setScheduled(true);
+      }
+    }
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
+  }, [sessionId]);
+
+  if (scheduled) {
+    return <PhoneCollect sessionId={sessionId} />;
+  }
 
   return (
     <div className="bg-jjl-gray rounded-2xl border border-jjl-red/30 p-6 sm:p-7 shadow-[0_30px_60px_-30px_rgba(220,38,38,0.35)]">
@@ -257,27 +456,28 @@ function QuizResult({
         Evaluación lista
       </div>
       <h3 className="mt-3 text-2xl font-bold leading-tight">
-        Tu juego se construye sobre tu {fortaleza ? <span className="text-jjl-red">{fortaleza}</span> : 'perfil'}.
+        Tu juego se construye sobre tu{' '}
+        {fortaleza ? <span className="text-jjl-red">{fortaleza}</span> : 'perfil'}.
       </h3>
       <ul className="mt-4 space-y-2 text-[14px] text-white/85">
-        {limitacionHook && (
+        {visionHook && (
           <li className="flex items-start gap-2.5">
             <span className="mt-1 h-1.5 w-1.5 rounded-full bg-jjl-red shrink-0" />
-            <span>{limitacionHook}</span>
+            <span>{visionHook}</span>
           </li>
         )}
-        {experienciaHook && (
+        {estadoHook && (
           <li className="flex items-start gap-2.5">
             <span className="mt-1 h-1.5 w-1.5 rounded-full bg-jjl-red shrink-0" />
-            <span>{experienciaHook}</span>
+            <span>{estadoHook}</span>
           </li>
         )}
       </ul>
 
       <div className="mt-5 rounded-xl bg-black/30 border border-jjl-border p-4">
         <p className="text-[13px] text-white/90 leading-relaxed">
-          <strong className="text-white">Reservá tu sesión 1 a 1 de 45 min</strong> y te mostramos
-          en vivo el mapa de juego que se ajusta a tu perfil. Sin costo y sin compromiso.
+          <strong className="text-white">Sesión 1 a 1 para analizar tu juego</strong> y
+          ver si realmente te podemos ayudar.
         </p>
       </div>
 
@@ -286,7 +486,7 @@ function QuizResult({
       </div>
 
       <p className="mt-3 text-[11px] text-jjl-muted text-center">
-        45 min · Sin costo · Sin obligación · Con un coach real
+        45 min · Con un coach real · Solo agendamos con quienes están listos para avanzar
       </p>
     </div>
   );

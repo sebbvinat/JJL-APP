@@ -7,11 +7,19 @@ export const runtime = 'nodejs';
 /**
  * POST /api/leads/quiz
  *
- * Public endpoint: a prospect (not logged in) finished the 3-question
- * evaluation quiz and we want to capture their answers BEFORE they
- * (maybe) book on Calendly. Service-role insert bypasses RLS.
+ * Public endpoint. Captura las respuestas del quiz de calificación ANTES de
+ * que el lead agende en Calendly. La misma ruta también acepta updates
+ * parciales por session_id (p. ej. booked=true cuando se confirma la reserva).
  *
- * Body: { session_id, fortaleza, limitacion, experiencia, nombre?, email? }
+ * Body completo (al terminar el quiz):
+ *   { session_id, fortaleza, vision, estado, compromiso, urgencia,
+ *     disqualified?, nombre?, email? }
+ *
+ * Body parcial (después de agendar):
+ *   { session_id, booked: true }
+ *
+ * Service-role insert/upsert bypassea RLS — desde el cliente sólo se llega
+ * por esta ruta.
  */
 export async function POST(request: NextRequest) {
   let body: unknown = null;
@@ -21,38 +29,58 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'JSON invalido' }, { status: 400 });
   }
 
-  const { session_id, fortaleza, limitacion, experiencia, nombre, email } =
-    (body as Record<string, unknown>) || {};
-
-  if (
-    typeof session_id !== 'string' ||
-    typeof fortaleza !== 'string' ||
-    typeof limitacion !== 'string' ||
-    typeof experiencia !== 'string'
-  ) {
-    return NextResponse.json(
-      { error: 'session_id, fortaleza, limitacion y experiencia son requeridos' },
-      { status: 400 },
-    );
+  const obj = (body as Record<string, unknown>) || {};
+  const session_id = obj.session_id;
+  if (typeof session_id !== 'string' || !session_id.trim()) {
+    return NextResponse.json({ error: 'session_id es requerido' }, { status: 400 });
   }
 
   const userAgent = request.headers.get('user-agent') || null;
   const referrer = request.headers.get('referer') || null;
 
+  // Recolectar campos opcionales — si no vienen, no se mandan al insert.
+  const update: Record<string, unknown> = { session_id };
+  const stringFields = [
+    'fortaleza',
+    'vision',
+    'estado',
+    'compromiso',
+    'urgencia',
+    'limitacion',
+    'experiencia',
+    'nombre',
+    'email',
+  ];
+  for (const f of stringFields) {
+    const v = obj[f];
+    if (typeof v === 'string' && v.trim()) update[f] = v.trim();
+  }
+  if (typeof obj.disqualified === 'boolean') update.disqualified = obj.disqualified;
+  if (typeof obj.booked === 'boolean') update.booked = obj.booked;
+
+  // Si trae las 5 respuestas → es el insert inicial: enriquecer con metadata.
+  const isInitial =
+    typeof update.fortaleza === 'string' &&
+    typeof update.vision === 'string' &&
+    typeof update.estado === 'string' &&
+    typeof update.compromiso === 'string' &&
+    typeof update.urgencia === 'string';
+
+  if (isInitial) {
+    update.user_agent = userAgent;
+    update.referrer = referrer;
+  }
+
   try {
     const admin = createAdminSupabaseClient();
-    const { error } = await admin.from('lead_quiz_responses').insert({
-      session_id,
-      fortaleza,
-      limitacion,
-      experiencia,
-      nombre: typeof nombre === 'string' && nombre.trim() ? nombre.trim() : null,
-      email: typeof email === 'string' && email.trim() ? email.trim() : null,
-      user_agent: userAgent,
-      referrer,
-    });
+    // Upsert sobre session_id (UNIQUE en la tabla). Permite que el insert
+    // inicial llegue y que después varias llamadas (booked / phone) hagan
+    // merge sin duplicar filas.
+    const { error } = await admin
+      .from('lead_quiz_responses')
+      .upsert(update, { onConflict: 'session_id' });
     if (error) {
-      logger.error('leads.quiz.insert.failed', { err: error });
+      logger.error('leads.quiz.upsert.failed', { err: error });
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
     return NextResponse.json({ success: true });
