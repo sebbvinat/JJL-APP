@@ -58,11 +58,12 @@ export async function POST(request: NextRequest) {
   if (typeof obj.disqualified === 'boolean') update.disqualified = obj.disqualified;
   if (typeof obj.booked === 'boolean') update.booked = obj.booked;
 
-  // Si trae las 5 respuestas → es el insert inicial: enriquecer con metadata.
+  // Si trae las 6 respuestas → es el insert inicial: enriquecer con metadata.
   const isInitial =
     typeof update.fortaleza === 'string' &&
-    typeof update.vision === 'string' &&
+    typeof update.limitacion === 'string' &&
     typeof update.estado === 'string' &&
+    typeof update.vision === 'string' &&
     typeof update.compromiso === 'string' &&
     typeof update.urgencia === 'string';
 

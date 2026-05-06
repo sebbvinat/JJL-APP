@@ -21,7 +21,7 @@ import TrackConsultoriaView from './track';
 export const metadata: Metadata = {
   title: 'Construí tu juego ideal — Jiu Jitsu Latino',
   description:
-    'Hacé tu evaluación (60 segundos, 5 preguntas) y, si tu juego encaja, agendá una sesión 1 a 1 con un coach. Para practicantes +30 que quieren un juego propio sin entrenar más horas.',
+    'Hacé tu evaluación (60 segundos, 6 preguntas) y, si tu juego encaja, agendá una sesión 1 a 1 con un coach. Para practicantes +30 que quieren un juego propio sin entrenar más horas.',
 };
 
 const CALENDLY_URL =

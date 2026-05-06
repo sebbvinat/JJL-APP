@@ -5,6 +5,7 @@ import {
   Activity,
   ArrowLeft,
   Battery,
+  Brain,
   CheckCircle2,
   Crown,
   Dumbbell,
@@ -28,7 +29,13 @@ import {
 import CalendlyEmbed from './CalendlyEmbed';
 import PhoneCollect from './PhoneCollect';
 
-type AnswerKey = 'fortaleza' | 'vision' | 'estado' | 'compromiso' | 'urgencia';
+type AnswerKey =
+  | 'fortaleza'
+  | 'limitacion'
+  | 'estado'
+  | 'vision'
+  | 'compromiso'
+  | 'urgencia';
 
 interface Option {
   value: string;
@@ -62,31 +69,16 @@ const QUESTIONS: QuizQuestion[] = [
     ],
   },
   {
-    key: 'vision',
-    eyebrow: 'Tu visión',
-    title: '¿Cómo te gustaría que se vea tu juego de acá a 6 meses?',
-    hint: 'A dónde querés llegar — el destino marca el camino.',
+    key: 'limitacion',
+    eyebrow: 'Tu limitante',
+    title: '¿Qué es lo que más te frena en el tatami?',
+    hint: 'El obstáculo principal que sentís cuando entrenás o luchás.',
     options: [
-      {
-        value: 'claridad',
-        label: 'Tener un juego claro donde sé qué hacer en cada situación',
-        Icon: MapIcon,
-      },
-      {
-        value: 'ritmo',
-        label: 'Poder imponer mi ritmo y no depender del rival',
-        Icon: Crown,
-      },
-      {
-        value: 'estrategia',
-        label: 'Dejar de improvisar y empezar a luchar con estrategia',
-        Icon: Target,
-      },
-      {
-        value: 'solidez',
-        label: 'Sentirme sólido tanto atacando como defendiendo',
-        Icon: Layers,
-      },
+      { value: 'cardio', label: 'Me canso rápido — falta resistencia', Icon: Wind },
+      { value: 'movilidad', label: 'Me cuesta moverme / desplazarme', Icon: Footprints },
+      { value: 'flexibilidad', label: 'Me falta flexibilidad', Icon: Activity },
+      { value: 'coordinacion', label: 'Me cuesta coordinar movimientos', Icon: Gauge },
+      { value: 'mental', label: 'Mental — confianza, foco', Icon: Brain },
     ],
   },
   {
@@ -124,6 +116,34 @@ const QUESTIONS: QuizQuestion[] = [
         value: 'cuerpo',
         label: 'Siento que mi cuerpo ya no responde igual y tengo que adaptar mi juego',
         Icon: HeartPulse,
+      },
+    ],
+  },
+  {
+    key: 'vision',
+    eyebrow: 'Tu punto ideal',
+    title: '¿Cómo te gustaría que se vea tu juego de acá a 6 meses?',
+    hint: 'A dónde querés llegar — el destino marca el camino.',
+    options: [
+      {
+        value: 'claridad',
+        label: 'Tener un juego claro donde sé qué hacer en cada situación',
+        Icon: MapIcon,
+      },
+      {
+        value: 'ritmo',
+        label: 'Poder imponer mi ritmo y no depender del rival',
+        Icon: Crown,
+      },
+      {
+        value: 'estrategia',
+        label: 'Dejar de improvisar y empezar a luchar con estrategia',
+        Icon: Target,
+      },
+      {
+        value: 'solidez',
+        label: 'Sentirme sólido tanto atacando como defendiendo',
+        Icon: Layers,
       },
     ],
   },
@@ -215,16 +235,18 @@ export default function EvaluationQuiz({ calendlyUrl }: EvaluationQuizProps) {
     const payload = {
       session_id: sessionId,
       fortaleza: answers.fortaleza,
-      vision: answers.vision,
+      limitacion: answers.limitacion,
       estado: answers.estado,
+      vision: answers.vision,
       compromiso: answers.compromiso,
       urgencia: answers.urgencia,
       disqualified: isDisqualified,
     };
     if (
       !payload.fortaleza ||
-      !payload.vision ||
+      !payload.limitacion ||
       !payload.estado ||
+      !payload.vision ||
       !payload.compromiso ||
       !payload.urgencia
     ) {
@@ -395,11 +417,12 @@ const FORTALEZA_LABEL: Record<string, string> = {
   velocidad: 'velocidad y explosividad',
 };
 
-const VISION_HOOK: Record<string, string> = {
-  claridad: 'Vamos a darte un mapa de juego claro: en cada situación sabés qué hacer.',
-  ritmo: 'Diseñamos un estilo donde imponés tu ritmo y dejás de reaccionar al rival.',
-  estrategia: 'Te sacamos de la improvisación con un sistema repetible y estratégico.',
-  solidez: 'Construimos un juego sólido en ataque y en defensa — sin huecos.',
+const LIMITACION_HOOK: Record<string, string> = {
+  cardio: 'Trabajamos un juego que no se basa en quemar gas — sobrevivís lucha tras lucha.',
+  movilidad: 'Diseñamos un estilo que no exige desplazamientos largos — economía de movimiento.',
+  flexibilidad: 'Construimos un juego que no depende de guardias extremas — lo armás con lo que tenés.',
+  coordinacion: 'Patrones simples y repetibles que entran en automático con menos repeticiones.',
+  mental: 'Plan claro semana a semana: dejás de improvisar y la confianza vuelve sola.',
 };
 
 const ESTADO_HOOK: Record<string, string> = {
@@ -409,6 +432,13 @@ const ESTADO_HOOK: Record<string, string> = {
   inconsistente: 'Volvés tu rendimiento consistente: lo bueno deja de ser casualidad.',
   canso: 'Trabajamos un juego que no se basa en quemar gas — economía de movimiento.',
   cuerpo: 'Adaptamos el juego a tu cuerpo de hoy — sin pelear contra él.',
+};
+
+const VISION_HOOK: Record<string, string> = {
+  claridad: 'Vamos a darte un mapa de juego claro: en cada situación sabés qué hacer.',
+  ritmo: 'Diseñamos un estilo donde imponés tu ritmo y dejás de reaccionar al rival.',
+  estrategia: 'Te sacamos de la improvisación con un sistema repetible y estratégico.',
+  solidez: 'Construimos un juego sólido en ataque y en defensa — sin huecos.',
 };
 
 function QuizResult({
@@ -421,8 +451,9 @@ function QuizResult({
   sessionId: string;
 }) {
   const fortaleza = answers.fortaleza ? FORTALEZA_LABEL[answers.fortaleza] : null;
-  const visionHook = answers.vision ? VISION_HOOK[answers.vision] : null;
+  const limitacionHook = answers.limitacion ? LIMITACION_HOOK[answers.limitacion] : null;
   const estadoHook = answers.estado ? ESTADO_HOOK[answers.estado] : null;
+  const visionHook = answers.vision ? VISION_HOOK[answers.vision] : null;
 
   const [scheduled, setScheduled] = useState(false);
 
@@ -460,16 +491,22 @@ function QuizResult({
         {fortaleza ? <span className="text-jjl-red">{fortaleza}</span> : 'perfil'}.
       </h3>
       <ul className="mt-4 space-y-2 text-[14px] text-white/85">
-        {visionHook && (
+        {limitacionHook && (
           <li className="flex items-start gap-2.5">
             <span className="mt-1 h-1.5 w-1.5 rounded-full bg-jjl-red shrink-0" />
-            <span>{visionHook}</span>
+            <span>{limitacionHook}</span>
           </li>
         )}
         {estadoHook && (
           <li className="flex items-start gap-2.5">
             <span className="mt-1 h-1.5 w-1.5 rounded-full bg-jjl-red shrink-0" />
             <span>{estadoHook}</span>
+          </li>
+        )}
+        {visionHook && (
+          <li className="flex items-start gap-2.5">
+            <span className="mt-1 h-1.5 w-1.5 rounded-full bg-jjl-red shrink-0" />
+            <span>{visionHook}</span>
           </li>
         )}
       </ul>
