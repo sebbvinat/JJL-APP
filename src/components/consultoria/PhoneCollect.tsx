@@ -79,11 +79,11 @@ export default function PhoneCollect({ sessionId }: PhoneCollectProps) {
           Listo
         </div>
         <h3 className="mt-3 text-2xl font-bold leading-tight">
-          Reservamos tu sesión.
+          Recibimos tu consulta.
         </h3>
         <p className="mt-3 text-[14px] text-white/85 leading-relaxed">
-          Te vamos a contactar por WhatsApp al número que dejaste para confirmar la
-          sesión y enviarte el link unas horas antes. Si necesitás reagendar, escribinos.
+          Pronto un coach te va a contactar para revisar tu caso en particular y
+          tratar con vos lo que te gustaría llevarte de esta sesión.
         </p>
       </div>
     );

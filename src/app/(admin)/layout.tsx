@@ -2,11 +2,12 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Users, FileSpreadsheet } from 'lucide-react';
+import { Users, FileSpreadsheet, CalendarClock } from 'lucide-react';
 
 const ADMIN_TABS = [
   { label: 'Alumnos', href: '/admin', icon: Users },
   { label: 'Cursos', href: '/admin/courses', icon: FileSpreadsheet },
+  { label: 'Agendas', href: '/admin/agendas', icon: CalendarClock },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -38,7 +39,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           {ADMIN_TABS.map((tab) => {
             const Icon = tab.icon;
             const active = tab.href === '/admin'
-              ? !pathname.startsWith('/admin/courses')
+              ? !pathname.startsWith('/admin/courses') &&
+                !pathname.startsWith('/admin/agendas')
               : pathname.startsWith(tab.href);
 
             return (
