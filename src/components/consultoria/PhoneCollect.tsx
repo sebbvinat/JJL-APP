@@ -44,7 +44,7 @@ export default function PhoneCollect({ sessionId }: PhoneCollectProps) {
     e.preventDefault();
     const digits = phone.replace(/\D/g, '');
     if (digits.length < 6) {
-      setError('Ingresá un número válido.');
+      setError('Ingresá un número válido (mínimo 6 dígitos).');
       return;
     }
     setError(null);
@@ -60,13 +60,32 @@ export default function PhoneCollect({ sessionId }: PhoneCollectProps) {
         }),
       });
       if (!res.ok) {
-        setError('No pudimos guardar tu número. Probá de nuevo.');
+        // Tratar de leer el mensaje específico del backend para no quedar
+        // ciegos cuando algo falla en producción (p.ej. migración no aplicada).
+        let backendMsg = '';
+        try {
+          const data = await res.json();
+          if (data?.error && typeof data.error === 'string') {
+            backendMsg = data.error;
+          }
+        } catch {
+          /* ignore */
+        }
+        const friendly =
+          backendMsg ||
+          (res.status === 0
+            ? 'Sin conexión. Revisá tu internet.'
+            : `No pudimos guardar tu número (error ${res.status}). Probá de nuevo.`);
+        setError(friendly);
         setSubmitting(false);
         return;
       }
       setDone(true);
-    } catch {
-      setError('No pudimos guardar tu número. Probá de nuevo.');
+    } catch (err) {
+      console.error('[PhoneCollect] submit threw', err);
+      setError(
+        'No pudimos conectar con el servidor. Revisá tu conexión y probá de nuevo.',
+      );
       setSubmitting(false);
     }
   }
@@ -89,8 +108,10 @@ export default function PhoneCollect({ sessionId }: PhoneCollectProps) {
     );
   }
 
+  const selected = COUNTRIES.find((c) => c.code === country);
+
   return (
-    <div className="bg-jjl-gray rounded-2xl border border-jjl-red/30 p-6 sm:p-7 shadow-[0_30px_60px_-30px_rgba(220,38,38,0.35)]">
+    <div className="bg-jjl-gray rounded-2xl border border-jjl-red/30 p-5 sm:p-7 shadow-[0_30px_60px_-30px_rgba(220,38,38,0.35)]">
       <div className="flex items-center gap-2 text-jjl-red text-[11px] font-semibold tracking-[0.18em] uppercase">
         <CheckCircle2 className="h-4 w-4" />
         Sesión reservada
@@ -103,37 +124,71 @@ export default function PhoneCollect({ sessionId }: PhoneCollectProps) {
         Solo lo usamos para esta consultoría.
       </p>
 
-      <form onSubmit={submit} className="mt-5 space-y-3">
-        <div className="flex gap-2">
+      <form onSubmit={submit} className="mt-5 space-y-3" noValidate>
+        {/* País — fila completa arriba */}
+        <div>
+          <label
+            htmlFor="lead-country"
+            className="block text-[11px] uppercase tracking-[0.16em] text-jjl-muted/80 font-semibold mb-1.5"
+          >
+            País
+          </label>
           <select
+            id="lead-country"
             value={country}
             onChange={(e) => setCountry(e.target.value)}
-            className="bg-black/30 border border-jjl-border rounded-xl px-3 py-3 text-[14px] text-white focus:outline-none focus:border-jjl-red/60 min-w-[155px]"
-            aria-label="País"
+            className="w-full bg-black/30 border border-jjl-border rounded-xl px-4 h-12 text-[16px] text-white focus:outline-none focus:border-jjl-red/60"
           >
             {COUNTRIES.map((c) => (
               <option key={c.code} value={c.code}>
-                {c.flag} {c.name} +{c.code}
+                {c.flag}  {c.name}  +{c.code}
               </option>
             ))}
           </select>
-          <div className="flex-1 flex items-center bg-black/30 border border-jjl-border rounded-xl px-3 focus-within:border-jjl-red/60">
-            <Phone className="h-4 w-4 text-jjl-muted shrink-0" />
-            <input
-              type="tel"
-              inputMode="tel"
-              autoComplete="tel-national"
-              placeholder="Ej. 11 5555 5555"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              className="w-full bg-transparent border-0 px-3 py-3 text-[15px] text-white placeholder:text-jjl-muted/60 focus:outline-none"
-              required
-            />
+        </div>
+
+        {/* Teléfono — fila completa abajo, ancho 100%, font 16px (sin zoom iOS) */}
+        <div>
+          <label
+            htmlFor="lead-phone"
+            className="block text-[11px] uppercase tracking-[0.16em] text-jjl-muted/80 font-semibold mb-1.5"
+          >
+            Tu número de WhatsApp
+          </label>
+          <div className="flex items-stretch w-full bg-black/30 border border-jjl-border rounded-xl focus-within:border-jjl-red/60 overflow-hidden">
+            <span className="flex items-center gap-1.5 px-3 sm:px-4 bg-white/[0.04] border-r border-jjl-border text-[15px] font-semibold text-white shrink-0">
+              <span aria-hidden>{selected?.flag || '🌐'}</span>
+              <span>+{country}</span>
+            </span>
+            <div className="flex-1 flex items-center min-w-0">
+              <Phone className="h-4 w-4 text-jjl-muted shrink-0 ml-3" aria-hidden />
+              <input
+                id="lead-phone"
+                type="tel"
+                inputMode="numeric"
+                autoComplete="tel-national"
+                placeholder="11 5555 5555"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                className="block w-full bg-transparent border-0 outline-0 px-3 h-12 text-[16px] text-white placeholder:text-jjl-muted/60 focus:outline-none focus:ring-0"
+                required
+                aria-label="Tu número sin el código de país"
+              />
+            </div>
           </div>
+          <p className="mt-1.5 text-[11px] text-jjl-muted">
+            Sin el código del país. Ejemplo: para 🇦🇷 +54 9 11 1234 5678 escribí solo
+            “11 1234 5678”.
+          </p>
         </div>
 
         {error && (
-          <p className="text-[12px] text-jjl-red">{error}</p>
+          <div
+            role="alert"
+            className="rounded-lg border border-jjl-red/40 bg-jjl-red/10 px-3 py-2 text-[12px] text-jjl-red"
+          >
+            {error}
+          </div>
         )}
 
         <button
