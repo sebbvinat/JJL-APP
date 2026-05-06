@@ -18,6 +18,17 @@ function getAdmin() {
   );
 }
 
+/**
+ * Format a raw `messages.contenido` value for the channel list preview.
+ * Audio messages are stored as `[audio]<url>` — we don't want to leak the
+ * Supabase URL into the sidebar preview, so swap it for a friendly label.
+ */
+function formatPreview(contenido: string | null | undefined): string | null {
+  if (!contenido) return null;
+  if (contenido.startsWith('[audio]')) return '🎤 Audio';
+  return contenido;
+}
+
 // GET: list channels (admin) or messages in a channel
 export async function GET(request: NextRequest) {
   const supabase = getSupabase(request);
@@ -93,7 +104,7 @@ export async function GET(request: NextRequest) {
         channelId: alumno.id,
         nombre: alumno.nombre,
         avatar_url: alumno.avatar_url,
-        lastMessage: msg?.contenido || null,
+        lastMessage: formatPreview(msg?.contenido),
         lastAt: msg?.created_at || null,
         hasNew,
       });
@@ -124,7 +135,7 @@ export async function GET(request: NextRequest) {
       channelId: user.id,
       nombre: 'Mi chat con el instructor',
       avatar_url: null,
-      lastMessage: lastMsg?.[0]?.contenido || null,
+      lastMessage: formatPreview(lastMsg?.[0]?.contenido),
       lastAt: lastMsg?.[0]?.created_at || null,
     }],
   });
