@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import useSWR from 'swr';
 import {
+  AtSign,
   CalendarCheck,
   CalendarClock,
   CheckCircle2,
@@ -20,7 +21,6 @@ import {
   ESTADO_LABEL,
   FORTALEZA_LABEL,
   LIMITACION_LABEL,
-  URGENCIA_LABEL,
   VISION_LABEL,
   flagFor,
   phoneToWaMe,
@@ -194,9 +194,11 @@ function LeadCard({
     ? { label: 'Agendado', className: 'text-emerald-400 bg-emerald-500/10' }
     : { label: 'Sin agendar', className: 'text-amber-400 bg-amber-500/10' };
 
+  const igHandle = lead.instagram?.trim() || null;
   const headline =
     lead.nombre?.trim() ||
     lead.email?.trim() ||
+    (igHandle ? `@${igHandle}` : null) ||
     lead.telefono?.trim() ||
     'Lead anónimo';
 
@@ -281,13 +283,35 @@ function LeadCard({
             </div>
           )}
 
+          {(igHandle || lead.ocupacion) && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-[13px]">
+              {igHandle && (
+                <div>
+                  <div className="text-[10px] uppercase tracking-[0.16em] text-jjl-muted/70 font-semibold">
+                    Instagram
+                  </div>
+                  <a
+                    href={`https://instagram.com/${encodeURIComponent(igHandle)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-pink-300 hover:text-pink-200 transition-colors mt-0.5"
+                  >
+                    <AtSign className="h-3.5 w-3.5" />
+                    {igHandle}
+                    <ExternalLink className="h-3 w-3 opacity-70" />
+                  </a>
+                </div>
+              )}
+              <Field label="Ocupación" value={lead.ocupacion} />
+            </div>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2.5 text-[13px]">
             <Field label="Fortaleza" value={FORTALEZA_LABEL[lead.fortaleza || ''] || lead.fortaleza} />
             <Field label="Limitante" value={LIMITACION_LABEL[lead.limitacion || ''] || lead.limitacion} />
             <Field label="Estado actual" value={ESTADO_LABEL[lead.estado || ''] || lead.estado} />
             <Field label="Visión 6 meses" value={VISION_LABEL[lead.vision || ''] || lead.vision} />
             <Field label="Compromiso" value={COMPROMISO_LABEL[lead.compromiso || ''] || lead.compromiso} />
-            <Field label="Listo para avanzar" value={URGENCIA_LABEL[lead.urgencia || ''] || lead.urgencia} />
           </div>
 
           {(lead.referrer || lead.user_agent) && (
@@ -319,7 +343,7 @@ function LeadCard({
           {lead.disqualified && (
             <div className="flex items-center gap-2 text-[12px] text-jjl-muted">
               <ShieldOff className="h-3.5 w-3.5" />
-              Se autoexcluyó en compromiso o urgencia
+              Se autoexcluyó en la pregunta de compromiso
             </div>
           )}
           <a
@@ -350,10 +374,8 @@ function Field({ label, value }: { label: string; value: string | null | undefin
 
 function summarizeAnswers(lead: LeadRow): string {
   const parts: string[] = [];
-  if (lead.urgencia) {
-    const u = URGENCIA_LABEL[lead.urgencia] || lead.urgencia;
-    // Tomar la primera frase corta para no inflar el resumen.
-    parts.push(u.split(',')[0]);
+  if (lead.ocupacion?.trim()) {
+    parts.push(lead.ocupacion.trim());
   }
   if (lead.estado) {
     const e = ESTADO_LABEL[lead.estado] || lead.estado;

@@ -48,6 +48,8 @@ export const URGENCIA_LABEL: Record<string, string> = {
 export interface LeadRow {
   id: string;
   session_id: string;
+  instagram: string | null;
+  ocupacion: string | null;
   fortaleza: string | null;
   limitacion: string | null;
   estado: string | null;

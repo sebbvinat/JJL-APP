@@ -8,7 +8,6 @@ import {
   ESTADO_LABEL,
   FORTALEZA_LABEL,
   LIMITACION_LABEL,
-  URGENCIA_LABEL,
   VISION_LABEL,
   flagFor,
 } from '@/lib/lead-labels';
@@ -104,12 +103,13 @@ export async function POST(request: NextRequest) {
 
 interface LeadForNotification {
   id: string;
+  instagram: string | null;
+  ocupacion: string | null;
   fortaleza: string | null;
   limitacion: string | null;
   estado: string | null;
   vision: string | null;
   compromiso: string | null;
-  urgencia: string | null;
   telefono: string | null;
   pais: string | null;
   nombre: string | null;
@@ -119,7 +119,7 @@ interface LeadForNotification {
 }
 
 const LEAD_SELECT =
-  'id, fortaleza, limitacion, estado, vision, compromiso, urgencia, telefono, pais, nombre, email, scheduled_at, disqualified';
+  'id, instagram, ocupacion, fortaleza, limitacion, estado, vision, compromiso, telefono, pais, nombre, email, scheduled_at, disqualified';
 
 const ENRICHMENT_TIMEOUT_MS = 3500;
 const ENRICHMENT_POLL_MS = 500;
@@ -205,7 +205,6 @@ function buildLeadSummary(lead: LeadForNotification): { short: string; long: str
   const prettyCompromiso = lead.compromiso
     ? COMPROMISO_LABEL[lead.compromiso] || lead.compromiso
     : '—';
-  const prettyUrgencia = lead.urgencia ? URGENCIA_LABEL[lead.urgencia] || lead.urgencia : '—';
 
   const personDisplay = lead.nombre?.trim() || phoneDisplay;
   const scheduledLine = lead.scheduled_at
@@ -220,6 +219,14 @@ function buildLeadSummary(lead: LeadForNotification): { short: string; long: str
     : '';
   const emailLine = lead.email?.trim() ? `📧 ${lead.email.trim()}\n` : '';
   const phoneLine = lead.nombre?.trim() ? `📞 ${phoneDisplay}\n` : '';
+  const igLine = lead.instagram?.trim()
+    ? `📸 IG: @${lead.instagram.trim()}  (https://instagram.com/${encodeURIComponent(
+        lead.instagram.trim(),
+      )})\n`
+    : '';
+  const ocupacionLine = lead.ocupacion?.trim()
+    ? `💼 *Ocupación:* ${lead.ocupacion.trim()}\n`
+    : '';
 
   const short = lead.scheduled_at
     ? `${flag} ${personDisplay} agendó una sesión.`
@@ -231,14 +238,15 @@ function buildLeadSummary(lead: LeadForNotification): { short: string; long: str
     `${flag} *${personDisplay}*\n` +
     phoneLine +
     emailLine +
+    igLine +
     scheduledLine +
+    ocupacionLine +
     `\n` +
     `*Fortaleza:* ${prettyFortaleza}\n` +
     `*Limitante:* ${prettyLimitacion}\n` +
     `*Estado actual:* ${prettyEstado}\n` +
     `*Visión 6 meses:* ${prettyVision}\n` +
     `*Compromiso:* ${prettyCompromiso}\n` +
-    `*Listo para avanzar:* ${prettyUrgencia}\n` +
     (lead.disqualified ? `\n⚠️ Marcado como descalificado en el formulario.\n` : '') +
     `\nVer detalle: ${siteUrl()}/admin/agendas`;
 

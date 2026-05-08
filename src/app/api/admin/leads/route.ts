@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
     let query = admin
       .from('lead_quiz_responses')
       .select(
-        'id, session_id, fortaleza, limitacion, estado, vision, compromiso, urgencia, experiencia, telefono, pais, nombre, email, scheduled_at, calendly_event_uri, disqualified, booked, user_agent, referrer, created_at',
+        'id, session_id, instagram, ocupacion, fortaleza, limitacion, estado, vision, compromiso, urgencia, experiencia, telefono, pais, nombre, email, scheduled_at, calendly_event_uri, disqualified, booked, user_agent, referrer, created_at',
       )
       .order('created_at', { ascending: false })
       .limit(500);

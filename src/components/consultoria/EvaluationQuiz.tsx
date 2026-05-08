@@ -4,8 +4,10 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Activity,
   ArrowLeft,
+  AtSign,
   Battery,
   Brain,
+  Briefcase,
   CheckCircle2,
   Crown,
   Dumbbell,
@@ -21,7 +23,6 @@ import {
   ShieldQuestion,
   Sparkles,
   Target,
-  ThumbsUp,
   Trophy,
   Wind,
   Zap,
@@ -30,12 +31,13 @@ import CalendlyEmbed from './CalendlyEmbed';
 import PhoneCollect from './PhoneCollect';
 
 type AnswerKey =
+  | 'instagram'
+  | 'ocupacion'
   | 'fortaleza'
   | 'limitacion'
   | 'estado'
   | 'vision'
-  | 'compromiso'
-  | 'urgencia';
+  | 'compromiso';
 
 interface Option {
   value: string;
@@ -47,16 +49,54 @@ interface Option {
   disqualifies?: boolean;
 }
 
-interface QuizQuestion {
-  key: AnswerKey;
-  eyebrow: string;
-  title: string;
-  hint?: string;
-  options: Option[];
-}
+type QuizQuestion =
+  | {
+      kind: 'choice';
+      key: AnswerKey;
+      eyebrow: string;
+      title: string;
+      hint?: string;
+      options: Option[];
+    }
+  | {
+      kind: 'text';
+      key: AnswerKey;
+      eyebrow: string;
+      title: string;
+      hint?: string;
+      placeholder: string;
+      Icon: typeof Activity;
+      // Permite saltar la pregunta (sin invalidar el quiz).
+      optional?: boolean;
+      // Limpia el valor antes de guardarlo (ej. quitar "@" de un usuario IG).
+      sanitize?: (raw: string) => string;
+    };
 
 const QUESTIONS: QuizQuestion[] = [
   {
+    kind: 'text',
+    key: 'instagram',
+    eyebrow: 'Tu Instagram',
+    title: '¿Cuál es tu usuario de Instagram?',
+    hint: 'Para conocerte un poco antes de la sesión. Sin "@".',
+    placeholder: 'tu_usuario',
+    Icon: AtSign,
+    optional: true,
+    sanitize: (raw) => raw.trim().replace(/^@+/, '').replace(/\s+/g, ''),
+  },
+  {
+    kind: 'text',
+    key: 'ocupacion',
+    eyebrow: 'Tu día a día',
+    title: '¿A qué te dedicás?',
+    hint: 'Sirve para entender cuánto tiempo y energía tenés para entrenar.',
+    placeholder: 'Ej. Diseñador, médico, estudiante...',
+    Icon: Briefcase,
+    optional: true,
+    sanitize: (raw) => raw.trim(),
+  },
+  {
+    kind: 'choice',
     key: 'fortaleza',
     eyebrow: 'Tu fortaleza',
     title: '¿Cuál sentís que es tu principal fortaleza física?',
@@ -69,6 +109,7 @@ const QUESTIONS: QuizQuestion[] = [
     ],
   },
   {
+    kind: 'choice',
     key: 'limitacion',
     eyebrow: 'Tu limitante',
     title: '¿Qué es lo que más te frena en el tatami?',
@@ -82,6 +123,7 @@ const QUESTIONS: QuizQuestion[] = [
     ],
   },
   {
+    kind: 'choice',
     key: 'estado',
     eyebrow: 'Tu punto de partida',
     title: '¿En qué punto sentís que está hoy tu juego?',
@@ -120,6 +162,7 @@ const QUESTIONS: QuizQuestion[] = [
     ],
   },
   {
+    kind: 'choice',
     key: 'vision',
     eyebrow: 'Tu punto ideal',
     title: '¿Cómo te gustaría que se vea tu juego de acá a 6 meses?',
@@ -148,6 +191,7 @@ const QUESTIONS: QuizQuestion[] = [
     ],
   },
   {
+    kind: 'choice',
     key: 'compromiso',
     eyebrow: 'Tu compromiso',
     title: '¿Qué tan comprometido estás con mejorar tu juego hoy?',
@@ -166,31 +210,6 @@ const QUESTIONS: QuizQuestion[] = [
       {
         value: 'viendo',
         label: 'Solo estoy viendo / no busco nada puntual',
-        Icon: Eye,
-        disqualifies: true,
-      },
-    ],
-  },
-  {
-    key: 'urgencia',
-    eyebrow: 'Tu momento',
-    title:
-      'Si vemos que te podemos ayudar y tiene sentido para tu juego… ¿estarías dispuesto a avanzar ahora?',
-    hint: 'Solo agendamos con personas listas para avanzar.',
-    options: [
-      {
-        value: 'si',
-        label: 'Sí, si me cierra, quisiera avanzar',
-        Icon: Zap,
-      },
-      {
-        value: 'depende',
-        label: 'Me interesa, pero necesito evaluarlo bien',
-        Icon: ThumbsUp,
-      },
-      {
-        value: 'no',
-        label: 'No, por ahora solo estoy viendo',
         Icon: Eye,
         disqualifies: true,
       },
@@ -222,6 +241,7 @@ export default function EvaluationQuiz({ calendlyUrl }: EvaluationQuizProps) {
   // ¿El lead se autoexcluyó en alguna respuesta?
   const isDisqualified = useMemo(() => {
     return QUESTIONS.some((q) => {
+      if (q.kind !== 'choice') return false;
       const ans = answers[q.key];
       if (!ans) return false;
       const opt = q.options.find((o) => o.value === ans);
@@ -234,21 +254,23 @@ export default function EvaluationQuiz({ calendlyUrl }: EvaluationQuizProps) {
     if (!isDone) return;
     const payload = {
       session_id: sessionId,
+      instagram: answers.instagram,
+      ocupacion: answers.ocupacion,
       fortaleza: answers.fortaleza,
       limitacion: answers.limitacion,
       estado: answers.estado,
       vision: answers.vision,
       compromiso: answers.compromiso,
-      urgencia: answers.urgencia,
       disqualified: isDisqualified,
     };
+    // Sólo las choice questions son obligatorias para considerar el quiz
+    // "completo" — instagram y ocupacion son opcionales.
     if (
       !payload.fortaleza ||
       !payload.limitacion ||
       !payload.estado ||
       !payload.vision ||
-      !payload.compromiso ||
-      !payload.urgencia
+      !payload.compromiso
     ) {
       return;
     }
@@ -324,34 +346,59 @@ export default function EvaluationQuiz({ calendlyUrl }: EvaluationQuizProps) {
       <h3 className="mt-5 text-xl sm:text-2xl font-bold leading-snug">{q.title}</h3>
       {q.hint && <p className="mt-1.5 text-[13px] text-jjl-muted">{q.hint}</p>}
 
-      {/* Options */}
-      <div className="mt-5 space-y-2.5">
-        {q.options.map(({ value, label, Icon }) => {
-          const isPicked = pickedValue === value || (!pickedValue && selected === value);
-          return (
-            <button
-              key={value}
-              type="button"
-              onClick={() => pick(value)}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border text-left transition-all duration-150 ${
-                isPicked
-                  ? 'bg-jjl-red/10 border-jjl-red text-white shadow-[0_0_0_3px_rgba(220,38,38,0.18)]'
-                  : 'bg-white/[0.02] border-jjl-border text-white/85 hover:border-jjl-red/40 hover:bg-white/[0.04]'
-              }`}
-            >
-              <span
-                className={`h-9 w-9 shrink-0 rounded-lg flex items-center justify-center transition-colors ${
-                  isPicked ? 'bg-jjl-red/20 text-jjl-red' : 'bg-jjl-border/50 text-jjl-muted'
+      {q.kind === 'choice' ? (
+        <div className="mt-5 space-y-2.5">
+          {q.options.map(({ value, label, Icon }) => {
+            const isPicked =
+              pickedValue === value || (!pickedValue && selected === value);
+            return (
+              <button
+                key={value}
+                type="button"
+                onClick={() => pick(value)}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border text-left transition-all duration-150 ${
+                  isPicked
+                    ? 'bg-jjl-red/10 border-jjl-red text-white shadow-[0_0_0_3px_rgba(220,38,38,0.18)]'
+                    : 'bg-white/[0.02] border-jjl-border text-white/85 hover:border-jjl-red/40 hover:bg-white/[0.04]'
                 }`}
               >
-                <Icon className="h-[18px] w-[18px]" />
-              </span>
-              <span className="text-[14px] font-medium">{label}</span>
-              {isPicked && <CheckCircle2 className="h-4 w-4 ml-auto text-jjl-red shrink-0" />}
-            </button>
-          );
-        })}
-      </div>
+                <span
+                  className={`h-9 w-9 shrink-0 rounded-lg flex items-center justify-center transition-colors ${
+                    isPicked ? 'bg-jjl-red/20 text-jjl-red' : 'bg-jjl-border/50 text-jjl-muted'
+                  }`}
+                >
+                  <Icon className="h-[18px] w-[18px]" />
+                </span>
+                <span className="text-[14px] font-medium">{label}</span>
+                {isPicked && (
+                  <CheckCircle2 className="h-4 w-4 ml-auto text-jjl-red shrink-0" />
+                )}
+              </button>
+            );
+          })}
+        </div>
+      ) : (
+        <TextStep
+          question={q}
+          initialValue={selected || ''}
+          onSubmit={(value) => {
+            setAnswers((prev) => ({ ...prev, [q.key]: value }));
+            setStep((s) => s + 1);
+          }}
+          onSkip={
+            q.optional
+              ? () => {
+                  setAnswers((prev) => {
+                    const copy = { ...prev };
+                    delete copy[q.key];
+                    return copy;
+                  });
+                  setStep((s) => s + 1);
+                }
+              : undefined
+          }
+        />
+      )}
 
       {/* Footer */}
       <div className="mt-5 flex items-center justify-between text-[12px] text-jjl-muted">
@@ -375,7 +422,72 @@ export default function EvaluationQuiz({ calendlyUrl }: EvaluationQuizProps) {
 }
 
 // ---------------------------------------------------------------------------
-// Disqualified screen — el lead se autoexcluyó en compromiso o urgencia.
+// Text-input step (para preguntas como Instagram u ocupación).
+// ---------------------------------------------------------------------------
+
+function TextStep({
+  question,
+  initialValue,
+  onSubmit,
+  onSkip,
+}: {
+  question: Extract<QuizQuestion, { kind: 'text' }>;
+  initialValue: string;
+  onSubmit: (value: string) => void;
+  onSkip?: () => void;
+}) {
+  const [value, setValue] = useState(initialValue);
+  const Icon = question.Icon;
+
+  function commit(e?: React.FormEvent) {
+    if (e) e.preventDefault();
+    const cleaned = question.sanitize ? question.sanitize(value) : value.trim();
+    if (!cleaned && !question.optional) return;
+    onSubmit(cleaned);
+  }
+
+  return (
+    <form onSubmit={commit} className="mt-5 space-y-3" noValidate>
+      <div className="flex items-stretch w-full bg-black/30 border border-jjl-border rounded-xl focus-within:border-jjl-red/60 overflow-hidden">
+        <span className="flex items-center justify-center w-12 shrink-0 bg-white/[0.04] border-r border-jjl-border text-jjl-muted">
+          <Icon className="h-4 w-4" />
+        </span>
+        <input
+          type="text"
+          autoComplete="off"
+          autoCapitalize="off"
+          spellCheck={false}
+          placeholder={question.placeholder}
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          className="block w-full bg-transparent border-0 outline-0 px-4 h-12 text-[16px] text-white placeholder:text-jjl-muted/60 focus:outline-none focus:ring-0"
+          autoFocus
+        />
+      </div>
+      <div className="flex items-center gap-2">
+        <button
+          type="submit"
+          className="flex-1 inline-flex items-center justify-center gap-2 h-11 px-4 bg-jjl-red hover:bg-jjl-red-hover text-white font-semibold rounded-xl transition-colors"
+        >
+          Continuar
+        </button>
+        {onSkip && (
+          <button
+            type="button"
+            onClick={onSkip}
+            className="h-11 px-4 text-[13px] text-jjl-muted hover:text-white transition-colors"
+          >
+            Saltar
+          </button>
+        )}
+      </div>
+    </form>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Disqualified screen — el lead se autoexcluyó (eligió "Solo estoy viendo"
+// en la pregunta de compromiso).
 // ---------------------------------------------------------------------------
 
 function DisqualifiedScreen({ onReset }: { onReset: () => void }) {

@@ -48,6 +48,8 @@ export async function POST(request: NextRequest) {
     'urgencia',
     'limitacion',
     'experiencia',
+    'instagram',
+    'ocupacion',
     'nombre',
     'email',
   ];
@@ -58,14 +60,14 @@ export async function POST(request: NextRequest) {
   if (typeof obj.disqualified === 'boolean') update.disqualified = obj.disqualified;
   if (typeof obj.booked === 'boolean') update.booked = obj.booked;
 
-  // Si trae las 6 respuestas → es el insert inicial: enriquecer con metadata.
+  // Si trae las 5 respuestas obligatorias del quiz → es el insert inicial:
+  // enriquecer con metadata. instagram + ocupacion son opcionales.
   const isInitial =
     typeof update.fortaleza === 'string' &&
     typeof update.limitacion === 'string' &&
     typeof update.estado === 'string' &&
     typeof update.vision === 'string' &&
-    typeof update.compromiso === 'string' &&
-    typeof update.urgencia === 'string';
+    typeof update.compromiso === 'string';
 
   if (isInitial) {
     update.user_agent = userAgent;
