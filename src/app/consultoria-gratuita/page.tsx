@@ -159,6 +159,16 @@ function Hero() {
             Construí tu <span className="text-jjl-red">juego ideal</span> según tu edad, tu físico y
             tu tiempo.
           </h1>
+        </div>
+
+        <div className="lg:sticky lg:top-24">
+          <div className="mb-3 text-center text-[12px] uppercase tracking-[0.18em] text-jjl-muted">
+            Empezá tu evaluación
+          </div>
+          <EvaluationQuiz calendlyUrl={CALENDLY_URL} />
+
+          {/* Bullets + prueba social — debajo del formulario para que el form
+              sea lo primero que ven y esto refuerce justo después. */}
           <ul className="mt-8 space-y-3">
             <li className="flex items-start gap-3 text-white/90">
               <Check className="h-5 w-5 text-jjl-red flex-shrink-0 mt-0.5" />
@@ -181,20 +191,13 @@ function Hero() {
               </span>
             </li>
           </ul>
-          <div className="mt-10 flex items-center gap-3 text-sm text-jjl-muted">
+          <div className="mt-6 flex items-center gap-3 text-sm text-jjl-muted">
             <span className="text-jjl-red tracking-widest">★★★★★</span>
             <span>
               <strong className="text-white">+350 practicantes</strong> ya ordenaron su juego con el
               método.
             </span>
           </div>
-        </div>
-
-        <div className="lg:sticky lg:top-24">
-          <div className="mb-3 text-center text-[12px] uppercase tracking-[0.18em] text-jjl-muted">
-            Empezá tu evaluación
-          </div>
-          <EvaluationQuiz calendlyUrl={CALENDLY_URL} />
         </div>
       </div>
     </section>
