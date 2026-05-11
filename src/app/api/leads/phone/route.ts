@@ -3,6 +3,7 @@ import { createAdminSupabaseClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/logger';
 import { createNotification } from '@/lib/notifications';
 import { notifyCoachWhatsApp } from '@/lib/whatsapp';
+import { dispatchLeadWebhook } from '@/lib/lead-webhook';
 import {
   COMPROMISO_LABEL,
   ESTADO_LABEL,
@@ -90,6 +91,29 @@ export async function POST(request: NextRequest) {
       await fanOutLeadNotifications(admin, enriched);
     } catch (err) {
       logger.warn('leads.phone.notify.threw', { err });
+    }
+
+    // Webhook externo (Make/Zapier/etc.) — usado para automatizaciones
+    // de follow-up por IG o Google Sheet.
+    if (enriched) {
+      void dispatchLeadWebhook('lead.booked', {
+        session_id: session_id.trim(),
+        instagram: enriched.instagram,
+        ocupacion: enriched.ocupacion,
+        fortaleza: enriched.fortaleza,
+        limitacion: enriched.limitacion,
+        estado: enriched.estado,
+        vision: enriched.vision,
+        compromiso: enriched.compromiso,
+        telefono: enriched.telefono,
+        pais: enriched.pais,
+        nombre: enriched.nombre,
+        email: enriched.email,
+        scheduled_at: enriched.scheduled_at,
+        disqualified: enriched.disqualified,
+        booked: true,
+        created_at: null,
+      });
     }
 
     return NextResponse.json({ success: true });

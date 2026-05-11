@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { CheckCircle2, Phone, Loader2 } from 'lucide-react';
 
 // Países hispanohablantes + Brasil + USA. value = código de marcado E.164 sin "+".
@@ -91,21 +91,7 @@ export default function PhoneCollect({ sessionId }: PhoneCollectProps) {
   }
 
   if (done) {
-    return (
-      <div className="bg-jjl-gray rounded-2xl border border-jjl-red/30 p-6 sm:p-7 shadow-[0_30px_60px_-30px_rgba(220,38,38,0.35)]">
-        <div className="flex items-center gap-2 text-jjl-red text-[11px] font-semibold tracking-[0.18em] uppercase">
-          <CheckCircle2 className="h-4 w-4" />
-          Listo
-        </div>
-        <h3 className="mt-3 text-2xl font-bold leading-tight">
-          Recibimos tu consulta.
-        </h3>
-        <p className="mt-3 text-[14px] text-white/85 leading-relaxed">
-          Pronto un coach te va a contactar para revisar tu caso en particular y
-          tratar con vos lo que te gustaría llevarte de esta sesión.
-        </p>
-      </div>
-    );
+    return <SuccessAndScroll />;
   }
 
   const selected = COUNTRIES.find((c) => c.code === country);
@@ -209,6 +195,49 @@ export default function PhoneCollect({ sessionId }: PhoneCollectProps) {
           No recibís promociones. Solo el contacto de esta consultoría.
         </p>
       </form>
+    </div>
+  );
+}
+
+/**
+ * Pantalla final post-teléfono: gracias + scroll automático a la siguiente
+ * sección para que el lead consuma el resto de la landing mientras esperamos
+ * la sesión.
+ */
+function SuccessAndScroll() {
+  useEffect(() => {
+    // Pequeño delay para que el usuario lea la confirmación antes de mover
+    // la página. Buscamos la primera sección después del hero y la
+    // scrolleamos al viewport.
+    const t = window.setTimeout(() => {
+      const target =
+        document.querySelector('[data-scroll-target="next"]') ||
+        document.querySelector('section ~ section');
+      if (target instanceof HTMLElement) {
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } else {
+        window.scrollBy({ top: 600, behavior: 'smooth' });
+      }
+    }, 1200);
+    return () => window.clearTimeout(t);
+  }, []);
+
+  return (
+    <div className="bg-jjl-gray rounded-2xl border border-jjl-red/30 p-6 sm:p-7 shadow-[0_30px_60px_-30px_rgba(220,38,38,0.35)]">
+      <div className="flex items-center gap-2 text-jjl-red text-[11px] font-semibold tracking-[0.18em] uppercase">
+        <CheckCircle2 className="h-4 w-4" />
+        Listo
+      </div>
+      <h3 className="mt-3 text-2xl font-bold leading-tight">
+        Recibimos tu consulta.
+      </h3>
+      <p className="mt-3 text-[14px] text-white/85 leading-relaxed">
+        Pronto un coach te va a contactar para revisar tu caso en particular y
+        tratar con vos lo que te gustaría llevarte de esta sesión.
+      </p>
+      <p className="mt-4 text-[12px] text-jjl-muted italic">
+        Mientras tanto, conocé un poco más abajo cómo trabajamos ↓
+      </p>
     </div>
   );
 }

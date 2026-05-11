@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminSupabaseClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/logger';
+import { dispatchLeadWebhook } from '@/lib/lead-webhook';
 
 export const runtime = 'nodejs';
 
@@ -79,12 +80,21 @@ export async function POST(request: NextRequest) {
     // Upsert sobre session_id (UNIQUE en la tabla). Permite que el insert
     // inicial llegue y que después varias llamadas (booked / phone) hagan
     // merge sin duplicar filas.
-    const { error } = await admin
+    const { data: row, error } = await admin
       .from('lead_quiz_responses')
-      .upsert(update, { onConflict: 'session_id' });
+      .upsert(update, { onConflict: 'session_id' })
+      .select(
+        'session_id, instagram, ocupacion, fortaleza, limitacion, estado, vision, compromiso, telefono, pais, nombre, email, scheduled_at, disqualified, booked, created_at',
+      )
+      .single();
     if (error) {
       logger.error('leads.quiz.upsert.failed', { err: error });
       return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+    // Si es el insert inicial (todas las respuestas), notificar al webhook
+    // externo para que dispare automatizaciones de follow-up (Make/Zapier).
+    if (isInitial && row) {
+      void dispatchLeadWebhook('lead.quiz_completed', row);
     }
     return NextResponse.json({ success: true });
   } catch (err) {

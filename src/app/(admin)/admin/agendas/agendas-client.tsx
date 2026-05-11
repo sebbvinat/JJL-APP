@@ -290,16 +290,27 @@ function LeadCard({
                   <div className="text-[10px] uppercase tracking-[0.16em] text-jjl-muted/70 font-semibold">
                     Instagram
                   </div>
-                  <a
-                    href={`https://instagram.com/${encodeURIComponent(igHandle)}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-pink-300 hover:text-pink-200 transition-colors mt-0.5"
-                  >
-                    <AtSign className="h-3.5 w-3.5" />
-                    {igHandle}
-                    <ExternalLink className="h-3 w-3 opacity-70" />
-                  </a>
+                  <div className="mt-0.5 flex items-center gap-2 flex-wrap">
+                    <a
+                      href={`https://instagram.com/${encodeURIComponent(igHandle)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-pink-300 hover:text-pink-200 transition-colors"
+                    >
+                      <AtSign className="h-3.5 w-3.5" />
+                      {igHandle}
+                      <ExternalLink className="h-3 w-3 opacity-70" />
+                    </a>
+                    <a
+                      href={`https://ig.me/m/${encodeURIComponent(igHandle)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 h-7 px-2.5 rounded-md bg-pink-500/10 border border-pink-500/30 hover:bg-pink-500/20 text-pink-300 hover:text-pink-100 text-[11px] font-semibold transition-colors"
+                    >
+                      <MessageSquare className="h-3.5 w-3.5" />
+                      Abrir DM
+                    </a>
+                  </div>
                 </div>
               )}
               <Field label="Ocupación" value={lead.ocupacion} />

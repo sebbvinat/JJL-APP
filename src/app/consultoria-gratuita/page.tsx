@@ -159,11 +159,6 @@ function Hero() {
             Construí tu <span className="text-jjl-red">juego ideal</span> según tu edad, tu físico y
             tu tiempo.
           </h1>
-          <p className="mt-6 text-lg text-jjl-muted max-w-xl leading-relaxed">
-            Lo que aprenderías en 2 años de clases generales lo armás en{' '}
-            <strong className="text-white">menos de 6 meses</strong> — entrenando las mismas horas
-            que ya entrenás. Sin instruccionales sueltos. Sin volver a empezar de cero.
-          </p>
           <ul className="mt-8 space-y-3">
             <li className="flex items-start gap-3 text-white/90">
               <Check className="h-5 w-5 text-jjl-red flex-shrink-0 mt-0.5" />
@@ -208,7 +203,7 @@ function Hero() {
 
 function Pilares() {
   return (
-    <section className="bg-black/60 py-20 px-6">
+    <section data-scroll-target="next" className="bg-black/60 py-20 px-6">
       <div className="max-w-5xl mx-auto">
         <div className="text-center">
           <div className="text-jjl-red text-xs font-semibold tracking-[0.2em] uppercase">
