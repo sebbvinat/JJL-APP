@@ -100,7 +100,7 @@ const QUESTIONS: QuizQuestion[] = [
       },
       {
         value: 'inestable',
-        label: 'Situación laboral inestable',
+        label: 'Trabajo inestable',
         Icon: Hourglass,
       },
       {
