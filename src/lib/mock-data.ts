@@ -110,7 +110,7 @@ export const MOCK_LESSONS: Record<string, MockLesson[]> = {
     { id: 'les-8-1', titulo: 'Escape de 100KG variante 2', youtube_id: '', descripcion: '', orden: 1, duracion: '13:00', completed: false, tipo: 'video' },
     { id: 'les-8-2', titulo: 'Drill 1: 100 KG variante 2', youtube_id: '', descripcion: '', orden: 2, duracion: '8:00', completed: false, tipo: 'video' },
     { id: 'les-8-3', titulo: 'Drill 2: Combinacion escape + guardia cerrada', youtube_id: '', descripcion: '', orden: 3, duracion: '10:00', completed: false, tipo: 'video' },
-    { id: 'les-8-4', titulo: 'Especifico de guardia cerrada', youtube_id: '', descripcion: '', orden: 4, duracion: '12:00', completed: false, tipo: 'video' },
+    { id: 'les-8-4', titulo: 'Especifico de 100KG', youtube_id: '', descripcion: '', orden: 4, duracion: '12:00', completed: false, tipo: 'video' },
     { id: 'les-8-5', titulo: 'Reflexion semanal', youtube_id: '', descripcion: 'Responde las preguntas de reflexion de la semana', orden: 5, duracion: '', completed: false, tipo: 'reflection' },
   ],
   'mod-9': [

@@ -135,7 +135,7 @@ const SHARED_MONTH_2: PlanillaWeek[] = [
       v('Escape de 100KG variante 2'),
       v('Drill 1: 100 KG variante 2'),
       v('Drill 2: Drill combinación escape + guardia cerrada'),
-      v('Específico de guardia cerrada'),
+      v('Específico de 100KG'),
       r(),
     ],
   },
