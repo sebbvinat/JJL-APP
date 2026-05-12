@@ -166,38 +166,46 @@ function Hero() {
             Empezá tu evaluación
           </div>
           <EvaluationQuiz calendlyUrl={CALENDLY_URL} />
+        </div>
+      </div>
+    </section>
+  );
+}
 
-          {/* Bullets + prueba social — debajo del formulario para que el form
-              sea lo primero que ven y esto refuerce justo después. */}
-          <ul className="mt-8 space-y-3">
-            <li className="flex items-start gap-3 text-white/90">
-              <Check className="h-5 w-5 text-jjl-red flex-shrink-0 mt-0.5" />
-              <span>
-                Dejá de <strong className="text-white">improvisar</strong> en cada lucha
-              </span>
-            </li>
-            <li className="flex items-start gap-3 text-white/90">
-              <Check className="h-5 w-5 text-jjl-red flex-shrink-0 mt-0.5" />
-              <span>
-                Sabé exactamente <strong className="text-white">qué entrenar y cómo</strong> antes
-                de pisar el tatami
-              </span>
-            </li>
-            <li className="flex items-start gap-3 text-white/90">
-              <Check className="h-5 w-5 text-jjl-red flex-shrink-0 mt-0.5" />
-              <span>
-                Hecho para <strong className="text-white">practicantes +30</strong> que entrenan 2-3
-                veces por semana
-              </span>
-            </li>
-          </ul>
-          <div className="mt-6 flex items-center gap-3 text-sm text-jjl-muted">
-            <span className="text-jjl-red tracking-widest">★★★★★</span>
+// Banda con los beneficios + prueba social — vive ABAJO del Hero/formulario
+// para que sea lo primero que el lead lee después de mirar el form.
+function HeroProof() {
+  return (
+    <section className="relative bg-jjl-dark border-t border-jjl-border/40 py-12 px-6">
+      <div className="max-w-3xl mx-auto">
+        <ul className="space-y-3">
+          <li className="flex items-start gap-3 text-white/90 text-base sm:text-lg">
+            <Check className="h-5 w-5 text-jjl-red flex-shrink-0 mt-1" />
             <span>
-              <strong className="text-white">+350 practicantes</strong> ya ordenaron su juego con el
-              método.
+              Dejá de <strong className="text-white">improvisar</strong> en cada lucha
             </span>
-          </div>
+          </li>
+          <li className="flex items-start gap-3 text-white/90 text-base sm:text-lg">
+            <Check className="h-5 w-5 text-jjl-red flex-shrink-0 mt-1" />
+            <span>
+              Sabé exactamente <strong className="text-white">qué entrenar y cómo</strong> antes de
+              pisar el tatami
+            </span>
+          </li>
+          <li className="flex items-start gap-3 text-white/90 text-base sm:text-lg">
+            <Check className="h-5 w-5 text-jjl-red flex-shrink-0 mt-1" />
+            <span>
+              Hecho para <strong className="text-white">practicantes +30</strong> que entrenan 2-3
+              veces por semana
+            </span>
+          </li>
+        </ul>
+        <div className="mt-8 flex items-center justify-center gap-3 text-sm sm:text-base text-jjl-muted text-center">
+          <span className="text-jjl-red tracking-widest text-base sm:text-lg">★★★★★</span>
+          <span>
+            <strong className="text-white">+350 practicantes</strong> ya ordenaron su juego con el
+            método.
+          </span>
         </div>
       </div>
     </section>
@@ -457,6 +465,7 @@ export default function ConsultoriaPage() {
       <TrackConsultoriaView />
       <Topbar />
       <Hero />
+      <HeroProof />
       <Pilares />
       <Deliverables />
       <Polarization />
