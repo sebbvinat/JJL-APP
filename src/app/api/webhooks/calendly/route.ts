@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // invitee.created → guardamos nombre, email y fecha del agendamiento.
+  // invitee.created → guardamos nombre, email, teléfono y fecha del agendamiento.
   const name = typeof payload.name === 'string' ? payload.name.trim() : null;
   const email = typeof payload.email === 'string' ? payload.email.trim() : null;
   const scheduledEvent =
@@ -90,21 +90,29 @@ export async function POST(request: NextRequest) {
   const eventUri =
     typeof scheduledEvent.uri === 'string' ? scheduledEvent.uri : null;
 
+  // Teléfono — Calendly lo manda en una de dos formas:
+  //   1) `text_reminder_number` si tenés activado SMS reminders.
+  //   2) `questions_and_answers[]` si agregaste una pregunta custom tipo
+  //      "Teléfono" / "WhatsApp" / "Phone" y la marcaste como required.
+  // Tomamos cualquiera que aparezca.
+  const phone = extractPhone(payload);
+
+  // Solo seteamos campos que vinieron — no pisamos lo que ya esté guardado.
+  const update: Record<string, unknown> = {
+    session_id: sessionId,
+    scheduled_at: startTime,
+    calendly_event_uri: eventUri,
+    booked: true,
+  };
+  if (name) update.nombre = name;
+  if (email) update.email = email;
+  if (phone) update.telefono = phone;
+
   try {
     const admin = createAdminSupabaseClient();
     const { error } = await admin
       .from('lead_quiz_responses')
-      .upsert(
-        {
-          session_id: sessionId,
-          nombre: name,
-          email,
-          scheduled_at: startTime,
-          calendly_event_uri: eventUri,
-          booked: true,
-        },
-        { onConflict: 'session_id' },
-      );
+      .upsert(update, { onConflict: 'session_id' });
     if (error) {
       logger.error('calendly.webhook.upsert.failed', { err: error });
       return NextResponse.json({ error: error.message }, { status: 500 });
@@ -114,6 +122,36 @@ export async function POST(request: NextRequest) {
     logger.error('calendly.webhook.unhandled', { err });
     return NextResponse.json({ error: 'Error interno' }, { status: 500 });
   }
+}
+
+/**
+ * Busca un teléfono dentro del payload del webhook de Calendly. Prioriza
+ * `text_reminder_number` (SMS reminders) y cae a `questions_and_answers`
+ * con preguntas que parezcan ser de teléfono o WhatsApp.
+ */
+function extractPhone(payload: Record<string, unknown>): string | null {
+  const reminder = payload.text_reminder_number;
+  if (typeof reminder === 'string' && reminder.replace(/\D/g, '').length >= 6) {
+    return reminder.trim();
+  }
+  const qa = payload.questions_and_answers;
+  if (Array.isArray(qa)) {
+    const phoneLike = /(tel[eé]fono|whats|whatsapp|phone|n[uú]mero|m[oó]vil|celular)/i;
+    for (const entry of qa) {
+      if (!entry || typeof entry !== 'object') continue;
+      const q = (entry as Record<string, unknown>).question;
+      const a = (entry as Record<string, unknown>).answer;
+      if (
+        typeof q === 'string' &&
+        typeof a === 'string' &&
+        phoneLike.test(q) &&
+        a.replace(/\D/g, '').length >= 6
+      ) {
+        return a.trim();
+      }
+    }
+  }
+  return null;
 }
 
 /**

@@ -598,7 +598,15 @@ function QuizResult({
   const estadoHook = answers.estado ? ESTADO_HOOK[answers.estado] : null;
   const visionHook = answers.vision ? VISION_HOOK[answers.vision] : null;
 
-  const [scheduled, setScheduled] = useState(false);
+  // Después de agendar:
+  //   - 'pending'  → todavía mostramos el calendly (lead no agendó)
+  //   - 'checking' → Calendly emitió event_scheduled, estamos esperando
+  //                  a ver si el webhook nos guardó el teléfono.
+  //   - 'phone'    → no llegó teléfono desde Calendly, pedímoslo nosotros.
+  //   - 'done'     → ya tenemos teléfono, mostrar gracias + scroll.
+  const [postBookStep, setPostBookStep] = useState<
+    'pending' | 'checking' | 'phone' | 'done'
+  >('pending');
 
   // Calendly emite postMessage cuando el lead termina de agendar.
   useEffect(() => {
@@ -606,21 +614,58 @@ function QuizResult({
       const data = e.data as { event?: unknown } | null;
       if (!data || typeof data.event !== 'string') return;
       if (data.event === 'calendly.event_scheduled') {
-        // Avisar al backend que esta sesión ya agendó (best-effort).
         void fetch('/api/leads/quiz', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ session_id: sessionId, booked: true }),
         }).catch(() => undefined);
-        setScheduled(true);
+        setPostBookStep('checking');
       }
     }
     window.addEventListener('message', handler);
     return () => window.removeEventListener('message', handler);
   }, [sessionId]);
 
-  if (scheduled) {
+  // Mientras estamos en 'checking', poleamos /api/leads/check para ver si
+  // el webhook de Calendly ya guardó el teléfono. Si sí, saltamos el form.
+  useEffect(() => {
+    if (postBookStep !== 'checking') return;
+    let cancelled = false;
+    const deadline = Date.now() + 6000;
+    async function poll() {
+      while (!cancelled && Date.now() < deadline) {
+        try {
+          const res = await fetch(
+            `/api/leads/check?session_id=${encodeURIComponent(sessionId)}`,
+          );
+          if (res.ok) {
+            const j = (await res.json()) as { has_phone?: boolean };
+            if (j.has_phone) {
+              if (!cancelled) setPostBookStep('done');
+              return;
+            }
+          }
+        } catch {
+          /* keep trying */
+        }
+        await new Promise((r) => setTimeout(r, 600));
+      }
+      if (!cancelled) setPostBookStep('phone');
+    }
+    void poll();
+    return () => {
+      cancelled = true;
+    };
+  }, [postBookStep, sessionId]);
+
+  if (postBookStep === 'checking') {
+    return <CheckingScreen />;
+  }
+  if (postBookStep === 'phone') {
     return <PhoneCollect sessionId={sessionId} />;
+  }
+  if (postBookStep === 'done') {
+    return <BookedSuccess />;
   }
 
   return (
@@ -667,6 +712,67 @@ function QuizResult({
 
       <p className="mt-3 text-[11px] text-jjl-muted text-center">
         45 min · Con un coach real · Solo agendamos con quienes están listos para avanzar
+      </p>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Pantallas post-agenda: spinner mientras esperamos al webhook de Calendly
+// y mensaje final cuando ya tenemos teléfono (vía Calendly o vía PhoneCollect).
+// ---------------------------------------------------------------------------
+
+function CheckingScreen() {
+  return (
+    <div className="bg-jjl-gray rounded-2xl border border-jjl-red/30 p-6 sm:p-7 shadow-[0_30px_60px_-30px_rgba(220,38,38,0.35)]">
+      <div className="flex items-center gap-2 text-jjl-red text-[11px] font-semibold tracking-[0.18em] uppercase">
+        <CheckCircle2 className="h-4 w-4" />
+        Confirmando tu reserva
+      </div>
+      <h3 className="mt-3 text-xl sm:text-2xl font-bold leading-snug">
+        Procesando tu agenda...
+      </h3>
+      <p className="mt-3 text-[14px] text-white/85 leading-relaxed">
+        Un segundo mientras confirmamos tus datos.
+      </p>
+      <div className="mt-5 flex items-center gap-2 text-[12px] text-jjl-muted">
+        <span className="h-2 w-2 rounded-full bg-jjl-red animate-pulse" />
+        <span>Sincronizando con Calendly</span>
+      </div>
+    </div>
+  );
+}
+
+function BookedSuccess() {
+  useEffect(() => {
+    const t = window.setTimeout(() => {
+      const target =
+        document.querySelector('[data-scroll-target="next"]') ||
+        document.querySelector('section ~ section');
+      if (target instanceof HTMLElement) {
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } else {
+        window.scrollBy({ top: 600, behavior: 'smooth' });
+      }
+    }, 1200);
+    return () => window.clearTimeout(t);
+  }, []);
+
+  return (
+    <div className="bg-jjl-gray rounded-2xl border border-jjl-red/30 p-6 sm:p-7 shadow-[0_30px_60px_-30px_rgba(220,38,38,0.35)]">
+      <div className="flex items-center gap-2 text-jjl-red text-[11px] font-semibold tracking-[0.18em] uppercase">
+        <CheckCircle2 className="h-4 w-4" />
+        Listo
+      </div>
+      <h3 className="mt-3 text-2xl font-bold leading-tight">
+        Recibimos tu consulta.
+      </h3>
+      <p className="mt-3 text-[14px] text-white/85 leading-relaxed">
+        Pronto un coach te va a contactar por WhatsApp para revisar tu caso en
+        particular y tratar con vos lo que te gustaría llevarte de esta sesión.
+      </p>
+      <p className="mt-4 text-[12px] text-jjl-muted italic">
+        Mientras tanto, conocé un poco más abajo cómo trabajamos ↓
       </p>
     </div>
   );
