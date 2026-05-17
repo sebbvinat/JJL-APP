@@ -54,6 +54,38 @@ export async function POST(request: NextRequest) {
     let errors = 0;
     const details: string[] = [];
 
+    // Cargar overrides de video (cargados desde /admin/videos) para
+    // aplicarlos arriba de los valores de la planilla del código — sino el
+    // sync pisaría los videos que el coach cargó a mano.
+    const norm = (s: string) =>
+      s.toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '').trim();
+    const { data: overrideRows } = await adminClient
+      .from('lesson_video_overrides')
+      .select('module_id, lesson_key, youtube_id, titulo, descripcion');
+    const overrideByModule = new Map<
+      string,
+      Map<string, { youtube_id?: string | null; titulo?: string | null; descripcion?: string | null }>
+    >();
+    for (const o of overrideRows || []) {
+      if (!o?.module_id || !o?.lesson_key) continue;
+      if (!overrideByModule.has(o.module_id)) overrideByModule.set(o.module_id, new Map());
+      overrideByModule.get(o.module_id)!.set(o.lesson_key, o);
+    }
+    const applyOverrides = (moduleId: string, lessons: any[]): any[] => {
+      const m = overrideByModule.get(moduleId);
+      if (!m || !Array.isArray(lessons)) return lessons;
+      return lessons.map((l) => {
+        const ov = l && typeof l.titulo === 'string' ? m.get(norm(l.titulo)) : undefined;
+        if (!ov) return l;
+        return {
+          ...l,
+          ...(ov.youtube_id != null ? { youtube_id: ov.youtube_id } : {}),
+          ...(ov.titulo != null ? { titulo: ov.titulo } : {}),
+          ...(ov.descripcion != null ? { descripcion: ov.descripcion } : {}),
+        };
+      });
+    };
+
     // Group students by planilla
     const byPlanilla = new Map<string, typeof students>();
     for (const s of students) {
@@ -82,7 +114,7 @@ export async function POST(request: NextRequest) {
                 semana_numero: mod.semana_numero,
                 titulo: mod.titulo,
                 descripcion: mod.descripcion,
-                lessons: mod.lessons,
+                lessons: applyOverrides(mod.module_id, mod.lessons),
                 updated_at: new Date().toISOString(),
               },
               { onConflict: 'user_id,module_id' }

@@ -108,5 +108,31 @@ export async function POST(request: NextRequest) {
     updated++;
   }
 
+  // Persistir SIEMPRE un override canónico, exista o no algún alumno con el
+  // módulo. Así el video no se pierde al recargar ni al redeployar. La key
+  // es el titulo normalizado (preferimos el original; si solo vino el id,
+  // igual necesitamos un titulo — usamos el nuevo si cambió).
+  const overrideKey = norm(lesson_titulo_original || titulo || '');
+  if (overrideKey) {
+    const overrideRow: Record<string, unknown> = {
+      module_id,
+      lesson_key: overrideKey,
+      updated_at: new Date().toISOString(),
+    };
+    if (typeof youtube_id === 'string') overrideRow.youtube_id = youtube_id;
+    if (typeof titulo === 'string') overrideRow.titulo = titulo;
+    if (typeof descripcion === 'string') overrideRow.descripcion = descripcion;
+    const { error: ovErr } = await admin
+      .from('lesson_video_overrides')
+      .upsert(overrideRow, { onConflict: 'module_id,lesson_key' });
+    if (ovErr) {
+      logger.error('admin.updateLessonVideo.override.failed', {
+        err: ovErr,
+        module_id,
+        overrideKey,
+      });
+    }
+  }
+
   return NextResponse.json({ updated });
 }

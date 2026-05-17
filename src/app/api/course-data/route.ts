@@ -1,5 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthedUser, createAdminSupabaseClient } from '@/lib/supabase/server';
+import { getPlanillaForSave } from '@/lib/planillas';
+
+// Mes 0/1/2 (mod-0..mod-8) son idénticos en las 4 planillas (FUNDAMENTOS +
+// SHARED_MONTH_1 + SHARED_MONTH_2), así que cualquiera sirve como fuente
+// canónica de fallback. Para Mes 3+ esto puede no ser exacto por planilla,
+// pero es infinitamente mejor que mostrar el editor vacío.
+function planillaModuleFallback(moduleId: string) {
+  const mods = getPlanillaForSave('livianos');
+  if (!mods) return null;
+  const m = mods.find((x) => x.module_id === moduleId);
+  if (!m) return null;
+  return {
+    id: m.module_id,
+    semana_numero: m.semana_numero,
+    titulo: m.titulo,
+    descripcion: m.descripcion,
+    lessons: m.lessons,
+  };
+}
 
 // GET: Load course data for the logged-in user
 // ?all=true → all modules for this user (listing page)
@@ -73,6 +92,38 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'moduleId requerido' }, { status: 400 });
   }
 
+  // Overrides canónicos de video (cargados desde /admin/videos). Se aplican
+  // arriba de course_data o de la planilla. Key = titulo normalizado.
+  const normKey = (s: string) =>
+    s.toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '').trim();
+  const { data: overrideRows } = await adminClient
+    .from('lesson_video_overrides')
+    .select('lesson_key, youtube_id, titulo, descripcion')
+    .eq('module_id', moduleId);
+  const overrides = new Map<
+    string,
+    { youtube_id?: string | null; titulo?: string | null; descripcion?: string | null }
+  >();
+  for (const o of overrideRows || []) {
+    if (o?.lesson_key) overrides.set(o.lesson_key, o);
+  }
+  const applyOverrides = (lessons: unknown): unknown => {
+    if (!Array.isArray(lessons) || overrides.size === 0) return lessons;
+    return lessons.map((l) => {
+      if (!l || typeof l !== 'object') return l;
+      const lesson = l as Record<string, unknown>;
+      const t = typeof lesson.titulo === 'string' ? lesson.titulo : '';
+      const ov = overrides.get(normKey(t));
+      if (!ov) return lesson;
+      return {
+        ...lesson,
+        ...(ov.youtube_id != null ? { youtube_id: ov.youtube_id } : {}),
+        ...(ov.titulo != null ? { titulo: ov.titulo } : {}),
+        ...(ov.descripcion != null ? { descripcion: ov.descripcion } : {}),
+      };
+    });
+  };
+
   let { data, error } = await adminClient
     .from('course_data')
     .select('*')
@@ -104,7 +155,7 @@ export async function GET(request: NextRequest) {
         semana_numero: data.semana_numero,
         titulo: data.titulo,
         descripcion: data.descripcion,
-        lessons: data.lessons,
+        lessons: applyOverrides(data.lessons),
       },
       moduleInfo: {
         semana_numero: data.semana_numero,
@@ -112,6 +163,25 @@ export async function GET(request: NextRequest) {
         descripcion: data.descripcion || '',
       },
     });
+  }
+
+  // No hay NINGUNA fila de course_data para este módulo (ej. todavía no se
+  // sincronizó post-deploy, o ningún alumno tiene la planilla). Para admins,
+  // devolvemos la planilla del código como fuente canónica para que el
+  // editor de videos muestre las lecciones reales con sus youtube_ids.
+  if (isAdmin) {
+    const fallback = planillaModuleFallback(moduleId);
+    if (fallback) {
+      return NextResponse.json({
+        module: { ...fallback, lessons: applyOverrides(fallback.lessons) },
+        moduleInfo: {
+          semana_numero: fallback.semana_numero,
+          titulo: fallback.titulo,
+          descripcion: fallback.descripcion || '',
+        },
+        source: 'planilla-fallback',
+      });
+    }
   }
 
   return NextResponse.json({ module: null });
