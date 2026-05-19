@@ -102,8 +102,8 @@ const SHARED_MONTH_2: PlanillaWeek[] = [
     titulo: 'Escape 100KG I',
     lessons: [
       v('Conceptos de 100kg', 'cGgEqwvHmYY'),
-      v('Escape 100 kilos'),
-      v('Drill 1: Escape de 100kg'),
+      v('Escape 100 kilos', 'yS70P7xKuVU'),
+      v('Drill 1: Escape de 100kg', 'phSyUZVGHh4'),
       v('Drill 2: Escape + Combinación Guardia cerrada'),
       v('Específico de 100KG'),
       r(),
@@ -113,7 +113,7 @@ const SHARED_MONTH_2: PlanillaWeek[] = [
     semana_numero: 6,
     titulo: 'Escape 100KG II',
     lessons: [
-      v('Escape de 100KG variante 2'),
+      v('Escape de 100KG variante 2', 'kWdOZbzMDI0'),
       v('Drill 1: 100 KG variante 2'),
       v('Drill 2: Drill combinación escape + guardia cerrada', 'E2uO-Meey88'),
       v('Específico de 100KG'),

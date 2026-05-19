@@ -92,35 +92,90 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'moduleId requerido' }, { status: 400 });
   }
 
-  // Overrides canónicos de video (cargados desde /admin/videos). Se aplican
-  // arriba de course_data o de la planilla. Key = titulo normalizado.
   const normKey = (s: string) =>
     s.toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '').trim();
+
+  // Overrides canónicos de video (cargados desde /admin/videos). Históricamente
+  // se filtraban por module_id, pero el module_id quedó desalineado entre la
+  // planilla del código, el editor (mock-data) y los course_data viejos de los
+  // alumnos (el "Mes 2" se reordenó y nunca se re-sincronizó). Por eso ahora
+  // matcheamos por titulo normalizado: si hay un override para ese module_id lo
+  // preferimos; si no, y el titulo identifica un único override, lo aplicamos
+  // igual. Si el titulo es ambiguo (varios módulos), exigimos match exacto de
+  // module_id para no pisar la lección equivocada.
+  type Override = {
+    module_id: string;
+    youtube_id?: string | null;
+    titulo?: string | null;
+    descripcion?: string | null;
+  };
   const { data: overrideRows } = await adminClient
     .from('lesson_video_overrides')
-    .select('lesson_key, youtube_id, titulo, descripcion')
-    .eq('module_id', moduleId);
-  const overrides = new Map<
-    string,
-    { youtube_id?: string | null; titulo?: string | null; descripcion?: string | null }
-  >();
-  for (const o of overrideRows || []) {
-    if (o?.lesson_key) overrides.set(o.lesson_key, o);
+    .select('module_id, lesson_key, youtube_id, titulo, descripcion');
+  const overridesByKey = new Map<string, Override[]>();
+  for (const o of (overrideRows as Override[] | null) || []) {
+    const key = (o as unknown as { lesson_key?: string }).lesson_key;
+    if (!key) continue;
+    const list = overridesByKey.get(key) || [];
+    list.push(o);
+    overridesByKey.set(key, list);
   }
+  const pickOverride = (titulo: string): Override | null => {
+    const list = overridesByKey.get(normKey(titulo));
+    if (!list || list.length === 0) return null;
+    const exact = list.find((o) => o.module_id === moduleId);
+    if (exact) return exact;
+    return list.length === 1 ? list[0] : null;
+  };
+
+  // Fuente de verdad de fallback: la planilla del código. Si una lección quedó
+  // sin youtube_id en el course_data del alumno (datos viejos, nunca re-synced),
+  // la completamos por titulo desde la planilla. Mes 0-2 es idéntico en las 4
+  // planillas, así que 'livianos' sirve aun si el alumno no tiene planilla.
+  let targetPlanillaId: string | null = null;
+  {
+    const { data: tp } = await adminClient
+      .from('users')
+      .select('planilla_id')
+      .eq('id', targetUserId)
+      .single();
+    targetPlanillaId = (tp as { planilla_id?: string | null } | null)?.planilla_id ?? null;
+  }
+  const planillaYtByTitulo = new Map<string, string>();
+  for (const pid of [targetPlanillaId || 'livianos', 'livianos']) {
+    const mods = getPlanillaForSave(pid);
+    if (!mods) continue;
+    for (const m of mods) {
+      for (const ls of m.lessons) {
+        const yt = (ls as { youtube_id?: string }).youtube_id;
+        const tt = (ls as { titulo?: string }).titulo;
+        if (tt && yt && !planillaYtByTitulo.has(normKey(tt))) {
+          planillaYtByTitulo.set(normKey(tt), yt);
+        }
+      }
+    }
+  }
+
   const applyOverrides = (lessons: unknown): unknown => {
-    if (!Array.isArray(lessons) || overrides.size === 0) return lessons;
+    if (!Array.isArray(lessons)) return lessons;
     return lessons.map((l) => {
       if (!l || typeof l !== 'object') return l;
       const lesson = l as Record<string, unknown>;
       const t = typeof lesson.titulo === 'string' ? lesson.titulo : '';
-      const ov = overrides.get(normKey(t));
-      if (!ov) return lesson;
-      return {
+      const ov = pickOverride(t);
+      const merged: Record<string, unknown> = {
         ...lesson,
-        ...(ov.youtube_id != null ? { youtube_id: ov.youtube_id } : {}),
-        ...(ov.titulo != null ? { titulo: ov.titulo } : {}),
-        ...(ov.descripcion != null ? { descripcion: ov.descripcion } : {}),
+        ...(ov?.youtube_id != null ? { youtube_id: ov.youtube_id } : {}),
+        ...(ov?.titulo != null ? { titulo: ov.titulo } : {}),
+        ...(ov?.descripcion != null ? { descripcion: ov.descripcion } : {}),
       };
+      // Relleno final: si sigue sin video, tomarlo de la planilla por titulo.
+      const curYt = merged.youtube_id;
+      if ((curYt == null || curYt === '') && lesson.tipo !== 'reflection') {
+        const fromPlanilla = planillaYtByTitulo.get(normKey(t));
+        if (fromPlanilla) merged.youtube_id = fromPlanilla;
+      }
+      return merged;
     });
   };
 

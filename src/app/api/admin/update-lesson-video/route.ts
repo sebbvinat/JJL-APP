@@ -52,14 +52,16 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Nada para actualizar' }, { status: 400 });
   }
 
-  // Fetch every course_data row that has this module and has the lesson
-  // with matching lesson_id inside its lessons array. We update each row's
-  // lessons JSONB individually because Postgres JSONB array updates are
-  // cleanest one row at a time.
+  // Traemos TODOS los course_data y matcheamos por lesson_id/titulo más abajo.
+  // No filtramos por module_id porque quedó desalineado entre el editor
+  // (mock-data), la planilla y los course_data viejos de los alumnos (el
+  // "Mes 2" se reordenó y nunca se re-sincronizó). Filtrar por module_id hacía
+  // que la edición no llegara a ningún alumno. La cohorte es chica, así que
+  // escanear todas las filas es barato. Igual seguimos persistiendo el
+  // override canónico para que /api/course-data lo aplique por titulo.
   const { data: rows, error: readErr } = await admin
     .from('course_data')
-    .select('user_id, module_id, lessons')
-    .eq('module_id', module_id);
+    .select('user_id, module_id, lessons');
   if (readErr) {
     logger.error('admin.updateLessonVideo.read.failed', { err: readErr });
     return NextResponse.json({ error: readErr.message }, { status: 500 });
