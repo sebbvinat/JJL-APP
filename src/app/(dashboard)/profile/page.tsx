@@ -371,7 +371,7 @@ function ProfileContent() {
   }
 
   return (
-    <div className="space-y-6 max-w-3xl mx-auto">
+    <div className="space-y-6 max-w-3xl lg:max-w-5xl xl:max-w-6xl mx-auto">
       {/* Profile Header */}
       <Card className="relative overflow-hidden">
         <div

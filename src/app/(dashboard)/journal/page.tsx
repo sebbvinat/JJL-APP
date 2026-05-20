@@ -358,7 +358,7 @@ export default function JournalPage() {
           cumplido={entry.objetivo_cumplido}
           onCumplido={(v) => update('objetivo_cumplido', v)}
           cumplidoLabel="Cumpliste?"
-          placeholder="Ej: Mejorar timing en pasadas de guardia"
+          placeholder="Ej: Finalizar desde guardia cerrada / Entrar a X desde DLR"
         />
 
       </section>

@@ -32,6 +32,15 @@ interface Attendee {
   status: string;
 }
 
+interface Llamada {
+  id: string;
+  name: string;
+  webViewLink: string | null;
+  thumbnailLink: string | null;
+  createdTime: string | null;
+  size: string | null;
+}
+
 export default function EventsPage() {
   const { profile } = useUser();
   const isAdmin = profile?.rol === 'admin';
@@ -52,6 +61,13 @@ export default function EventsPage() {
   const [recurrencia, setRecurrencia] = useState('none');
   const [recurrenciaFin, setRecurrenciaFin] = useState('');
   const [creating, setCreating] = useState(false);
+
+  // Llamadas 1 a 1 (admin) — lazy-load al expandir
+  const [llamadas, setLlamadas] = useState<Llamada[]>([]);
+  const [llamadasOpen, setLlamadasOpen] = useState(false);
+  const [llamadasLoading, setLlamadasLoading] = useState(false);
+  const [llamadasError, setLlamadasError] = useState<string | null>(null);
+  const [llamadasLoaded, setLlamadasLoaded] = useState(false);
 
   useEffect(() => {
     loadEvents();
@@ -147,9 +163,34 @@ export default function EventsPage() {
     }
   }
 
+  async function loadLlamadas() {
+    if (llamadasLoaded || llamadasLoading) return;
+    setLlamadasLoading(true);
+    setLlamadasError(null);
+    try {
+      const res = await fetch('/api/admin/llamadas');
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || 'Error al cargar llamadas');
+      }
+      const data = await res.json();
+      setLlamadas(data.videos || []);
+      setLlamadasLoaded(true);
+    } catch (err) {
+      setLlamadasError(err instanceof Error ? err.message : 'Error');
+    }
+    setLlamadasLoading(false);
+  }
+
+  function toggleLlamadas() {
+    const next = !llamadasOpen;
+    setLlamadasOpen(next);
+    if (next) loadLlamadas();
+  }
+
   if (loading) {
     return (
-      <div className="space-y-4 max-w-2xl mx-auto animate-pulse">
+      <div className="space-y-4 max-w-2xl lg:max-w-4xl xl:max-w-5xl mx-auto animate-pulse">
         <div className="h-12 bg-jjl-gray-light/50 rounded-xl" />
         <div className="h-40 bg-jjl-gray-light/50 rounded-xl" />
         <div className="h-40 bg-jjl-gray-light/50 rounded-xl" />
@@ -158,7 +199,7 @@ export default function EventsPage() {
   }
 
   return (
-    <div className="space-y-6 max-w-2xl mx-auto">
+    <div className="space-y-6 max-w-2xl lg:max-w-4xl xl:max-w-5xl mx-auto">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -172,6 +213,92 @@ export default function EventsPage() {
           </Button>
         )}
       </div>
+
+      {/* Llamadas 1 a 1 — admin only */}
+      {isAdmin && (
+        <Card>
+          <button
+            onClick={toggleLlamadas}
+            className="w-full flex items-center gap-3 text-left"
+          >
+            <div className="h-10 w-10 rounded-lg bg-jjl-red/10 ring-1 ring-jjl-red/25 text-jjl-red flex items-center justify-center shrink-0">
+              <Video className="h-5 w-5" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h2 className="font-bold">Llamadas 1 a 1</h2>
+                <span className="text-[10px] uppercase tracking-wider bg-jjl-red/20 text-jjl-red px-1.5 py-0.5 rounded font-bold">
+                  Admin
+                </span>
+                {llamadasLoaded && (
+                  <span className="text-[11px] text-jjl-muted tabular-nums">
+                    {llamadas.length}
+                  </span>
+                )}
+              </div>
+              <p className="text-[12px] text-jjl-muted">
+                Grabaciones de las calls con alumnos
+              </p>
+            </div>
+            <ChevronDown
+              className={`h-5 w-5 text-jjl-muted shrink-0 transition-transform ${llamadasOpen ? 'rotate-180' : ''}`}
+            />
+          </button>
+
+          {llamadasOpen && (
+            <div className="mt-4 border-t border-jjl-border/40 pt-3 space-y-2">
+              {llamadasLoading && (
+                <p className="text-[12px] text-jjl-muted italic text-center py-4">
+                  Cargando…
+                </p>
+              )}
+              {llamadasError && (
+                <div className="text-[12px] text-red-400 bg-red-500/10 border border-red-500/30 rounded-lg p-3">
+                  {llamadasError}
+                </div>
+              )}
+              {!llamadasLoading && !llamadasError && llamadasLoaded && llamadas.length === 0 && (
+                <p className="text-[12px] text-jjl-muted italic text-center py-4">
+                  Sin llamadas todavía en la carpeta.
+                </p>
+              )}
+              {llamadas.map((v) => (
+                <a
+                  key={v.id}
+                  href={v.webViewLink || `https://drive.google.com/file/d/${v.id}/view`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-3 p-2.5 rounded-lg border border-jjl-border bg-white/[0.02] hover:bg-white/[0.04] hover:border-jjl-border-strong group transition-all"
+                >
+                  {v.thumbnailLink ? (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img
+                      src={v.thumbnailLink}
+                      alt=""
+                      className="h-12 w-20 object-cover rounded shrink-0 bg-black/40"
+                    />
+                  ) : (
+                    <div className="h-12 w-20 rounded bg-black/40 shrink-0 flex items-center justify-center">
+                      <Video className="h-5 w-5 text-jjl-muted" />
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[13px] font-semibold text-white group-hover:text-jjl-red truncate">
+                      {v.name}
+                    </p>
+                    {v.createdTime && (
+                      <p className="text-[11px] text-jjl-muted capitalize">
+                        {format(new Date(v.createdTime), "d 'de' MMM yyyy", { locale: es })}
+                      </p>
+                    )}
+                  </div>
+                  <ExternalLink className="h-4 w-4 text-jjl-muted group-hover:text-white shrink-0" />
+                </a>
+              ))}
+            </div>
+          )}
+        </Card>
+      )}
 
       {/* Create form */}
       {showCreate && (

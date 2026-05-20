@@ -197,7 +197,7 @@ function LibraryPageInner() {
   }, [data]);
 
   return (
-    <div className="space-y-5 max-w-3xl mx-auto pb-12">
+    <div className="space-y-5 max-w-3xl lg:max-w-5xl xl:max-w-6xl mx-auto pb-12">
       {/* Header */}
       <div className="flex items-end justify-between flex-wrap gap-4">
         <div>

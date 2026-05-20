@@ -467,6 +467,21 @@ function TechniqueEditor({
     });
   }
 
+  // Si el editor creó una técnica draft (porque se subió una foto antes de
+  // tener nombre) y el usuario cancela sin guardar, la borramos para no dejar
+  // filas huérfanas vacías. Antes esto causaba que aparecieran cards duplicadas
+  // sin contenido cada vez que se cancelaba un alta.
+  async function handleCancel() {
+    if (!initial && techniqueIdRef.current) {
+      try {
+        await fetch(`/api/techniques/${techniqueIdRef.current}`, { method: 'DELETE' });
+      } catch {
+        /* best-effort */
+      }
+    }
+    onCancel();
+  }
+
   async function save() {
     if (!nombre.trim()) {
       toast.error('Necesitas un nombre');
@@ -500,7 +515,7 @@ function TechniqueEditor({
   return (
     <div className="space-y-4">
       <button
-        onClick={onCancel}
+        onClick={handleCancel}
         className="inline-flex items-center gap-1.5 text-[13px] text-jjl-muted hover:text-white"
       >
         <ChevronLeft className="h-4 w-4" />
@@ -685,7 +700,7 @@ function TechniqueEditor({
               <Save className="h-4 w-4" />
               Guardar
             </Button>
-            <Button variant="ghost" onClick={onCancel}>
+            <Button variant="ghost" onClick={handleCancel}>
               Cancelar
             </Button>
           </div>
