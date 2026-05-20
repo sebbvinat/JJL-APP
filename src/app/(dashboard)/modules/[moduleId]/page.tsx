@@ -216,7 +216,7 @@ export default function ModuleDetailPage() {
   const isActiveLessonCompleted = activeLessonId ? completedIds.has(activeLessonId) : false;
 
   return (
-    <div className="space-y-6 max-w-5xl">
+    <div className="space-y-6 max-w-5xl xl:max-w-6xl">
       {/* Header */}
       <div className="flex items-center gap-4">
         <button

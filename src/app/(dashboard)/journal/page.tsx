@@ -300,7 +300,7 @@ export default function JournalPage() {
 
   if (loading) {
     return (
-      <div className="space-y-4 max-w-2xl mx-auto animate-pulse">
+      <div className="space-y-4 max-w-2xl lg:max-w-4xl xl:max-w-5xl mx-auto animate-pulse">
         <div className="skeleton h-14 rounded-xl" />
         <div className="skeleton h-36 rounded-xl" />
         <div className="skeleton h-32 rounded-xl" />
@@ -310,7 +310,7 @@ export default function JournalPage() {
   }
 
   return (
-    <div className="space-y-5 max-w-2xl mx-auto pb-12">
+    <div className="space-y-5 max-w-2xl lg:max-w-4xl xl:max-w-5xl mx-auto pb-12">
       {/* Date nav */}
       <div className="flex items-center justify-between gap-2 bg-white/[0.02] border border-jjl-border rounded-xl px-2 py-1.5">
         <button

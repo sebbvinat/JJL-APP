@@ -60,7 +60,7 @@ export default function UploadPage() {
   const [tab, setTab] = useState<Tab>('subir');
 
   return (
-    <div className="space-y-5 max-w-2xl mx-auto pb-12">
+    <div className="space-y-5 max-w-2xl lg:max-w-4xl xl:max-w-5xl mx-auto pb-12">
       <div className="flex items-center gap-3">
         <div className="h-10 w-10 rounded-xl bg-jjl-red/10 ring-1 ring-jjl-red/25 text-jjl-red flex items-center justify-center">
           <UploadIcon className="h-5 w-5" />

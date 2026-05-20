@@ -114,7 +114,7 @@ export default function Sidebar() {
       {/* Footer */}
       <div className="px-4 py-4 border-t border-jjl-border/60">
         <p className="text-[10px] text-jjl-muted/40 text-center tracking-[0.25em] uppercase font-medium">
-          JJL Platform <span className="text-jjl-red/60">v1.0</span>
+          JJL Platform <span className="text-jjl-red/60">v1.5</span>
         </p>
       </div>
     </aside>

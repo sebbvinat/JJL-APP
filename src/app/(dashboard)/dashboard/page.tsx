@@ -97,7 +97,7 @@ export default function DashboardPage() {
     .sort((a, b) => a.semana_numero - b.semana_numero)[0];
 
   return (
-    <div className="space-y-6 max-w-5xl">
+    <div className="space-y-6 max-w-5xl xl:max-w-6xl">
       {/* Welcome */}
       <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-jjl-red/15 via-jjl-gray/40 to-transparent p-6">
         <div

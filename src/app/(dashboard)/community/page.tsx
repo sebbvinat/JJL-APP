@@ -159,7 +159,7 @@ export default function CommunityPage() {
   }
 
   return (
-    <div className="space-y-6 max-w-3xl">
+    <div className="space-y-6 max-w-3xl lg:max-w-5xl xl:max-w-6xl">
       <div className="flex items-end justify-between flex-wrap gap-4">
         <div>
           <p className="text-[11px] uppercase tracking-[0.18em] text-jjl-muted font-semibold mb-1.5">

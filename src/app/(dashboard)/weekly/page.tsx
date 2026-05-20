@@ -176,7 +176,7 @@ export default function WeeklyPage() {
 
   if (isLoading && !data) {
     return (
-      <div className="space-y-4 max-w-2xl mx-auto animate-pulse">
+      <div className="space-y-4 max-w-2xl lg:max-w-4xl xl:max-w-5xl mx-auto animate-pulse">
         <div className="skeleton h-16 rounded-xl" />
         <div className="skeleton h-32 rounded-xl" />
         <div className="skeleton h-40 rounded-xl" />
@@ -201,7 +201,7 @@ export default function WeeklyPage() {
   const trainedDelta = deltaLabel(summary.trained, previousSummary.trained, ' dias');
 
   return (
-    <div className="space-y-5 max-w-2xl mx-auto pb-12">
+    <div className="space-y-5 max-w-2xl lg:max-w-4xl xl:max-w-5xl mx-auto pb-12">
       {/* Header */}
       <div>
         <p className="text-[11px] uppercase tracking-[0.18em] text-jjl-muted font-semibold mb-1.5">

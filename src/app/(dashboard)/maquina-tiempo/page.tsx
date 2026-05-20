@@ -180,7 +180,7 @@ export default function MaquinaTiempoPage() {
 
   if (loading) {
     return (
-      <div className="space-y-4 max-w-2xl mx-auto animate-pulse">
+      <div className="space-y-4 max-w-2xl lg:max-w-4xl xl:max-w-5xl mx-auto animate-pulse">
         <div className="h-32 bg-jjl-gray-light/50 rounded-xl" />
         {[...Array(3)].map((_, i) => <div key={i} className="h-24 bg-jjl-gray-light/50 rounded-xl" />)}
       </div>
@@ -188,7 +188,7 @@ export default function MaquinaTiempoPage() {
   }
 
   return (
-    <div className="space-y-5 max-w-2xl mx-auto pb-8">
+    <div className="space-y-5 max-w-2xl lg:max-w-4xl xl:max-w-5xl mx-auto pb-8">
       {/* Hero */}
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-jjl-red/20 via-transparent to-transparent border border-jjl-red/20 p-5">
         <div className="absolute top-0 right-0 opacity-10">

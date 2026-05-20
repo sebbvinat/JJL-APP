@@ -62,7 +62,7 @@ export default function ModulesPage() {
 
   if (loading && !courseData && !progress) {
     return (
-      <div className="space-y-6 max-w-4xl">
+      <div className="space-y-6 max-w-4xl lg:max-w-5xl xl:max-w-6xl">
         <div className="space-y-2">
           <div className="skeleton h-7 w-40 rounded" />
           <div className="skeleton h-4 w-72 rounded" />
@@ -103,7 +103,7 @@ export default function ModulesPage() {
   );
 
   return (
-    <div className="space-y-6 max-w-5xl">
+    <div className="space-y-6 max-w-5xl xl:max-w-6xl">
       <div className="flex items-end justify-between flex-wrap gap-4">
         <div>
           <p className="text-[11px] uppercase tracking-[0.18em] text-jjl-muted font-semibold mb-1.5">

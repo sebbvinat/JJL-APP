@@ -161,7 +161,7 @@ export default function PostDetailPage() {
   }
 
   return (
-    <div className="space-y-6 max-w-3xl">
+    <div className="space-y-6 max-w-3xl lg:max-w-5xl xl:max-w-6xl">
       {/* Back */}
       <button
         onClick={() => router.push('/community')}
