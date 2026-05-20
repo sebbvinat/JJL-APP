@@ -404,6 +404,40 @@ function TechniqueEditor({
   const ensureInFlight = useRef<Promise<string | null> | null>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
 
+  // Drag & drop de imagenes desde la PC. dragCounter evita que el overlay
+  // titile cuando el drag entra/sale de un hijo (dragLeave burbujea).
+  const [isDragging, setIsDragging] = useState(false);
+  const dragCounter = useRef(0);
+  function onDragEnter(e: React.DragEvent) {
+    if (!e.dataTransfer.types.includes('Files')) return;
+    e.preventDefault();
+    dragCounter.current++;
+    setIsDragging(true);
+  }
+  function onDragLeave(e: React.DragEvent) {
+    e.preventDefault();
+    dragCounter.current = Math.max(0, dragCounter.current - 1);
+    if (dragCounter.current === 0) setIsDragging(false);
+  }
+  function onDragOver(e: React.DragEvent) {
+    if (e.dataTransfer.types.includes('Files')) e.preventDefault();
+  }
+  function onDrop(e: React.DragEvent) {
+    e.preventDefault();
+    dragCounter.current = 0;
+    setIsDragging(false);
+    const files = e.dataTransfer.files;
+    if (!files || files.length === 0) return;
+    const images = Array.from(files).filter((f) => f.type.startsWith('image/'));
+    if (images.length === 0) {
+      toast.error('Solo se pueden arrastrar imágenes');
+      return;
+    }
+    const dt = new DataTransfer();
+    for (const f of images) dt.items.add(f);
+    handleAddPhotos(dt.files);
+  }
+
   async function ensureTechniqueId(): Promise<string | null> {
     if (techniqueIdRef.current) return techniqueIdRef.current;
     if (ensureInFlight.current) return ensureInFlight.current;
@@ -513,7 +547,22 @@ function TechniqueEditor({
   }
 
   return (
-    <div className="space-y-4">
+    <div
+      className="space-y-4 relative"
+      onDragEnter={onDragEnter}
+      onDragLeave={onDragLeave}
+      onDragOver={onDragOver}
+      onDrop={onDrop}
+    >
+      {isDragging && (
+        <div className="pointer-events-none absolute inset-0 z-30 rounded-xl border-2 border-dashed border-jjl-red bg-black/80 backdrop-blur-sm flex items-center justify-center">
+          <div className="text-center px-4">
+            <ImagePlus className="h-10 w-10 text-jjl-red mx-auto mb-2" />
+            <p className="text-[14px] font-semibold text-white">Soltá las fotos acá</p>
+            <p className="text-[12px] text-jjl-muted mt-0.5">Se agregan a esta técnica</p>
+          </div>
+        </div>
+      )}
       <button
         onClick={handleCancel}
         className="inline-flex items-center gap-1.5 text-[13px] text-jjl-muted hover:text-white"
@@ -624,7 +673,7 @@ function TechniqueEditor({
                 disabled={uploading}
               >
                 <ImagePlus className="h-5 w-5" />
-                <span className="text-[13px]">Tocá para agregar fotos</span>
+                <span className="text-[13px]">Tocá para agregar fotos<span className="hidden lg:inline"> o arrastralas desde tu PC</span></span>
               </button>
             )}
           </div>
