@@ -611,3 +611,102 @@ CREATE TABLE IF NOT EXISTS public.saved_links (
   status TEXT NOT NULL DEFAULT 'pending',
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- ============================================
+-- JJL CURSOS — cursos sueltos / instruccionales
+-- See migration 2026_05_22_cursos.sql for the canonical version.
+-- Producto separado del programa de 6 meses (modules/lessons/user_access/
+-- user_progress). Namespace: cursos_*. curso -> secciones -> lecciones;
+-- un bundle otorga acceso a N cursos. Acceso con vencimiento (NULL = vitalicio).
+-- NOTA: la migración también extiende users.rol con 'cliente_cursos'.
+-- ============================================
+CREATE TABLE IF NOT EXISTS public.cursos_courses (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  slug TEXT NOT NULL UNIQUE,
+  titulo TEXT NOT NULL,
+  subtitulo TEXT,
+  descripcion TEXT,
+  instructor TEXT,
+  cover_url TEXT,
+  trailer_youtube_id TEXT,
+  precio INTEGER,
+  precio_label TEXT,
+  payment_url TEXT,
+  sales_copy JSONB NOT NULL DEFAULT '{}'::jsonb,
+  curriculum_preview JSONB NOT NULL DEFAULT '[]'::jsonb,
+  nivel TEXT,
+  publicado BOOLEAN DEFAULT FALSE,
+  orden INTEGER DEFAULT 0,
+  duracion_acceso_meses INTEGER,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS public.cursos_bundles (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  slug TEXT NOT NULL UNIQUE,
+  titulo TEXT NOT NULL,
+  subtitulo TEXT,
+  descripcion TEXT,
+  cover_url TEXT,
+  precio INTEGER,
+  precio_label TEXT,
+  payment_url TEXT,
+  sales_copy JSONB NOT NULL DEFAULT '{}'::jsonb,
+  publicado BOOLEAN DEFAULT FALSE,
+  orden INTEGER DEFAULT 0,
+  duracion_acceso_meses INTEGER DEFAULT 24,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS public.cursos_bundle_items (
+  bundle_id UUID REFERENCES public.cursos_bundles ON DELETE CASCADE NOT NULL,
+  course_id UUID REFERENCES public.cursos_courses ON DELETE CASCADE NOT NULL,
+  orden INTEGER DEFAULT 0,
+  PRIMARY KEY (bundle_id, course_id)
+);
+
+CREATE TABLE IF NOT EXISTS public.cursos_sections (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  course_id UUID REFERENCES public.cursos_courses ON DELETE CASCADE NOT NULL,
+  titulo TEXT NOT NULL,
+  descripcion TEXT,
+  orden INTEGER DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS public.cursos_lessons (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  section_id UUID REFERENCES public.cursos_sections ON DELETE CASCADE NOT NULL,
+  course_id UUID REFERENCES public.cursos_courses ON DELETE CASCADE NOT NULL,
+  tipo TEXT NOT NULL DEFAULT 'video' CHECK (tipo IN ('video', 'texto')),
+  titulo TEXT NOT NULL,
+  youtube_id TEXT,
+  contenido TEXT,
+  material JSONB,
+  duracion TEXT,
+  orden INTEGER DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS public.cursos_access (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES public.users ON DELETE CASCADE NOT NULL,
+  course_id UUID REFERENCES public.cursos_courses ON DELETE CASCADE NOT NULL,
+  source_bundle_id UUID REFERENCES public.cursos_bundles ON DELETE SET NULL,
+  granted_at TIMESTAMPTZ DEFAULT NOW(),
+  granted_by UUID REFERENCES public.users(id),
+  expires_at TIMESTAMPTZ,
+  revoked BOOLEAN DEFAULT FALSE,
+  notas TEXT,
+  UNIQUE (user_id, course_id)
+);
+
+CREATE TABLE IF NOT EXISTS public.cursos_progress (
+  user_id UUID REFERENCES public.users ON DELETE CASCADE NOT NULL,
+  lesson_id UUID REFERENCES public.cursos_lessons ON DELETE CASCADE NOT NULL,
+  completado BOOLEAN DEFAULT FALSE,
+  completed_at TIMESTAMPTZ,
+  PRIMARY KEY (user_id, lesson_id)
+);

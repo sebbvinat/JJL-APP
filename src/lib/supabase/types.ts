@@ -1,5 +1,15 @@
+import type {
+  CursosCourse,
+  CursosBundle,
+  CursosBundleItem,
+  CursosSection,
+  CursosLesson,
+  CursosAccess,
+  CursosProgress,
+} from '@/lib/cursos/types';
+
 export type BeltLevel = 'white' | 'blue' | 'purple' | 'brown' | 'black';
-export type UserRole = 'admin' | 'alumno';
+export type UserRole = 'admin' | 'alumno' | 'cliente_cursos';
 export type PostCategory =
   | 'question'
   | 'technique'
@@ -235,6 +245,44 @@ export interface Database {
           updated_at?: string;
         };
         Update: Partial<Omit<CourseData, 'user_id' | 'module_id'>>;
+      };
+      cursos_courses: {
+        Row: CursosCourse;
+        Insert: Partial<CursosCourse> & { slug: string; titulo: string };
+        Update: Partial<CursosCourse>;
+      };
+      cursos_bundles: {
+        Row: CursosBundle;
+        Insert: Partial<CursosBundle> & { slug: string; titulo: string };
+        Update: Partial<CursosBundle>;
+      };
+      cursos_bundle_items: {
+        Row: CursosBundleItem;
+        Insert: CursosBundleItem;
+        Update: Partial<CursosBundleItem>;
+      };
+      cursos_sections: {
+        Row: CursosSection;
+        Insert: Omit<CursosSection, 'id' | 'created_at'> & { id?: string };
+        Update: Partial<Omit<CursosSection, 'id'>>;
+      };
+      cursos_lessons: {
+        Row: CursosLesson;
+        Insert: Omit<CursosLesson, 'id' | 'created_at'> & { id?: string };
+        Update: Partial<Omit<CursosLesson, 'id'>>;
+      };
+      cursos_access: {
+        Row: CursosAccess;
+        Insert: Omit<CursosAccess, 'id' | 'granted_at'> & {
+          id?: string;
+          granted_at?: string;
+        };
+        Update: Partial<Omit<CursosAccess, 'id'>>;
+      };
+      cursos_progress: {
+        Row: CursosProgress;
+        Insert: Omit<CursosProgress, 'completed_at'> & { completed_at?: string | null };
+        Update: Partial<CursosProgress>;
       };
     };
     Functions: {

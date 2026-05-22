@@ -47,7 +47,7 @@ export default function RootLayout({
         <script
           dangerouslySetInnerHTML={{
             __html: `
-              if ('serviceWorker' in navigator) {
+              if ('serviceWorker' in navigator && location.hostname !== 'localhost' && !location.hostname.endsWith('.localhost') && location.hostname.startsWith('alumno.')) {
                 window.addEventListener('load', () => {
                   var hadController = !!navigator.serviceWorker.controller;
                   navigator.serviceWorker.register('/sw.js').then(function(reg) {

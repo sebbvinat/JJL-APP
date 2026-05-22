@@ -39,3 +39,11 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# editor backups
+*.bak
+
+# migration: dumps + extracted data contienen PII de clientes, no se commitean
+migration/extracted.json
+migration/*.sql
+migration/*.dump
