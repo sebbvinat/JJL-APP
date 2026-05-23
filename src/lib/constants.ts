@@ -13,6 +13,7 @@ import {
   Trophy,
   Medal,
   Clock,
+  LifeBuoy,
 } from 'lucide-react';
 
 export const NAV_ITEMS = [
@@ -32,6 +33,7 @@ export const NAV_ITEMS = [
 
 export const ADMIN_NAV = [
   { label: 'Admin', href: '/admin', icon: Shield },
+  { label: 'Soporte', href: '/admin/soporte', icon: LifeBuoy },
 ] as const;
 
 export const BELT_COLORS: Record<string, string> = {

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 
-import { LogOut, Settings, Menu, X, RefreshCw } from 'lucide-react';
+import { LogOut, Settings, Menu, X, RefreshCw, LifeBuoy } from 'lucide-react';
 import Avatar from '@/components/ui/Avatar';
 import NotificationBell from '@/components/layout/NotificationBell';
 import { NAV_ITEMS, ADMIN_NAV } from '@/lib/constants';
@@ -109,6 +109,14 @@ export default function Topbar() {
                   >
                     <Settings className="h-4 w-4" />
                     Configuracion
+                  </Link>
+                  <Link
+                    href={isAdmin ? '/admin/soporte' : '/soporte'}
+                    className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-jjl-muted hover:text-white hover:bg-white/5 transition-colors"
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    <LifeBuoy className="h-4 w-4" />
+                    Soporte
                   </Link>
                   <button
                     className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-red-400 hover:text-red-300 hover:bg-white/5 transition-colors w-full"
