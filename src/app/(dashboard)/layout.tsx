@@ -5,6 +5,7 @@ import { UserProvider } from '@/providers/UserProvider';
 import PushPrompt from '@/components/PushPrompt';
 import VersionCheck from '@/components/VersionCheck';
 import SessionTracker from '@/components/SessionTracker';
+import AnnouncementsBar from '@/components/AnnouncementsBar';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -14,6 +15,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <div className="flex-1 flex flex-col overflow-hidden">
           <Topbar />
           <main className="flex-1 overflow-y-auto p-4 lg:p-6 pb-20 lg:pb-6">
+            <AnnouncementsBar />
             {children}
           </main>
         </div>
