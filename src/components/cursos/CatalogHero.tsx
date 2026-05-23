@@ -15,9 +15,9 @@ export default function CatalogHero() {
           <span className="h-px w-7 bg-cursos-line-strong" />
         </div>
 
-        <h1 className="font-display mx-auto max-w-4xl text-[2.7rem] font-extrabold leading-[1.02] tracking-[-0.035em] text-cursos-ink sm:text-6xl lg:text-[4.6rem]">
+        <h1 className="mx-auto max-w-4xl text-4xl font-black leading-tight tracking-tight text-cursos-ink sm:text-5xl lg:text-6xl">
           <span className="block text-balance">Dejá de coleccionar técnicas.</span>
-          <span className="mt-1.5 block text-cursos-red">Dominá la posición.</span>
+          <span className="mt-1 block text-cursos-red">Dominá la posición.</span>
         </h1>
 
         <p className="mx-auto mt-7 max-w-2xl text-balance text-[16px] leading-relaxed text-cursos-ink-soft sm:text-[18px]">

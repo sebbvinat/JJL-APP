@@ -28,7 +28,7 @@ export default function CourseCard({ course }: { course: CursosCourse }) {
       </div>
 
       <div className="flex flex-1 flex-col p-5">
-        <h3 className="font-display text-[20px] font-extrabold leading-[1.15] tracking-[-0.02em] text-cursos-ink">
+        <h3 className="text-lg font-bold leading-snug tracking-tight text-cursos-ink">
           {course.titulo}
         </h3>
         {course.instructor && (
@@ -47,7 +47,7 @@ export default function CourseCard({ course }: { course: CursosCourse }) {
             <span className="text-[11px] font-semibold uppercase tracking-[0.1em] text-cursos-muted">
               Precio
             </span>
-            <span className="font-display text-[20px] font-extrabold tracking-[-0.02em] text-cursos-ink">
+            <span className="text-lg font-bold tracking-tight text-cursos-ink">
               {formatPrice(course)}
             </span>
           </div>

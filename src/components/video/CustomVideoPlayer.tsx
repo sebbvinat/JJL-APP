@@ -232,6 +232,13 @@ export default function CustomVideoPlayer({
       // internal state transitions reset the inline attributes.
       try { fitIframe(playerRef.current?.getIframe?.()); } catch {}
       startProgressTracking();
+    } else if (state === window.YT.PlayerState.BUFFERING) {
+      // Tras el primer click pasamos por BUFFERING antes de PLAYING.
+      // Sin esto, el thumbnail estatico tapa el iframe mientras carga y
+      // el click parece muerto. Mostramos el iframe (con su propio
+      // spinner) para feedback inmediato.
+      setHasStarted(true);
+      setShowThumbnail(false);
     } else if (state === window.YT.PlayerState.PAUSED) {
       setIsPlaying(false);
       stopProgressTracking();

@@ -23,7 +23,7 @@ export default function BundleBand({ bundle }: { bundle: CursosBundle }) {
           <span className="inline-flex items-center rounded-full bg-cursos-red px-3 py-1 text-[11px] font-bold uppercase tracking-[0.14em] text-white">
             Pack
           </span>
-          <h2 className="font-display mt-5 text-balance text-4xl font-extrabold leading-[1.03] tracking-[-0.03em] sm:text-[3.1rem]">
+          <h2 className="mt-5 text-balance text-3xl font-black leading-tight tracking-tight sm:text-4xl">
             {bundle.titulo}
           </h2>
           {bundle.subtitulo && (
@@ -48,9 +48,7 @@ export default function BundleBand({ bundle }: { bundle: CursosBundle }) {
           <p className="text-[12px] font-semibold uppercase tracking-[0.16em] text-white/50">
             Pack completo
           </p>
-          <p className="font-display mt-2 text-5xl font-extrabold tracking-[-0.03em]">
-            {price}
-          </p>
+          <p className="mt-2 text-4xl font-black tracking-tight">{price}</p>
           <p className="mt-1.5 text-[13px] text-white/55">
             Pago único · acceso por 2 años
           </p>

@@ -17,7 +17,7 @@ export default function CursosHeader() {
             className="h-9 w-9 object-contain"
           />
           <span className="flex flex-col leading-none">
-            <span className="font-display text-[16px] font-extrabold tracking-[-0.02em] text-cursos-ink">
+            <span className="text-[15px] font-bold tracking-tight text-cursos-ink">
               Jiu Jitsu Latino
             </span>
             <span className="mt-1 text-[10px] font-bold uppercase tracking-[0.22em] text-cursos-red">

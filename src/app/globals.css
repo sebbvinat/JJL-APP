@@ -37,13 +37,13 @@
   --shadow-glow-red: 0 0 0 1px rgba(220,38,38,0.18), 0 12px 40px -10px rgba(220,38,38,0.35);
 
   /* JJL Cursos — tema claro editorial (producto de cursos sueltos) */
-  --color-cursos-paper: #F7F6F4;
+  --color-cursos-paper: #FFFFFF;
   --color-cursos-surface: #FFFFFF;
   --color-cursos-ink: #141414;
-  --color-cursos-ink-soft: #3D3D3A;
-  --color-cursos-muted: #76746F;
-  --color-cursos-line: #E6E4DF;
-  --color-cursos-line-strong: #D6D3CC;
+  --color-cursos-ink-soft: #3F3F46;
+  --color-cursos-muted: #6B7280;
+  --color-cursos-line: #E5E7EB;
+  --color-cursos-line-strong: #D1D5DB;
   --color-cursos-red: #DC2626;
   --color-cursos-red-dark: #B91C1C;
 }
@@ -238,10 +238,10 @@ button, a, [role="button"] {
   background: #C2BFB6;
 }
 
-/* Tipografía display de marca para JJL Cursos (titulares).
-   La variable la define next/font en el layout de la tienda. */
+/* JJL Cursos usa Inter en todo, igual que la app de alumnos. La clase
+   .font-display existe para no romper componentes, pero apunta a Inter. */
 .font-display {
-  font-family: var(--font-cursos-display), "Inter", system-ui, sans-serif;
+  font-family: "Inter", var(--font-sans), system-ui, sans-serif;
 }
 
 /* Contenido enriquecido del visor — estilos para el HTML del material de estudio. */

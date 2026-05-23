@@ -32,7 +32,7 @@ export default async function CatalogoPage() {
               <span className="text-[12px] font-bold uppercase tracking-[0.18em] text-cursos-red">
                 Instruccionales
               </span>
-              <h2 className="font-display text-3xl font-extrabold tracking-[-0.025em] text-cursos-ink sm:text-4xl">
+              <h2 className="text-2xl font-bold tracking-tight text-cursos-ink sm:text-3xl">
                 Cursos sueltos
               </h2>
             </div>
