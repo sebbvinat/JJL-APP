@@ -29,6 +29,7 @@
     { "path": "/api/cron/daily-reminder", "schedule": "0 0 * * *" },
     { "path": "/api/cron/weekly-insight", "schedule": "0 23 * * 0" },
     { "path": "/api/events/remind", "schedule": "0 8 * * *" },
-    { "path": "/api/cron/leads-followup", "schedule": "0 13 * * *" }
+    { "path": "/api/cron/leads-followup", "schedule": "0 13 * * *" },
+    { "path": "/api/admin/sync-drive-videos", "schedule": "0 14 * * *" }
   ]
 }

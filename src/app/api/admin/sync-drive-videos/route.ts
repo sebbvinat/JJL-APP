@@ -1,35 +1,22 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
-import { createClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { listDriveFolderAll, listMainSubfolders } from '@/lib/google-drive';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
 
 /**
- * POST /api/admin/sync-drive-videos
- * Admin only. Scans every student's Drive folder and imports new videos
- * as pending uploads in video_uploads. Idempotent — skips existing.
+ * Sincroniza la carpeta de Drive de cada alumno con video_uploads:
+ * - Importa videos nuevos (idempotente por drive_file_id).
+ * - Auto-vincula carpetas por nombre si el alumno no tiene drive_folder_id.
+ * - Notifica a todos los admins por cada video nuevo.
+ *
+ * Logica compartida entre:
+ *  - POST /api/admin/sync-drive-videos (admin manual desde /admin/reviews)
+ *  - GET  /api/admin/sync-drive-videos (Vercel Cron diario; auth con CRON_SECRET)
  */
-export async function POST(request: NextRequest) {
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { cookies: { getAll() { return request.cookies.getAll(); }, setAll() {} } }
-  );
-
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
-
-  const { data: profile } = await supabase.from('users').select('rol').eq('id', user.id).single();
-  if ((profile as any)?.rol !== 'admin') return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
-
-  const admin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { auth: { autoRefreshToken: false, persistSession: false } }
-  );
-
+async function runSync(admin: SupabaseClient) {
   // Get ALL students. Some may not have drive_folder_id set yet (never opened
   // "Subir video" in app); we'll try to match them to a Drive subfolder by
   // name and auto-link.
@@ -40,7 +27,7 @@ export async function POST(request: NextRequest) {
 
   if (studentsErr) {
     console.error('[sync-drive] students query error', studentsErr);
-    return NextResponse.json({ error: studentsErr.message }, { status: 500 });
+    return { error: studentsErr.message, status: 500 } as const;
   }
 
   const studentList = allStudents || [];
@@ -74,16 +61,16 @@ export async function POST(request: NextRequest) {
   }
 
   // From here on we only process students with a folder (after auto-link).
-  const students = studentList.filter((s: any) => !!s.drive_folder_id);
+  const students = studentList.filter((s: { drive_folder_id: string | null }) => !!s.drive_folder_id);
 
   if (students.length === 0) {
-    return NextResponse.json({
+    return {
       imported: 0,
       message: 'No hay alumnos con carpeta de Drive vinculada. Pedile que entren a "Subir video" para crear su carpeta, o vinculala manualmente.',
       studentsWithFolder: 0,
-      unlinkedStudents: studentList.map((s: any) => ({ id: s.id, nombre: s.nombre })),
+      unlinkedStudents: studentList.map((s: { id: string; nombre: string }) => ({ id: s.id, nombre: s.nombre })),
       autoLinked,
-    });
+    };
   }
 
   // Get existing drive_file_ids to skip duplicates
@@ -92,12 +79,12 @@ export async function POST(request: NextRequest) {
     .select('drive_file_id')
     .not('drive_file_id', 'is', null);
 
-  const existingIds = new Set((existing || []).map((v: any) => v.drive_file_id));
+  const existingIds = new Set((existing || []).map((v: { drive_file_id: string }) => v.drive_file_id));
 
   // Pre-fetch the admin list once instead of inside the per-file loop. Used
   // for fanning out notifications when new videos are imported.
   const { data: adminList } = await admin.from('users').select('id').eq('rol', 'admin');
-  const adminIds = (adminList || []).map((a: any) => a.id);
+  const adminIds = (adminList || []).map((a: { id: string }) => a.id);
   const { createNotification } = await import('@/lib/notifications');
 
   let imported = 0;
@@ -130,10 +117,6 @@ export async function POST(request: NextRequest) {
         nombre: student.nombre,
         folderId: student.drive_folder_id,
         totalFiles: files.length,
-        // rawTotal includes everything Drive returned (videos + non-videos +
-        // subfolders). If rawTotal > 0 but totalFiles = 0, our filter is
-        // missing the file format. If rawTotal = 0, the service account
-        // can't see the folder contents.
         rawTotal: driveResp.all.length,
         nonVideoNames: driveResp.nonVideos.map((f) => `${f.name || '(sin nombre)'} [${f.mimeType || 'unknown'}]`),
         subfolderNames: driveResp.folders.map((f) => f.name || '(sin nombre)'),
@@ -191,9 +174,10 @@ export async function POST(request: NextRequest) {
         imported += insertedForStudent;
         importedDetails.push({ nombre: student.nombre, count: insertedForStudent, files: insertedFileNames });
       }
-    } catch (err: any) {
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
       console.error(`[sync-drive] error for ${student.nombre}:`, err);
-      errors.push(`${student.nombre}: ${err.message || 'error'}`);
+      errors.push(`${student.nombre}: ${msg}`);
       scanDetails.push({
         nombre: student.nombre,
         folderId: student.drive_folder_id!,
@@ -205,12 +189,12 @@ export async function POST(request: NextRequest) {
         skippedFiles: 0,
         fileNames: [],
         skippedNames: [],
-        error: err.message || String(err),
+        error: msg,
       });
     }
   }
 
-  return NextResponse.json({
+  return {
     success: true,
     imported,
     studentsScanned: students.length,
@@ -220,8 +204,60 @@ export async function POST(request: NextRequest) {
     scanDetails,
     autoLinked,
     unlinkedStudents: studentList
-      .filter((s: any) => !s.drive_folder_id)
-      .map((s: any) => ({ id: s.id, nombre: s.nombre })),
+      .filter((s: { drive_folder_id: string | null }) => !s.drive_folder_id)
+      .map((s: { id: string; nombre: string }) => ({ id: s.id, nombre: s.nombre })),
     errors: errors.length > 0 ? errors : undefined,
-  });
+  };
+}
+
+function adminSb(): SupabaseClient {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  );
+}
+
+/**
+ * POST /api/admin/sync-drive-videos — admin only. Trigger manual desde
+ * /admin/reviews. Requiere sesion de usuario con rol='admin'.
+ */
+export async function POST(request: NextRequest) {
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    { cookies: { getAll() { return request.cookies.getAll(); }, setAll() {} } }
+  );
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
+
+  const { data: profile } = await supabase.from('users').select('rol').eq('id', user.id).single();
+  if ((profile as { rol?: string } | null)?.rol !== 'admin') {
+    return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
+  }
+
+  const result = await runSync(adminSb());
+  const status = (result as { error?: string; status?: number }).status;
+  if (status) return NextResponse.json({ error: (result as { error?: string }).error }, { status });
+  return NextResponse.json(result);
+}
+
+/**
+ * GET /api/admin/sync-drive-videos — Vercel Cron diario. Detecta videos
+ * nuevos en Drive aunque ningun admin abra /admin/reviews.
+ * Auth: header `Authorization: Bearer ${CRON_SECRET}` (Vercel lo manda).
+ */
+export async function GET(request: NextRequest) {
+  const cronSecret = process.env.CRON_SECRET;
+  if (cronSecret) {
+    const authHeader = request.headers.get('authorization');
+    if (authHeader !== `Bearer ${cronSecret}`) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+  }
+  const result = await runSync(adminSb());
+  const status = (result as { error?: string; status?: number }).status;
+  if (status) return NextResponse.json({ error: (result as { error?: string }).error }, { status });
+  return NextResponse.json(result);
 }
