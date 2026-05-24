@@ -10,7 +10,7 @@ type AdminRow = { id: string; nombre: string; avatar_url: string | null; tags: s
 
 const TAG_INFO: Record<string, { label: string; description: string }> = {
   soporte: { label: 'Soporte', description: 'Recibe notifs de consultas de Soporte' },
-  profesor: { label: 'Profesor', description: 'Recibe notifs de videos para revisar (futuro)' },
+  profesor: { label: 'Profesor', description: 'Recibe notifs de "Nuevo video" para revisar' },
   setter: { label: 'Setter', description: 'Recibe notifs de leads/agendas (futuro)' },
 };
 

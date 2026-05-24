@@ -81,10 +81,10 @@ async function runSync(admin: SupabaseClient) {
 
   const existingIds = new Set((existing || []).map((v: { drive_file_id: string }) => v.drive_file_id));
 
-  // Pre-fetch the admin list once instead of inside the per-file loop. Used
-  // for fanning out notifications when new videos are imported.
-  const { data: adminList } = await admin.from('users').select('id').eq('rol', 'admin');
-  const adminIds = (adminList || []).map((a: { id: string }) => a.id);
+  // Pre-fetch los admins que reciben notifs de videos (tag 'profesor',
+  // fallback a todos si nadie esta taggeado).
+  const { getAdminsByTag } = await import('@/lib/admin-tags');
+  const adminIds = await getAdminsByTag(admin, 'profesor');
   const { createNotification } = await import('@/lib/notifications');
 
   let imported = 0;

@@ -107,76 +107,178 @@ export default function UploadPage() {
 // Upload tab
 // ---------------------------------------------------------------------------
 
+// Resumable upload directo a Drive con barra de progreso (XHR — fetch no
+// expone progreso del upload). Devuelve el fileId de Drive cuando completa.
+function uploadResumable(file: File, uploadUrl: string, onProgress: (pct: number) => void): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('PUT', uploadUrl, true);
+    xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) onProgress(Math.round((e.loaded / e.total) * 100));
+    };
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          const meta = JSON.parse(xhr.responseText);
+          if (meta?.id) resolve(meta.id);
+          else reject(new Error('Drive no devolvió fileId'));
+        } catch {
+          reject(new Error('Respuesta inesperada de Drive'));
+        }
+      } else {
+        reject(new Error(`Drive PUT falló (${xhr.status})`));
+      }
+    };
+    xhr.onerror = () => reject(new Error('Error de red al subir a Drive'));
+    xhr.send(file);
+  });
+}
+
 function UploadTab({ onUploaded }: { onUploaded: () => void }) {
   const [folderUrl, setFolderUrl] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [file, setFile] = useState<File | null>(null);
+  const [titulo, setTitulo] = useState('');
+  const [descripcion, setDescripcion] = useState('');
+  const [uploading, setUploading] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const toast = useToast();
 
+  // Folder fallback link (para casos de archivo enorme o conexion mala).
   useEffect(() => {
-    async function getFolder() {
-      try {
-        const res = await fetch('/api/upload/folder');
-        const data = await res.json();
-        if (res.ok && data.folderUrl) {
-          setFolderUrl(data.folderUrl);
-        } else {
-          setError(data.error || 'Error al obtener carpeta');
-        }
-      } catch {
-        setError('Error de conexion');
-      }
-      setLoading(false);
-    }
-    getFolder();
+    fetch('/api/upload/folder')
+      .then((r) => r.json())
+      .then((d) => { if (d?.folderUrl) setFolderUrl(d.folderUrl); })
+      .catch(() => {});
   }, []);
 
-  if (loading) {
-    return (
-      <div className="space-y-4 animate-pulse">
-        <div className="h-48 bg-jjl-gray-light/50 rounded-xl" />
-      </div>
-    );
-  }
+  async function handleUpload() {
+    if (!file || uploading) return;
+    setUploading(true);
+    setProgress(0);
+    setErrorMsg(null);
+    try {
+      // 1. Pedir URL de sesión resumable a Drive
+      const sessRes = await fetch('/api/upload/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fileName: file.name,
+          mimeType: file.type || 'video/mp4',
+          fileSize: file.size,
+        }),
+      });
+      const sess = await sessRes.json();
+      if (!sessRes.ok || !sess?.uploadUrl) {
+        throw new Error(sess?.error || 'No se pudo iniciar la subida');
+      }
 
-  if (error) {
-    return (
-      <Card>
-        <div className="text-center py-8 space-y-3">
-          <p className="text-red-400 text-sm">{error}</p>
-          <Button onClick={() => window.location.reload()} variant="secondary" size="sm">
-            Reintentar
-          </Button>
-        </div>
-      </Card>
-    );
+      // 2. PUT el archivo directo a Drive (browser -> Drive, no pasa por
+      //    nuestros servers; bypasses limit de Vercel).
+      const fileId = await uploadResumable(file, sess.uploadUrl, setProgress);
+
+      // 3. Confirmar en nuestra DB -> dispara notif a admins (tag profesor)
+      const confRes = await fetch('/api/upload/confirm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fileId,
+          titulo: titulo.trim() || file.name,
+          descripcion: descripcion.trim() || null,
+          fileSize: file.size,
+        }),
+      });
+      const conf = await confRes.json();
+      if (!confRes.ok) throw new Error(conf?.error || 'Error al confirmar');
+
+      toast.success('¡Video subido! Tu instructor ya fue notificado.');
+      setFile(null);
+      setTitulo('');
+      setDescripcion('');
+      setProgress(0);
+      onUploaded();
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Error al subir';
+      setErrorMsg(msg);
+      toast.error(msg);
+      logger.error('upload.failed', { err: msg });
+    } finally {
+      setUploading(false);
+    }
   }
 
   return (
     <Card>
-      <div className="text-center py-8 space-y-5">
-        <div className="h-20 w-20 bg-jjl-red/15 rounded-full flex items-center justify-center mx-auto">
-          <UploadIcon className="h-10 w-10 text-jjl-red" />
-        </div>
-        <div className="space-y-2 max-w-sm mx-auto">
-          <h2 className="text-xl font-bold">Subi tu lucha</h2>
-          <p className="text-sm text-jjl-muted">
-            Tenes una carpeta privada en Google Drive. Subi tus videos ahi y tu instructor los va a revisar.
-          </p>
-        </div>
-        {folderUrl && (
-          <a
-            href={folderUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-6 py-3 bg-jjl-red text-white font-semibold rounded-xl hover:bg-jjl-red-hover transition-colors shadow-lg shadow-jjl-red/20"
-          >
-            <ExternalLink className="h-5 w-5" />
-            Abrir mi carpeta en Drive
-          </a>
+      <div className="space-y-4">
+        <UploadDropzone file={file} onFileSelect={(f) => { setFile(f); setErrorMsg(null); }} />
+
+        {file && (
+          <>
+            <Input
+              value={titulo}
+              onChange={(e) => setTitulo(e.target.value)}
+              placeholder="Título (opcional — si dejás vacío usa el nombre del archivo)"
+              disabled={uploading}
+              maxLength={200}
+            />
+            <textarea
+              value={descripcion}
+              onChange={(e) => setDescripcion(e.target.value)}
+              placeholder="Descripción / contexto (opcional)"
+              rows={2}
+              disabled={uploading}
+              maxLength={1000}
+              className="w-full bg-white/[0.03] border border-jjl-border rounded-lg px-3 py-2.5 text-[13px] text-white placeholder:text-jjl-muted/50 focus:outline-none focus:border-jjl-red focus:ring-2 focus:ring-jjl-red/25 resize-none disabled:opacity-50"
+            />
+
+            {uploading && (
+              <div>
+                <div className="flex items-center justify-between text-[11px] text-jjl-muted mb-1.5">
+                  <span>Subiendo a Drive…</span>
+                  <span className="font-semibold tabular-nums">{progress}%</span>
+                </div>
+                <div className="h-2 rounded-full bg-white/10 overflow-hidden">
+                  <div
+                    className="h-full bg-jjl-red transition-[width] duration-200"
+                    style={{ width: `${progress}%` }}
+                  />
+                </div>
+              </div>
+            )}
+
+            {errorMsg && (
+              <p className="text-[12px] text-red-400 bg-red-500/10 border border-red-500/30 rounded-md px-3 py-2">
+                {errorMsg}
+              </p>
+            )}
+
+            <Button
+              onClick={handleUpload}
+              disabled={uploading}
+              loading={uploading}
+              className="w-full"
+            >
+              <UploadIcon className="h-4 w-4" />
+              {uploading ? `Subiendo… ${progress}%` : 'Subir video'}
+            </Button>
+          </>
         )}
-        <p className="text-xs text-jjl-muted">
-          Podes subir videos de hasta 2GB. Formatos: MP4, MOV, AVI.
-        </p>
+
+        {folderUrl && (
+          <p className="text-[11px] text-jjl-muted/80 text-center pt-3 border-t border-jjl-border/40">
+            Archivo más de 2GB o subida fallando?{' '}
+            <a
+              href={folderUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-jjl-red hover:text-jjl-red-hover font-semibold inline-flex items-center gap-1"
+            >
+              Abrí tu carpeta de Drive <ExternalLink className="h-3 w-3" />
+            </a>
+            {' '}y subí desde ahí (igual lo sincronizamos 1×/día).
+          </p>
+        )}
       </div>
     </Card>
   );

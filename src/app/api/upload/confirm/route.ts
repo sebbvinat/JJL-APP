@@ -37,21 +37,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: insertError.message }, { status: 500 });
     }
 
-    // Fire-and-forget admin notifications — fetch the uploader's name and
-    // ping every admin so the new video shows up in their bell + push.
+    // Fire-and-forget admin notifications. Router: admins con tag 'profesor'
+    // (fallback a todos si nadie esta taggeado todavia).
     try {
       const admin = createAdminSupabaseClient();
-      const [{ data: profile }, { data: admins }] = await Promise.all([
-        admin.from('users').select('nombre').eq('id', user.id).single(),
-        admin.from('users').select('id').eq('rol', 'admin'),
-      ]);
-      const uploaderName = (profile as any)?.nombre || 'Un alumno';
+      const { data: profile } = await admin.from('users').select('nombre').eq('id', user.id).single();
+      const uploaderName = (profile as { nombre?: string } | null)?.nombre || 'Un alumno';
       const videoName = titulo || info.fileName || 'Video sin titulo';
       const { createNotification } = await import('@/lib/notifications');
+      const { getAdminsByTag } = await import('@/lib/admin-tags');
+      const adminIds = await getAdminsByTag(admin, 'profesor');
       await Promise.all(
-        (admins || []).map((a: any) =>
+        adminIds.map((aid) =>
           createNotification(
-            a.id,
+            aid,
             'system',
             `Nuevo video de ${uploaderName}`,
             videoName,
