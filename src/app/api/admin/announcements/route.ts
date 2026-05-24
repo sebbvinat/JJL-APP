@@ -58,7 +58,6 @@ export async function POST(request: NextRequest) {
   const importancia = ['info', 'warning', 'critical'].includes(body?.importancia) ? body.importancia : 'info';
   const url = body?.url ? String(body.url).trim() : null;
   const expires_at = body?.expires_at || null;
-  const notifyAll = !!body?.notify;
 
   if (!titulo || !mensaje) return NextResponse.json({ error: 'titulo y mensaje son obligatorios' }, { status: 400 });
   if (titulo.length > 200) return NextResponse.json({ error: 'titulo muy largo' }, { status: 400 });
@@ -71,13 +70,14 @@ export async function POST(request: NextRequest) {
     .single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  // Opcional: push a todos los usuarios.
-  if (notifyAll && data?.id) {
+  // Crear notificacion (in-app + push) a todos los usuarios SIEMPRE.
+  // El tipo 'anuncio' los hace aparecer con icono Megafono en la campanita.
+  if (data?.id) {
     try {
       const { createNotification } = await import('@/lib/notifications');
       const { data: users } = await auth.admin.from('users').select('id');
       for (const u of (users || []) as { id: string }[]) {
-        await createNotification(u.id, 'system', titulo, mensaje.slice(0, 140), url || '/dashboard');
+        await createNotification(u.id, 'anuncio', titulo, mensaje.slice(0, 140), url || '/dashboard');
       }
     } catch { /* silencioso */ }
   }

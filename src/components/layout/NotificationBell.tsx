@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Bell, Trophy, BookOpen, Flame, Star, Info } from 'lucide-react';
+import { Bell, Trophy, BookOpen, Flame, Star, Info, Megaphone } from 'lucide-react';
 
 interface Notification {
   id: string;
@@ -20,6 +20,7 @@ const TIPO_ICONS: Record<string, typeof Trophy> = {
   streak: Flame,
   achievement: Star,
   system: Info,
+  anuncio: Megaphone,
 };
 
 export default function NotificationBell() {

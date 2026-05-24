@@ -15,7 +15,7 @@ const supabaseAdmin = () => {
   });
 };
 
-type NotificationType = 'belt' | 'module' | 'streak' | 'achievement' | 'system';
+type NotificationType = 'belt' | 'module' | 'streak' | 'achievement' | 'system' | 'anuncio';
 
 export async function createNotification(
   userId: string,

@@ -111,7 +111,7 @@ export default function Topbar() {
                     Configuracion
                   </Link>
                   <Link
-                    href={isAdmin ? '/chat' : '/soporte'}
+                    href={isAdmin ? '/admin/soporte' : '/soporte'}
                     className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-jjl-muted hover:text-white hover:bg-white/5 transition-colors"
                     onClick={() => setMenuOpen(false)}
                   >

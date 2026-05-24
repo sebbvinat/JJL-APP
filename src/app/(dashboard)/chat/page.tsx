@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import Link from 'next/link';
 import { format, formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { ArrowLeft, Send, MessageCircle, Shield, Mic, Square, Play, Pause, LifeBuoy } from 'lucide-react';
@@ -15,8 +16,6 @@ interface Channel {
   lastMessage: string | null;
   lastAt: string | null;
   hasNew?: boolean;
-  type?: 'chat' | 'soporte';
-  unread?: number;
 }
 
 interface Message {
@@ -49,10 +48,30 @@ export default function ChatPage() {
   const pollRef = useRef<NodeJS.Timeout | null>(null);
   const lastMsgCountRef = useRef(0);
   const isAtBottomRef = useRef(true);
+  const [supportUnread, setSupportUnread] = useState(0);
 
   useEffect(() => {
     loadChannels();
   }, []);
+
+  // Bandeja de Soporte (admin): contar mensajes sin leer para el shortcut.
+  useEffect(() => {
+    if (!isAdmin) return;
+    let active = true;
+    const load = async () => {
+      try {
+        const res = await fetch('/api/admin/soporte');
+        if (!res.ok || !active) return;
+        const data = await res.json();
+        type Thread = { unread?: number };
+        const total = ((data?.threads || []) as Thread[]).reduce((s, t) => s + (t.unread || 0), 0);
+        if (active) setSupportUnread(total);
+      } catch { /* silencioso */ }
+    };
+    load();
+    const t = setInterval(load, 30000);
+    return () => { active = false; clearInterval(t); };
+  }, [isAdmin]);
 
   // Auto-open for alumnos (they only have 1 channel)
   useEffect(() => {
@@ -63,8 +82,8 @@ export default function ChatPage() {
 
   useEffect(() => {
     if (!selectedChannel) return;
-    loadMessages(selectedChannel);
-    pollRef.current = setInterval(() => loadMessages(selectedChannel), 5000);
+    loadMessages(selectedChannel.channelId);
+    pollRef.current = setInterval(() => loadMessages(selectedChannel.channelId), 5000);
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
   }, [selectedChannel]);
 
@@ -98,65 +117,17 @@ export default function ChatPage() {
 
   async function loadChannels() {
     try {
-      // Para admins: traer chats normales + bandeja de Soporte y unificar.
-      // Para alumnos: solo su chat normal (su Soporte tiene su propia pagina /soporte).
-      const reqs: Promise<Response | null>[] = [fetch('/api/messages')];
-      if (isAdmin) reqs.push(fetch('/api/admin/soporte'));
-      const [resChat, resSop] = await Promise.all(reqs);
-
-      const chatData = resChat && resChat.ok ? await resChat.json() : { channels: [] };
-      const chatChannels: Channel[] = (chatData.channels || []).map((c: Channel) => ({ ...c, type: 'chat' as const }));
-
-      let sopChannels: Channel[] = [];
-      if (resSop && resSop.ok) {
-        const sopData = await resSop.json();
-        type Thread = { userId: string; nombre: string; avatar_url: string | null; lastMessage: string | null; lastAt: string | null; unread: number };
-        sopChannels = (sopData.threads || []).map((t: Thread) => ({
-          channelId: t.userId,
-          nombre: t.nombre,
-          avatar_url: t.avatar_url,
-          lastMessage: t.lastMessage,
-          lastAt: t.lastAt,
-          hasNew: t.unread > 0,
-          type: 'soporte' as const,
-          unread: t.unread,
-        }));
+      const res = await fetch('/api/messages');
+      if (res.ok) {
+        const data = await res.json();
+        setChannels(data.channels || []);
       }
-
-      const merged = [...sopChannels, ...chatChannels].sort((a, b) => {
-        const aNew = a.hasNew ? 1 : 0;
-        const bNew = b.hasNew ? 1 : 0;
-        if (aNew !== bNew) return bNew - aNew;
-        if (a.lastAt && !b.lastAt) return -1;
-        if (!a.lastAt && b.lastAt) return 1;
-        if (a.lastAt && b.lastAt) return b.lastAt.localeCompare(a.lastAt);
-        return a.nombre.localeCompare(b.nombre);
-      });
-      setChannels(merged);
     } catch {}
     setLoading(false);
   }
 
-  async function loadMessages(channel: Channel) {
-    if (channel.type === 'soporte') {
-      const res = await fetch(`/api/admin/soporte/${channel.channelId}`);
-      if (!res.ok) return;
-      const data = await res.json();
-      type SopMsg = { id: string; sender: 'user' | 'admin'; adminName: string | null; contenido: string; created_at: string };
-      const msgs: Message[] = ((data.messages || []) as SopMsg[]).map((m) => ({
-        id: m.id,
-        from_user_id: m.sender === 'admin' ? 'admin' : channel.channelId,
-        contenido: m.contenido,
-        created_at: m.created_at,
-        senderName: m.sender === 'admin' ? `Soporte${m.adminName ? ' · ' + m.adminName : ''}` : channel.nombre,
-        senderAvatar: m.sender === 'admin' ? null : channel.avatar_url,
-        isAdmin: m.sender === 'admin',
-        isMine: m.sender === 'admin', // admin viendo el hilo: sus respuestas son las "mias"
-      }));
-      setMessages(msgs);
-      return;
-    }
-    const res = await fetch(`/api/messages?channel=${channel.channelId}`);
+  async function loadMessages(channelId: string) {
+    const res = await fetch(`/api/messages?channel=${channelId}`);
     if (res.ok) {
       const data = await res.json();
       setMessages(data.messages || []);
@@ -183,19 +154,11 @@ export default function ChatPage() {
       isMine: true,
     }]);
 
-    if (selectedChannel.type === 'soporte') {
-      await fetch(`/api/admin/soporte/${selectedChannel.channelId}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contenido: msg }),
-      });
-    } else {
-      await fetch('/api/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ channelId: selectedChannel.channelId, contenido: msg }),
-      });
-    }
+    await fetch('/api/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ channelId: selectedChannel.channelId, contenido: msg }),
+    });
 
     setSending(false);
   }
@@ -226,7 +189,7 @@ export default function ChatPage() {
 
         await fetch('/api/messages/audio', { method: 'POST', body: formData });
         setSending(false);
-        loadMessages(selectedChannel!);
+        loadMessages(selectedChannel!.channelId);
       };
 
       mediaRecorder.start();
@@ -265,6 +228,32 @@ export default function ChatPage() {
           <p className="text-jjl-muted text-sm mt-1">Conversaciones con alumnos</p>
         </div>
 
+        {/* Shortcut a la bandeja de Soporte (admin) — separa visualmente
+            las consultas de Soporte de los chats normales con alumnos. */}
+        {isAdmin && (
+          <Link
+            href="/admin/soporte"
+            className={`flex items-center gap-3 p-3 rounded-xl border transition-colors ${
+              supportUnread > 0
+                ? 'bg-jjl-red/10 border-jjl-red/40 hover:bg-jjl-red/15'
+                : 'bg-white/[0.02] border-jjl-border hover:bg-white/[0.04]'
+            }`}
+          >
+            <div className="h-10 w-10 rounded-full bg-jjl-red/10 ring-1 ring-jjl-red/25 text-jjl-red flex items-center justify-center shrink-0">
+              <LifeBuoy className="h-5 w-5" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-white">Bandeja de Soporte</p>
+              <p className="text-[11px] text-jjl-muted">Consultas anónimas — separado de los chats con alumnos</p>
+            </div>
+            {supportUnread > 0 && (
+              <span className="inline-flex items-center justify-center h-6 min-w-[24px] px-2 rounded-full bg-jjl-red text-white text-[11px] font-bold shrink-0">
+                {supportUnread > 9 ? '9+' : supportUnread}
+              </span>
+            )}
+          </Link>
+        )}
+
         {channels.length === 0 ? (
           <Card>
             <div className="text-center py-8">
@@ -276,30 +265,21 @@ export default function ChatPage() {
           <div className="space-y-1">
             {channels.map((ch) => (
               <button
-                key={`${ch.type || 'chat'}-${ch.channelId}`}
+                key={ch.channelId}
                 onClick={() => setSelectedChannel(ch)}
                 className={`w-full flex items-center gap-3 p-3 rounded-xl hover:bg-jjl-gray-light transition-colors text-left ${ch.hasNew ? 'bg-jjl-red/5 border border-jjl-red/20' : ''}`}
               >
                 <div className="relative">
-                  {ch.type === 'soporte' ? (
-                    <div className="h-10 w-10 rounded-full bg-jjl-red/10 ring-1 ring-jjl-red/25 text-jjl-red flex items-center justify-center">
-                      <LifeBuoy className="h-5 w-5" />
-                    </div>
-                  ) : (
-                    <Avatar src={ch.avatar_url} name={ch.nombre} />
-                  )}
+                  <Avatar src={ch.avatar_url} name={ch.nombre} />
                   {ch.hasNew && (
                     <div className="absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full bg-jjl-red border-2 border-jjl-gray" />
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className={`text-sm truncate ${ch.hasNew ? 'font-bold text-white' : 'font-semibold'}`}>
-                      {ch.type === 'soporte' && <span className="text-jjl-red mr-1">[Soporte]</span>}
-                      {ch.nombre}
-                    </span>
+                  <div className="flex items-center justify-between">
+                    <span className={`text-sm ${ch.hasNew ? 'font-bold text-white' : 'font-semibold'}`}>{ch.nombre}</span>
                     {ch.lastAt && (
-                      <span className={`text-[10px] shrink-0 ${ch.hasNew ? 'text-jjl-red font-semibold' : 'text-jjl-muted'}`}>
+                      <span className={`text-[10px] ${ch.hasNew ? 'text-jjl-red font-semibold' : 'text-jjl-muted'}`}>
                         {formatDistanceToNow(new Date(ch.lastAt), { addSuffix: false, locale: es })}
                       </span>
                     )}
@@ -308,11 +288,6 @@ export default function ChatPage() {
                     {ch.lastMessage || 'Sin mensajes'}
                   </p>
                 </div>
-                {ch.unread && ch.unread > 0 ? (
-                  <span className="inline-flex items-center justify-center h-5 min-w-[20px] px-1.5 rounded-full bg-jjl-red text-white text-[10px] font-bold shrink-0">
-                    {ch.unread}
-                  </span>
-                ) : null}
               </button>
             ))}
           </div>
@@ -331,24 +306,10 @@ export default function ChatPage() {
             <ArrowLeft className="h-5 w-5" />
           </button>
         )}
-        {selectedChannel.type === 'soporte' ? (
-          <div className="h-8 w-8 rounded-full bg-jjl-red/10 ring-1 ring-jjl-red/25 text-jjl-red flex items-center justify-center">
-            <LifeBuoy className="h-4 w-4" />
-          </div>
-        ) : (
-          <Avatar src={selectedChannel.avatar_url} name={selectedChannel.nombre} size="sm" />
-        )}
+        <Avatar src={selectedChannel.avatar_url} name={selectedChannel.nombre} size="sm" />
         <div>
-          <span className="font-semibold text-sm">
-            {selectedChannel.type === 'soporte'
-              ? `Soporte · ${selectedChannel.nombre}`
-              : isAdmin ? selectedChannel.nombre : 'Chat con tu instructor'}
-          </span>
-          <p className="text-[10px] text-jjl-muted">
-            {selectedChannel.type === 'soporte'
-              ? 'El alumno te ve como "Soporte" (anonimo).'
-              : 'Los admins ven este chat'}
-          </p>
+          <span className="font-semibold text-sm">{isAdmin ? selectedChannel.nombre : 'Chat con tu instructor'}</span>
+          <p className="text-[10px] text-jjl-muted">Los admins ven este chat</p>
         </div>
       </div>
 
@@ -392,7 +353,7 @@ export default function ChatPage() {
                       className="max-w-[220px] h-10"
                     />
                   ) : (
-                    <p className="whitespace-pre-wrap">{msg.contenido}</p>
+                    <p className="whitespace-pre-wrap break-words">{msg.contenido}</p>
                   )}
                   <p className={`text-[10px] mt-1 ${msg.isMine ? 'text-white/50' : 'text-jjl-muted'}`}>
                     {format(new Date(msg.created_at), 'HH:mm')}

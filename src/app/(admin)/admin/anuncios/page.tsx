@@ -130,7 +130,6 @@ function NewForm({ onCancel, onSaved }: { onCancel: () => void; onSaved: () => v
   const [mensaje, setMensaje] = useState('');
   const [importancia, setImportancia] = useState<'info' | 'warning' | 'critical'>('info');
   const [url, setUrl] = useState('');
-  const [notify, setNotify] = useState(true);
   const [saving, setSaving] = useState(false);
   const toast = useToast();
 
@@ -141,7 +140,7 @@ function NewForm({ onCancel, onSaved }: { onCancel: () => void; onSaved: () => v
       const res = await fetch('/api/admin/announcements', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ titulo, mensaje, importancia, url: url || null, notify }),
+        body: JSON.stringify({ titulo, mensaje, importancia, url: url || null }),
       });
       const body = await res.json();
       if (!res.ok) throw new Error(body?.error || 'Error al guardar');
@@ -186,10 +185,9 @@ function NewForm({ onCancel, onSaved }: { onCancel: () => void; onSaved: () => v
           className="bg-white/[0.03] border border-jjl-border rounded-lg px-3 py-2.5 text-[13px] text-white placeholder:text-jjl-muted/50 focus:outline-none focus:border-jjl-red"
         />
       </div>
-      <label className="flex items-center gap-2 text-[12px] text-jjl-muted cursor-pointer">
-        <input type="checkbox" checked={notify} onChange={(e) => setNotify(e.target.checked)} className="accent-jjl-red" />
-        También mandar notificación push a todos
-      </label>
+      <p className="text-[11px] text-jjl-muted/80">
+        Al publicar se envía banner + notificación (campanita y push) a todos los alumnos.
+      </p>
       <div className="flex items-center justify-end gap-2 pt-1">
         <button onClick={onCancel} className="h-9 px-3 rounded-lg text-[13px] text-jjl-muted hover:text-white">Cancelar</button>
         <button
