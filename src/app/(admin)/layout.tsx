@@ -2,13 +2,14 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Users, FileSpreadsheet, CalendarClock, Megaphone } from 'lucide-react';
+import { Users, FileSpreadsheet, CalendarClock, Megaphone, Tag } from 'lucide-react';
 
 const ADMIN_TABS = [
   { label: 'Alumnos', href: '/admin', icon: Users },
   { label: 'Cursos', href: '/admin/courses', icon: FileSpreadsheet },
   { label: 'Agendas', href: '/admin/agendas', icon: CalendarClock },
   { label: 'Anuncios', href: '/admin/anuncios', icon: Megaphone },
+  { label: 'Tags', href: '/admin/tags', icon: Tag },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

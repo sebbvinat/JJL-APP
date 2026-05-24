@@ -80,15 +80,16 @@ export async function POST(request: NextRequest) {
   });
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  // Notificar a todos los admin (in-app)
+  // Notificar a admins con tag 'soporte' (o todos si nadie esta taggeado)
   try {
     const { createNotification } = await import('@/lib/notifications');
+    const { getAdminsByTag } = await import('@/lib/admin-tags');
     const { data: prof } = await admin.from('users').select('nombre').eq('id', user.id).single();
     const senderName = (prof as { nombre?: string } | null)?.nombre || 'Alumno';
-    const { data: admins } = await admin.from('users').select('id').eq('rol', 'admin');
-    for (const a of (admins || []) as { id: string }[]) {
+    const adminIds = await getAdminsByTag(admin, 'soporte');
+    for (const aid of adminIds) {
       await createNotification(
-        a.id,
+        aid,
         'system',
         `Soporte: ${senderName}`,
         contenido.slice(0, 100),
