@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { clsx } from 'clsx';
-import { X, ListVideo, Check, ChevronLeft, ChevronRight } from 'lucide-react';
+import { X, ListVideo, Check, ChevronLeft, ChevronRight, ArrowLeft } from 'lucide-react';
 import CustomVideoPlayer from '@/components/video/CustomVideoPlayer';
 import CourseLessonNav from './CourseLessonNav';
 import MaterialDeEstudio from './MaterialDeEstudio';
@@ -86,10 +86,11 @@ export default function CourseViewer({ course, sections }: CourseViewerProps) {
         <div className="flex min-w-0 items-center gap-3">
           <Link
             href="/mis-cursos"
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white/5 text-jjl-muted transition-colors hover:text-white"
+            className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg bg-white/5 px-2.5 text-[13px] font-semibold text-white transition-colors hover:bg-white/10"
             aria-label="Volver a Mis cursos"
           >
-            <X size={18} />
+            <ArrowLeft size={16} />
+            <span className="hidden sm:inline">Mis cursos</span>
           </Link>
           <span className="truncate text-[14px] font-bold text-white">
             {course.titulo}
