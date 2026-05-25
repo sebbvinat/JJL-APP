@@ -122,6 +122,17 @@ const SHARED_MONTH_2: PlanillaWeek[] = [
   },
   {
     semana_numero: 7,
+    titulo: 'Armbar + Guardia Cerrada',
+    lessons: [
+      v('Finalización Armbar'),
+      v('Drill 1: Armbar'),
+      v('Drill 2: Combinación toreos + armbar'),
+      v('Específico de 100KG'),
+      r(),
+    ],
+  },
+  {
+    semana_numero: 8,
     titulo: '100KG + Kimura',
     lessons: [
       v('Concepto de 100 KG'),
@@ -129,17 +140,6 @@ const SHARED_MONTH_2: PlanillaWeek[] = [
       v('Drill 1: Kimura'),
       v('Drill 2: Combinación toreos + Kimura'),
       v('Observaciones finales toreos'),
-      v('Específico de 100KG'),
-      r(),
-    ],
-  },
-  {
-    semana_numero: 8,
-    titulo: 'Armbar + Guardia Cerrada',
-    lessons: [
-      v('Finalización Armbar'),
-      v('Drill 1: Armbar'),
-      v('Drill 2: Combinación toreos + armbar'),
       v('Específico de 100KG'),
       r(),
     ],
