@@ -40,8 +40,11 @@ export default function CursosLoginPage() {
     setError('');
     setResetLoading(true);
     const supabase = createClient();
+    // Despues del link el usuario tiene que SETEAR password, no entrar a
+    // /mis-cursos directo (si no, queda con sesion de recuperacion y al
+    // siguiente login no le anda nada). Lo mandamos a /auth/set-password.
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/auth/callback?next=/mis-cursos`,
+      redirectTo: `${window.location.origin}/auth/set-password`,
     });
     if (error) setError(error.message);
     else setResetSent(true);
