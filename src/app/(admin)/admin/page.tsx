@@ -24,6 +24,7 @@ import Button from '@/components/ui/Button';
 import EmptyState from '@/components/ui/EmptyState';
 import { useToast } from '@/components/ui/Toast';
 import EngagementPanel from '@/components/admin/EngagementPanel';
+import StudentsCrmDashboard from '@/components/admin/home/StudentsCrmDashboard';
 import { fetcher } from '@/lib/fetcher';
 import { logger } from '@/lib/logger';
 import type { User } from '@/lib/supabase/types';
@@ -32,12 +33,12 @@ interface StudentRow extends User {
   unlocked_count: number;
 }
 
-type Tab = 'reportes' | 'gestion';
+type Tab = 'crm' | 'reportes' | 'gestion';
 
 export default function AdminPage() {
-  const [tab, setTab] = useState<Tab>('reportes');
+  const [tab, setTab] = useState<Tab>('crm');
   return (
-    <div className="space-y-6 max-w-5xl mx-auto">
+    <div className="space-y-6 max-w-5xl xl:max-w-6xl mx-auto">
       <header className="flex items-end justify-between gap-4 flex-wrap">
         <div>
           <p className="text-[11px] uppercase tracking-[0.18em] text-amber-400/80 font-semibold mb-1.5">
@@ -58,10 +59,11 @@ export default function AdminPage() {
       </header>
 
       {/* Tabs */}
-      <div className="flex items-center gap-1 bg-white/[0.03] border border-jjl-border rounded-xl p-1 w-fit">
+      <div className="flex items-center gap-1 bg-white/[0.03] border border-jjl-border rounded-xl p-1 w-fit overflow-x-auto">
         {[
+          { key: 'crm', label: 'CRM', icon: Users },
           { key: 'reportes', label: 'Reportes', icon: BarChart3 },
-          { key: 'gestion', label: 'Gestion', icon: Settings },
+          { key: 'gestion', label: 'Gestión', icon: Settings },
         ].map((t) => {
           const Icon = t.icon;
           const active = tab === t.key;
@@ -69,7 +71,7 @@ export default function AdminPage() {
             <button
               key={t.key}
               onClick={() => setTab(t.key as Tab)}
-              className={`inline-flex items-center gap-2 px-4 h-9 rounded-lg text-[13px] font-semibold transition-all ${
+              className={`inline-flex items-center gap-2 px-4 h-9 rounded-lg text-[13px] font-semibold transition-all whitespace-nowrap ${
                 active
                   ? 'bg-white/[0.06] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]'
                   : 'text-jjl-muted hover:text-white'
@@ -82,7 +84,9 @@ export default function AdminPage() {
         })}
       </div>
 
-      {tab === 'reportes' ? <EngagementPanel /> : <StudentsManagement />}
+      {tab === 'crm' && <StudentsCrmDashboard />}
+      {tab === 'reportes' && <EngagementPanel />}
+      {tab === 'gestion' && <StudentsManagement />}
     </div>
   );
 }
