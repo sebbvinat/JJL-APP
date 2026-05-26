@@ -6,8 +6,14 @@ import Link from 'next/link';
 import {
   ArrowLeft, Check, ChevronDown, ChevronRight, Play, Pencil,
   Upload, Copy, FileSpreadsheet, Flame, BookOpen, Trophy, Calendar,
-  MessageSquare, TrendingUp, Dumbbell,
+  MessageSquare, TrendingUp, Dumbbell, StickyNote, Phone, History,
 } from 'lucide-react';
+import CrmHeader from '@/components/admin/profile/CrmHeader';
+import NotesTab from '@/components/admin/profile/NotesTab';
+import TimelineTab from '@/components/admin/profile/TimelineTab';
+import LlamadasTab from '@/components/admin/profile/LlamadasTab';
+import Schedule1on1Modal from '@/components/admin/profile/Schedule1on1Modal';
+import ConfirmMonthDialog from '@/components/admin/profile/ConfirmMonthDialog';
 import { format, subDays, getDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import Card from '@/components/ui/Card';
@@ -44,7 +50,7 @@ interface Metrics {
   puntos: number;
 }
 
-type SectionType = 'metricas' | 'videos' | 'curso' | 'modulos';
+type SectionType = 'metricas' | 'videos' | 'curso' | 'modulos' | 'notas' | 'timeline' | 'llamadas';
 
 export default function AdminStudentPage() {
   const params = useParams();
@@ -71,6 +77,36 @@ export default function AdminStudentPage() {
   const [showCopyMenu, setShowCopyMenu] = useState(false);
   const [allStudents, setAllStudents] = useState<{ id: string; nombre: string }[]>([]);
   const [loadingAction, setLoadingAction] = useState(false);
+
+  // CRM modals + refresh key
+  const [showSchedule, setShowSchedule] = useState(false);
+  const [showConfirmMonth, setShowConfirmMonth] = useState(false);
+  const [confirmMonthCtx, setConfirmMonthCtx] = useState<{
+    currentMesLabel: string;
+    nextMesLabel: string | null;
+    nextModulesPreview: string[];
+  } | null>(null);
+  const [crmRefreshKey, setCrmRefreshKey] = useState(0);
+
+  // Antes de abrir el dialog, traemos el preview de módulos a desbloquear.
+  async function openConfirmMonth() {
+    try {
+      const res = await fetch(`/api/admin/students/${userId}/crm-summary`, { cache: 'no-store' });
+      const data = await res.json();
+      type M = { mes: number; label: string; moduleIds: string[] };
+      const cm = data?.month?.currentMes as number | null;
+      const nm = data?.month?.nextMes as number | null;
+      const months = (data?.month?.months as M[] | undefined) || [];
+      const currentMesLabel = cm !== null ? (months.find((m) => m.mes === cm)?.label || `Mes ${cm}`) : '—';
+      const nextBlock = nm !== null ? months.find((m) => m.mes === nm) : null;
+      setConfirmMonthCtx({
+        currentMesLabel,
+        nextMesLabel: nextBlock?.label || null,
+        nextModulesPreview: nextBlock?.moduleIds || [],
+      });
+      setShowConfirmMonth(true);
+    } catch { /* silencioso */ }
+  }
 
   function showToast(message: string, type: 'success' | 'error') {
     setToast({ message, type });
@@ -313,29 +349,20 @@ export default function AdminStudentPage() {
         <ArrowLeft className="h-4 w-4" /> Volver a Alumnos
       </button>
 
-      {/* Student Info */}
+      {/* CRM Header (nuevo) */}
+      <CrmHeader
+        userId={userId}
+        onScheduleClick={() => setShowSchedule(true)}
+        onConfirmMonthClick={openConfirmMonth}
+        refreshKey={crmRefreshKey}
+      />
+
+      {/* Acceso al programa (separado del CRM porque es flag técnico, no de journey) */}
       <Card>
-        <div className="flex items-center gap-4">
-          <Avatar name={student.nombre} size="lg" />
-          <div className="flex-1">
-            <h1 className="text-xl font-bold">{student.nombre}</h1>
-            <div className="flex items-center gap-2 mt-1">
-              <Badge belt={gamification?.newBelt || student.cinturon_actual || 'white'} />
-              <span className="text-sm text-jjl-muted">{student.email}</span>
-            </div>
-            <p className="text-xs text-jjl-muted mt-1">
-              Miembro desde {new Date(student.created_at).toLocaleDateString('es-AR', { month: 'short', year: 'numeric' })}
-            </p>
-          </div>
-          <div className="text-right hidden sm:block">
-            <p className="text-2xl font-bold text-jjl-red">{gamification?.puntos || 0}</p>
-            <p className="text-xs text-jjl-muted">Puntos</p>
-          </div>
-        </div>
-        <div className="mt-4 pt-4 border-t border-jjl-border/40 flex items-center justify-between gap-3">
-          <div>
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div className="min-w-0">
             <p className="text-[13px] font-semibold text-white">Acceso al programa</p>
-            <p className="text-[11px] text-jjl-muted">Habilita /dashboard, /modules, /upload, etc. Sin esto, solo accede a /cursos.</p>
+            <p className="text-[11px] text-jjl-muted">Habilita /dashboard, /modules, /upload, etc. Sin esto solo accede a /cursos.</p>
           </div>
           <Toggle
             checked={!!(student as User & { program_member?: boolean }).program_member}
@@ -358,16 +385,19 @@ export default function AdminStudentPage() {
         </div>
       </Card>
 
-      {/* Section tabs */}
-      <div className="flex gap-1 bg-jjl-gray rounded-lg p-1">
+      {/* Section tabs — scrollable horizontal en mobile */}
+      <div className="flex gap-1 bg-jjl-gray rounded-lg p-1 overflow-x-auto">
         {([
-          { key: 'metricas' as SectionType, label: 'Metricas', icon: TrendingUp },
+          { key: 'metricas' as SectionType, label: 'Métricas', icon: TrendingUp },
+          { key: 'notas' as SectionType, label: 'Notas', icon: StickyNote },
+          { key: 'timeline' as SectionType, label: 'Timeline', icon: History },
+          { key: 'llamadas' as SectionType, label: 'Llamadas', icon: Phone },
           { key: 'videos' as SectionType, label: 'Videos', icon: VideoIcon },
           { key: 'curso' as SectionType, label: 'Curso', icon: FileSpreadsheet },
-          { key: 'modulos' as SectionType, label: 'Modulos', icon: BookOpen },
+          { key: 'modulos' as SectionType, label: 'Módulos', icon: BookOpen },
         ]).map(({ key, label, icon: Icon }) => (
           <button key={key} onClick={() => setActiveSection(key)}
-            className={`flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-md text-sm font-medium transition-colors ${
+            className={`shrink-0 flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${
               activeSection === key ? 'bg-jjl-red text-white' : 'text-jjl-muted hover:text-white'
             }`}>
             <Icon className="h-4 w-4" />
@@ -375,6 +405,17 @@ export default function AdminStudentPage() {
           </button>
         ))}
       </div>
+
+      {/* ========== NOTAS ========== */}
+      {activeSection === 'notas' && <NotesTab userId={userId} />}
+
+      {/* ========== TIMELINE ========== */}
+      {activeSection === 'timeline' && <TimelineTab userId={userId} />}
+
+      {/* ========== LLAMADAS ========== */}
+      {activeSection === 'llamadas' && (
+        <LlamadasTab userId={userId} onScheduleClick={() => setShowSchedule(true)} />
+      )}
 
       {/* ========== METRICAS ========== */}
       {activeSection === 'metricas' && (
@@ -726,6 +767,42 @@ export default function AdminStudentPage() {
           {toast.type === 'success' && <Check className="h-4 w-4 inline mr-1.5" />}
           {toast.message}
         </div>
+      )}
+
+      {/* CRM modals */}
+      {showSchedule && (
+        <Schedule1on1Modal
+          userId={userId}
+          userName={student?.nombre || 'Alumno'}
+          onClose={() => setShowSchedule(false)}
+          onScheduled={() => {
+            setShowSchedule(false);
+            setCrmRefreshKey((k) => k + 1);
+            showToast('1-on-1 agendada — notificación enviada al alumno', 'success');
+          }}
+        />
+      )}
+      {showConfirmMonth && confirmMonthCtx && (
+        <ConfirmMonthDialog
+          userId={userId}
+          userName={student?.nombre || 'Alumno'}
+          currentMesLabel={confirmMonthCtx.currentMesLabel}
+          nextMesLabel={confirmMonthCtx.nextMesLabel}
+          nextModulesPreview={confirmMonthCtx.nextModulesPreview}
+          onClose={() => setShowConfirmMonth(false)}
+          onConfirmed={(info) => {
+            setShowConfirmMonth(false);
+            setCrmRefreshKey((k) => k + 1);
+            // refresh tambien los desbloqueos para reflejar en tab Módulos
+            setUnlockedModules((prev) => {
+              const next = new Set(prev);
+              // optimista — el back ya desbloqueó; el refresh del Curso/Módulos
+              // se hace en el próximo render si el user vuelve a ese tab.
+              return next;
+            });
+            showToast(`Mes confirmado · ${info.unlocked_count} módulos desbloqueados`, 'success');
+          }}
+        />
       )}
     </div>
   );
