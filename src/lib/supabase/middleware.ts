@@ -89,6 +89,21 @@ async function handleAlumno(
     profile = data;
   }
 
+  // ============================================================
+  // CROSS-SITE GATE: los clientes de cursos sueltos (rol = 'cliente_cursos')
+  // NO deben poder acceder al programa de 6 meses bajo ninguna circunstancia.
+  // Si entran a alumno.jiujitsulatino.com los pateamos a su plataforma.
+  // /auth/* queda excluido para que el callback de password reset funcione.
+  // ============================================================
+  if (
+    user &&
+    profile &&
+    profile.rol === 'cliente_cursos' &&
+    !pathname.startsWith('/auth/')
+  ) {
+    return NextResponse.redirect('https://jiujitsulatino.com/mis-cursos');
+  }
+
   // ADMIN ROUTE PROTECTION — server-side role check
   if (user && pathname.startsWith('/admin')) {
     if (profile?.rol !== 'admin') {
