@@ -186,23 +186,23 @@ async function fanOutLeadNotifications(
 
   const summary = buildLeadSummary(lead);
 
-  // 1) Notificación in-app + push para cada admin de la app.
-  const { data: admins } = await adminClient
-    .from('users')
-    .select('id')
-    .eq('rol', 'admin');
+  // 1) Notificación in-app + push para admins con tag 'setter' (fallback
+  //    a todos si nadie está taggeado para no perder leads). Patrón
+  //    establecido en lib/admin-tags.
+  const { getAdminsByTag } = await import('@/lib/admin-tags');
+  const adminIds = await getAdminsByTag(adminClient, 'setter');
 
-  for (const a of admins || []) {
+  for (const aid of adminIds) {
     try {
       await createNotification(
-        a.id,
+        aid,
         'system',
         'Nueva agenda',
         summary.short,
         '/admin/agendas',
       );
     } catch (err) {
-      logger.warn('leads.phone.notify.user_failed', { userId: a.id, err });
+      logger.warn('leads.phone.notify.user_failed', { userId: aid, err });
     }
   }
 
