@@ -22,55 +22,38 @@ export default function SetPasswordPage() {
   useEffect(() => {
     let mounted = true;
     // El link de recuperacion de Supabase llega con:
-    //  - ?code=XYZ  (flow PKCE moderno)  -> hay que exchange-ar a mano
-    //  - #access_token=...  (flow viejo)  -> el SDK lo detecta solo
+    //  - #access_token=...  (flow implicit)  -> el SDK lo detecta solo
+    //  - ?code=XYZ  (flow PKCE legacy)  -> hay que exchange-ar a mano
     //  - ?error=...&error_description=... -> link expirado/invalido
-    const exchange = async () => {
-      // Caso error explicito desde Supabase.
+    //
+    // Siempre mostramos el form salvo que haya un error explicito. Asi
+    // evitamos falsos "expirado" cuando la sesion tarda en aparecer.
+    // Si el usuario submite sin sesion, updateUser falla y mostramos el
+    // error real.
+    const init = async () => {
       const url = new URL(window.location.href);
-      const err = url.searchParams.get('error') ||
+      const err =
+        url.searchParams.get('error') ||
         new URLSearchParams(window.location.hash.slice(1)).get('error');
       if (err) {
         if (mounted) setReady('invalid');
         return;
       }
 
-      // Caso PKCE: hay un ?code=, lo cambiamos por sesion.
       const code = url.searchParams.get('code');
       if (code) {
-        const { error: exErr } = await supabase.auth.exchangeCodeForSession(code);
-        if (!mounted) return;
-        if (exErr) {
-          setReady('invalid');
-          return;
+        try {
+          await supabase.auth.exchangeCodeForSession(code);
+          url.searchParams.delete('code');
+          window.history.replaceState({}, '', url.pathname + url.search + url.hash);
+        } catch {
+          /* si falla, dejamos el form igual — el submit dira el motivo */
         }
-        // Limpiar el code de la URL (estetica + seguridad).
-        url.searchParams.delete('code');
-        window.history.replaceState({}, '', url.pathname + url.search + url.hash);
-        setReady('ok');
-        return;
       }
 
-      // Sin code: o el SDK ya creo la sesion via hash, o no hay nada.
-      const { data } = await supabase.auth.getSession();
-      if (!mounted) return;
-      if (data.session) {
-        setReady('ok');
-        return;
-      }
-
-      // Esperar evento SIGNED_IN (hash flow puede tardar).
-      const sub = supabase.auth.onAuthStateChange((_event, session) => {
-        if (session && mounted) {
-          setReady('ok');
-          sub.data.subscription.unsubscribe();
-        }
-      });
-      setTimeout(() => {
-        if (mounted) setReady((r) => (r === 'checking' ? 'invalid' : r));
-      }, 4000);
+      if (mounted) setReady('ok');
     };
-    exchange();
+    init();
     return () => {
       mounted = false;
     };
@@ -92,7 +75,13 @@ export default function SetPasswordPage() {
     const { error: upErr } = await supabase.auth.updateUser({ password });
     setLoading(false);
     if (upErr) {
-      setError(upErr.message);
+      // Si el link estaba realmente vencido/usado, updateUser falla con
+      // "Auth session missing" o similar. Le damos un mensaje claro y
+      // un link para pedir el reset de nuevo.
+      const msg = /session|expired|not_admin|jwt/i.test(upErr.message)
+        ? 'El link expiró o ya se usó. Pedí uno nuevo desde Login → "Olvidé mi contraseña".'
+        : upErr.message;
+      setError(msg);
       return;
     }
     router.push('/mis-cursos');

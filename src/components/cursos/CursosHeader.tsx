@@ -1,10 +1,28 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import LightContainer from './ui/LightContainer';
+import UserMenu from './UserMenu';
+import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { lightButtonClasses } from './ui/LightButton';
 
 // Header del producto JJL Cursos (tema claro). Sticky, editorial.
-// Las URLs son limpias: en producción el dominio es jiujitsulatino.com.
-export default function CursosHeader() {
+// Server component: fetcheo el usuario actual para mostrar el menu
+// de perfil o el boton "Ingresar" segun corresponda.
+export default async function CursosHeader() {
+  const supabase = await createServerSupabaseClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  let nombre: string | null = null;
+  if (user) {
+    const { data } = await supabase
+      .from('users')
+      .select('nombre')
+      .eq('id', user.id)
+      .single<{ nombre: string }>();
+    nombre = data?.nombre ?? null;
+  }
+
   return (
     <header className="sticky top-0 z-40 border-b border-cursos-line bg-cursos-paper/85 backdrop-blur-md">
       <LightContainer className="flex h-[68px] items-center justify-between">
@@ -26,13 +44,23 @@ export default function CursosHeader() {
           </span>
         </Link>
 
-        <nav className="flex items-center gap-1">
+        <nav className="flex items-center gap-2">
           <Link
             href="/mis-cursos"
-            className="rounded-lg px-4 py-2 text-sm font-semibold text-cursos-ink transition-colors hover:bg-black/[0.05]"
+            className="hidden rounded-lg px-4 py-2 text-sm font-semibold text-cursos-ink transition-colors hover:bg-black/[0.05] sm:inline-block"
           >
             Mis cursos
           </Link>
+          {user ? (
+            <UserMenu nombre={nombre} email={user.email ?? null} />
+          ) : (
+            <Link
+              href="/login"
+              className={lightButtonClasses('ink', 'sm')}
+            >
+              Ingresar
+            </Link>
+          )}
         </nav>
       </LightContainer>
     </header>
