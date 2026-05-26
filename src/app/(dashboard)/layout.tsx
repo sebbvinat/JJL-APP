@@ -25,6 +25,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
 
+  // Gate de seguridad — defensa en capas con el middleware. Bloqueamos
+  // a cualquier 'cliente_cursos' (clientes migrados de cursos sueltos)
+  // del programa de 6 meses. NO debe tocar ninguna pagina del dashboard.
   try {
     const { data: profile } = await supabase
       .from('users')
@@ -32,16 +35,23 @@ export default async function DashboardLayout({ children }: { children: React.Re
       .eq('id', user.id)
       .single();
     type Prof = { rol?: string; program_member?: boolean };
-    const isAdmin = (profile as Prof | null)?.rol === 'admin';
+    const rol = (profile as Prof | null)?.rol;
+    const isAdmin = rol === 'admin';
+
+    // 1) Bloqueo duro por rol — los admins pasan; cliente_cursos NUNCA.
+    if (rol === 'cliente_cursos') {
+      redirect('https://jiujitsulatino.com/mis-cursos');
+    }
+
+    // 2) Bloqueo secundario por program_member (refuerzo).
     const programMember = (profile as Prof | null)?.program_member;
-    // Solo redirigimos si tenemos FALSE explicito + no es admin.
-    // Si la columna no existe todavia, programMember = undefined -> permitimos.
     if (programMember === false && !isAdmin) {
-      redirect('/cursos');
+      redirect('https://jiujitsulatino.com/mis-cursos');
     }
   } catch {
     // Si falla el query (red, RLS, etc.) permitimos — fail-open para no
-    // dejar gente afuera por bugs.
+    // dejar gente afuera por bugs. El middleware ya hace el chequeo de
+    // rol = 'cliente_cursos' antes de llegar aca.
   }
 
   return (

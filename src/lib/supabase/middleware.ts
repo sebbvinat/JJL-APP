@@ -53,6 +53,27 @@ async function handleAlumno(
 ) {
   const { pathname } = request.nextUrl;
 
+  // ============================================================
+  // API GATE para cliente_cursos. Las /api/* del programa no deben
+  // responderle. Devolvemos 403 (sin redirect — los clientes son
+  // navegadores haciendo fetch, no esperan HTML). Si no hay sesion
+  // dejamos pasar para no romper APIs publicas: cada route se
+  // autentica por su cuenta como hasta ahora.
+  // ============================================================
+  if (pathname.startsWith('/api/')) {
+    if (user) {
+      const { data: profile } = await supabase
+        .from('users')
+        .select('rol')
+        .eq('id', user.id)
+        .single<{ rol: string }>();
+      if (profile?.rol === 'cliente_cursos') {
+        return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
+      }
+    }
+    return supabaseResponse;
+  }
+
   // Public routes that don't require auth
   const publicRoutes = ['/', '/login', '/register', '/consultoria-gratuita'];
   const isPublicRoute =
@@ -156,6 +177,14 @@ async function handleCursos(
   supabaseResponse: NextResponse
 ) {
   const { pathname } = request.nextUrl;
+
+  // /api/* en host cursos: el middleware no toca; cada route handler hace
+  // su propia auth (devuelve 401 JSON si no hay sesion). Asi no rompemos
+  // clientes que llaman a /api/cursos/* esperando respuestas JSON.
+  if (pathname.startsWith('/api/')) {
+    return supabaseResponse;
+  }
+
   const isPrefixed = pathname === '/cursos' || pathname.startsWith('/cursos/');
   // base = prefijo a usar en redirects (vacío en el host real, /cursos en dev)
   const base = isPrefixed ? '/cursos' : '';
