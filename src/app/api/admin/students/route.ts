@@ -7,11 +7,21 @@ export async function GET(request: NextRequest) {
     if (!ctx) return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
     const { admin: adminClient } = ctx;
 
-    // 3. Get all users (students + admins)
-    const { data: users } = await adminClient
+    // 3. Get users. Por default solo los del programa (alumnos del LMS +
+    //    admins). Pasá ?all=1 para incluir compradores de cursos sueltos
+    //    (jiujitsulatino.com) que no son del programa.
+    const all = request.nextUrl.searchParams.get('all') === '1';
+    let q = adminClient
       .from('users')
       .select('*')
       .order('created_at', { ascending: false });
+    if (!all) q = q.eq('program_member', true);
+    let { data: users, error: usersErr } = await q;
+    // Fallback pre-migración: si la columna program_member no existe todavia.
+    if (usersErr && /column .* does not exist/i.test(usersErr.message)) {
+      const fb = await adminClient.from('users').select('*').order('created_at', { ascending: false });
+      users = fb.data;
+    }
 
     // 4. Get unlocked module counts
     const { data: accessData } = await adminClient

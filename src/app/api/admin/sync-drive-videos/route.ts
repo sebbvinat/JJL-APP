@@ -17,14 +17,29 @@ export const maxDuration = 60;
  *  - GET  /api/admin/sync-drive-videos (Vercel Cron diario; auth con CRON_SECRET)
  */
 async function runSync(admin: SupabaseClient) {
-  // Get ALL students. Some may not have drive_folder_id set yet (never opened
-  // "Subir video" in app); we'll try to match them to a Drive subfolder by
-  // name and auto-link.
-  const { data: allStudents, error: studentsErr } = await admin
-    .from('users')
-    .select('id, nombre, drive_folder_id, rol')
-    .neq('rol', 'admin');
-
+  // Get students del programa (program_member=TRUE). Compradores de cursos
+  // sueltos NO necesitan carpeta de Drive — no los escaneamos.
+  type StudentRow = { id: string; nombre: string; drive_folder_id: string | null; rol: string; program_member?: boolean };
+  let allStudents: StudentRow[] | null = null;
+  let studentsErr: { message: string } | null = null;
+  {
+    const r = await admin
+      .from('users')
+      .select('id, nombre, drive_folder_id, rol, program_member')
+      .neq('rol', 'admin')
+      .eq('program_member', true);
+    allStudents = (r.data as StudentRow[] | null);
+    studentsErr = r.error;
+  }
+  // Fallback pre-migración (columna program_member todavia no existe).
+  if (studentsErr && /column .* does not exist/i.test(studentsErr.message)) {
+    const fb = await admin
+      .from('users')
+      .select('id, nombre, drive_folder_id, rol')
+      .neq('rol', 'admin');
+    allStudents = (fb.data as StudentRow[] | null);
+    studentsErr = fb.error;
+  }
   if (studentsErr) {
     console.error('[sync-drive] students query error', studentsErr);
     return { error: studentsErr.message, status: 500 } as const;

@@ -332,6 +332,30 @@ export default function AdminStudentPage() {
             <p className="text-xs text-jjl-muted">Puntos</p>
           </div>
         </div>
+        <div className="mt-4 pt-4 border-t border-jjl-border/40 flex items-center justify-between gap-3">
+          <div>
+            <p className="text-[13px] font-semibold text-white">Acceso al programa</p>
+            <p className="text-[11px] text-jjl-muted">Habilita /dashboard, /modules, /upload, etc. Sin esto, solo accede a /cursos.</p>
+          </div>
+          <Toggle
+            checked={!!(student as User & { program_member?: boolean }).program_member}
+            onChange={async (v) => {
+              try {
+                const res = await fetch('/api/admin/update-user', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ userId, program_member: v }),
+                });
+                const body = await res.json();
+                if (!res.ok) throw new Error(body?.error || 'Error');
+                setStudent((prev) => prev ? ({ ...prev, program_member: v } as User & { program_member: boolean }) : prev);
+                showToast(v ? 'Acceso al programa activado' : 'Acceso revocado', 'success');
+              } catch (e) {
+                showToast(e instanceof Error ? e.message : 'Error', 'error');
+              }
+            }}
+          />
+        </div>
       </Card>
 
       {/* Section tabs */}

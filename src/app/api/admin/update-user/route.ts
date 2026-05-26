@@ -7,13 +7,14 @@ export async function POST(request: NextRequest) {
     if (!ctx) return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
     const { admin: adminClient } = ctx;
 
-    const { userId, nombre, cinturon_actual, email, password } = await request.json();
+    const { userId, nombre, cinturon_actual, email, password, program_member } = await request.json();
     if (!userId) return NextResponse.json({ error: 'userId requerido' }, { status: 400 });
 
     // Update profile fields
     const updates: Record<string, any> = {};
     if (nombre !== undefined) updates.nombre = nombre;
     if (cinturon_actual !== undefined) updates.cinturon_actual = cinturon_actual;
+    if (program_member !== undefined) updates.program_member = !!program_member;
 
     if (Object.keys(updates).length > 0) {
       const { error } = await adminClient
