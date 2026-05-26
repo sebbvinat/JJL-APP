@@ -64,22 +64,35 @@ export async function GET(request: NextRequest) {
     const today = new Date();
     const from = format(subDays(today, 30), 'yyyy-MM-dd');
 
-    const [usersRes, tasksRes] = await Promise.all([
-      admin
+    // Solo alumnos del programa (no compradores de cursos sueltos).
+    // Fallback: si la columna program_member no existe todavía, devolvemos
+    // todos los con rol='alumno' (compat con instalaciones previas).
+    let usersData: UserRow[] = [];
+    {
+      let q = admin
         .from('users')
         .select('id, nombre, email, avatar_url, cinturon_actual, rol')
-        .eq('rol', 'alumno')
-        .order('nombre', { ascending: true }),
-      admin
-        .from('daily_tasks')
-        .select(
-          'user_id, fecha, entreno_check, fatiga, puntaje, objetivo, objetivo_cumplido, aprendizajes'
-        )
-        .gte('fecha', from)
-        .order('fecha', { ascending: false }),
-    ]);
+        .eq('rol', 'alumno');
+      const filtered = await q.eq('program_member', true).order('nombre', { ascending: true });
+      if (filtered.error && /column .* does not exist/i.test(filtered.error.message)) {
+        const fb = await admin
+          .from('users')
+          .select('id, nombre, email, avatar_url, cinturon_actual, rol')
+          .eq('rol', 'alumno')
+          .order('nombre', { ascending: true });
+        usersData = (fb.data as UserRow[] | null) || [];
+      } else {
+        usersData = (filtered.data as UserRow[] | null) || [];
+      }
+    }
 
-    const users = (usersRes.data as UserRow[] | null) || [];
+    const tasksRes = await admin
+      .from('daily_tasks')
+      .select('user_id, fecha, entreno_check, fatiga, puntaje, objetivo, objetivo_cumplido, aprendizajes')
+      .gte('fecha', from)
+      .order('fecha', { ascending: false });
+
+    const users = usersData;
     const tasks = (tasksRes.data as TaskRow[] | null) || [];
 
     const byUser = new Map<string, TaskRow[]>();

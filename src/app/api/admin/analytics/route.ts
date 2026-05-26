@@ -32,10 +32,18 @@ export async function GET(request: NextRequest) {
   const weekAgo = format(subDays(now, 7), 'yyyy-MM-dd');
   const monthAgo = format(subDays(now, 30), 'yyyy-MM-dd');
 
-  // 1. Total users
-  const { count: totalUsers } = await adminClient
-    .from('users')
-    .select('*', { count: 'exact', head: true });
+  // 1. Total users (solo program_member del programa, no compradores
+  // de cursos sueltos). Fallback si la columna no existe todavía.
+  let totalUsers: number | null = null;
+  {
+    const r = await adminClient.from('users').select('*', { count: 'exact', head: true }).eq('program_member', true);
+    if (r.error && /column .* does not exist/i.test(r.error.message)) {
+      const fb = await adminClient.from('users').select('*', { count: 'exact', head: true });
+      totalUsers = fb.count;
+    } else {
+      totalUsers = r.count;
+    }
+  }
 
   // 2. Active users (trained or logged in last 7 days)
   const { data: recentSessions } = await adminClient
@@ -105,11 +113,24 @@ export async function GET(request: NextRequest) {
   const retained = [...activeUserIds].filter((id) => lastWeekUsers.has(id)).length;
   const retentionRate = lastWeekUsers.size > 0 ? Math.round((retained / lastWeekUsers.size) * 100) : 0;
 
-  // 8. Per-user details (for the table)
-  const { data: allUsers } = await adminClient
-    .from('users')
-    .select('id, nombre, email, cinturon_actual, puntos, planilla_id, created_at')
-    .order('created_at', { ascending: false });
+  // 8. Per-user details (for the table) — solo program_member.
+  let allUsers: Array<{ id: string; nombre: string; email: string | null; cinturon_actual: string; puntos: number; planilla_id: string | null; created_at: string }> | null = null;
+  {
+    const r = await adminClient
+      .from('users')
+      .select('id, nombre, email, cinturon_actual, puntos, planilla_id, created_at')
+      .eq('program_member', true)
+      .order('created_at', { ascending: false });
+    if (r.error && /column .* does not exist/i.test(r.error.message)) {
+      const fb = await adminClient
+        .from('users')
+        .select('id, nombre, email, cinturon_actual, puntos, planilla_id, created_at')
+        .order('created_at', { ascending: false });
+      allUsers = fb.data;
+    } else {
+      allUsers = r.data;
+    }
+  }
 
   // Get per-user session totals and last active
   const { data: allSessions } = await adminClient
