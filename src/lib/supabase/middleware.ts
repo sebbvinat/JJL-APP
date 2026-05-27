@@ -223,6 +223,7 @@ async function handleCursos(
   const isPublic =
     logical === '/' ||
     logical === '/login' ||
+    logical === '/privacidad' ||
     logical.startsWith('/curso/') ||
     logical.startsWith('/pack/') ||
     logical.startsWith('/auth/');
