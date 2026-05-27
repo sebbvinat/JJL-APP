@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { Suspense, useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { ArrowLeft, CheckCircle2, AlertTriangle, Cloud, Loader2 } from 'lucide-react';
@@ -16,6 +16,15 @@ type Status = {
 };
 
 export default function AdminGoogleDrivePage() {
+  // Suspense wrap obligatorio en Next 16 al usar useSearchParams() en page.
+  return (
+    <Suspense fallback={<div className="text-[13px] text-jjl-muted p-6">Cargando…</div>}>
+      <GoogleDriveContent />
+    </Suspense>
+  );
+}
+
+function GoogleDriveContent() {
   const sp = useSearchParams();
   const toast = useToast();
   const [status, setStatus] = useState<Status | null>(null);
@@ -135,8 +144,8 @@ function SetupGuide({ compact }: { compact?: boolean }) {
       <ol className="text-[12px] text-jjl-muted space-y-1.5 mt-2 ml-5 list-decimal">
         <li>Andá a <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener" className="text-jjl-red underline">Google Cloud Console → Credentials</a>.</li>
         <li>Elegí el proyecto donde está el service account (<code>feisty-pottery-492718-m0</code>).</li>
-        <li>Click <b>"+ Create Credentials" → "OAuth client ID"</b>.</li>
-        <li>Application type: <b>Web application</b>. Nombre: ej. "JJL App Uploads".</li>
+        <li>Click <b>&quot;+ Create Credentials&quot; → &quot;OAuth client ID&quot;</b>.</li>
+        <li>Application type: <b>Web application</b>. Nombre: ej. &quot;JJL App Uploads&quot;.</li>
         <li>En <b>Authorized redirect URIs</b> agregá: <code className="text-jjl-red break-all">https://alumno.jiujitsulatino.com/api/admin/google-oauth/callback</code></li>
         <li>Copiá el <b>Client ID</b> y <b>Client Secret</b> que te muestra.</li>
         <li>En Vercel → Settings → Environment Variables, agregá:
@@ -146,7 +155,7 @@ function SetupGuide({ compact }: { compact?: boolean }) {
           </ul>
         </li>
         <li>Redeploy (Vercel rebuildea solo cuando cambiás env vars en algunas setups; si no, push o redeploy manual).</li>
-        <li>Volvé acá y click <b>"Conectar Google Drive"</b>.</li>
+        <li>Volvé acá y click <b>&quot;Conectar Google Drive&quot;</b>.</li>
       </ol>
     </details>
   );
