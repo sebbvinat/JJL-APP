@@ -22,6 +22,9 @@ export default function CursosFooter() {
           <Link href="/mis-cursos" className="transition-colors hover:text-cursos-red">
             Mis cursos
           </Link>
+          <Link href="/privacidad" className="transition-colors hover:text-cursos-red">
+            Privacidad
+          </Link>
           <span className="text-cursos-muted">© {year}</span>
         </nav>
       </LightContainer>
