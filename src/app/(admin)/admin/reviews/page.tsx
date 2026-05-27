@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import {
-  ArrowLeft, Video, ExternalLink, CheckCircle, RotateCcw, Clock, Send, MessageSquare,
+  ArrowLeft, Video, ExternalLink, CheckCircle, RotateCcw, Clock, Send, MessageSquare, RefreshCw,
 } from 'lucide-react';
 import Card from '@/components/ui/Card';
 import Avatar from '@/components/ui/Avatar';
@@ -240,9 +240,11 @@ export default function ReviewsPage() {
         <button
           onClick={() => handleSync(false)}
           disabled={syncing}
-          className="px-3 py-2 bg-jjl-gray-light border border-jjl-border rounded-lg text-xs font-semibold hover:bg-jjl-border disabled:opacity-50"
+          className="inline-flex items-center gap-1.5 px-4 h-10 bg-jjl-red text-white border border-jjl-red rounded-lg text-sm font-semibold hover:bg-jjl-red-hover disabled:opacity-50 shadow-lg shadow-jjl-red/20 shrink-0"
+          title="Forzar sync inmediato con Drive (igual corre solo 4×/día)"
         >
-          {syncing ? 'Sincronizando...' : 'Sincronizar Drive'}
+          <RefreshCw className={`h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />
+          <span className="hidden sm:inline">{syncing ? 'Sincronizando…' : 'Sincronizar ahora'}</span>
         </button>
       </div>
 
