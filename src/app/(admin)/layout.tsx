@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Users, FileSpreadsheet, CalendarClock, Megaphone, Tag } from 'lucide-react';
+import { Users, FileSpreadsheet, CalendarClock, Megaphone, Tag, Cloud } from 'lucide-react';
 
 const ADMIN_TABS = [
   { label: 'Alumnos', href: '/admin', icon: Users },
@@ -10,6 +10,7 @@ const ADMIN_TABS = [
   { label: 'Agendas', href: '/admin/agendas', icon: CalendarClock },
   { label: 'Anuncios', href: '/admin/anuncios', icon: Megaphone },
   { label: 'Tags', href: '/admin/tags', icon: Tag },
+  { label: 'Drive', href: '/admin/google-drive', icon: Cloud },
 ];
 
 // Sub-paths con tab propia. "Alumnos" (/admin) es activo solo cuando NO

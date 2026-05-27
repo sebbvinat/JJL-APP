@@ -1,36 +1,60 @@
 import { google } from 'googleapis';
 import type { Readable } from 'stream';
+import { getAuthenticatedOAuthClient } from '@/lib/google-oauth';
 
-function getAuth() {
+type DriveAuth = Awaited<ReturnType<typeof getAuthenticatedOAuthClient>> | ReturnType<typeof getServiceAccountAuth>;
+
+function getServiceAccountAuth() {
   const keyJson = process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
   if (!keyJson) {
     throw new Error('GOOGLE_SERVICE_ACCOUNT_KEY not configured');
   }
-
   const key = JSON.parse(keyJson);
   return new google.auth.GoogleAuth({
     credentials: key,
     scopes: [
-      'https://www.googleapis.com/auth/drive.file',
+      'https://www.googleapis.com/auth/drive',
       'https://www.googleapis.com/auth/drive.readonly',
     ],
   });
 }
 
-// List all files inside a Drive folder (not trashed), filter videos client-side
+/**
+ * Prefiere OAuth (admin conectado vía /admin/google-drive) sobre el service
+ * account. Cuando hay OAuth disponible, las subidas quedan a nombre del
+ * admin que conectó → usan SU cuota de Drive (~15GB free, o Google One)
+ * en vez de la del service account (que es 0 y causa 403 storage).
+ *
+ * Si no hay OAuth todavía, cae al service account (compat — lecturas y
+ * creación de carpetas siguen funcionando; las subidas siguen fallando
+ * con 403 hasta que se conecte OAuth).
+ */
+async function getAuth(): Promise<NonNullable<DriveAuth>> {
+  const oauth = await getAuthenticatedOAuthClient();
+  if (oauth) return oauth;
+  return getServiceAccountAuth();
+}
+
+// Helper: normaliza getAccessToken() entre GoogleAuth (devuelve string) y
+// OAuth2Client (devuelve { token, res }).
+async function getAccessTokenString(auth: NonNullable<DriveAuth>): Promise<string> {
+  const result = await (auth as { getAccessToken: () => Promise<unknown> }).getAccessToken();
+  if (typeof result === 'string') return result;
+  if (result && typeof result === 'object' && 'token' in result) {
+    const t = (result as { token: unknown }).token;
+    return typeof t === 'string' ? t : '';
+  }
+  return '';
+}
+
 export async function listDriveFolderVideos(folderId: string) {
   const result = await listDriveFolderAll(folderId);
   return result.videos;
 }
 
-// Detailed listing — returns both the filtered video list and all raw files so
-// the admin diagnostic can show *exactly* what Drive returned for a folder.
-// Useful when uploads aren't being detected: you can see if Drive returns
-// nothing (permission/folder mismatch) vs returns files our filter discards
-// (mime/extension issue).
 export async function listDriveFolderAll(folderId: string, opts: { recursive?: boolean; maxDepth?: number } = {}) {
   const { recursive = true, maxDepth = 5 } = opts;
-  const auth = getAuth();
+  const auth = await getAuth();
   const drive = google.drive({ version: 'v3', auth });
 
   const videoExts = /\.(mp4|mov|avi|mkv|webm|m4v|3gp|wmv|flv|mpeg|mpg)$/i;
@@ -42,8 +66,9 @@ export async function listDriveFolderAll(folderId: string, opts: { recursive?: b
       videoExts.test(name);
   };
 
-  const all: any[] = [];
-  const folders: any[] = [];
+  type DriveFile = { id?: string | null; name?: string | null; mimeType?: string | null; size?: string | null; createdTime?: string | null; modifiedTime?: string | null; webViewLink?: string | null; thumbnailLink?: string | null; owners?: { emailAddress?: string | null; displayName?: string | null }[] | null };
+  const all: DriveFile[] = [];
+  const folders: DriveFile[] = [];
   const visited = new Set<string>();
 
   async function walk(id: string, depth: number) {
@@ -57,7 +82,7 @@ export async function listDriveFolderAll(folderId: string, opts: { recursive?: b
       supportsAllDrives: true,
       includeItemsFromAllDrives: true,
     });
-    const files = res.data.files || [];
+    const files = (res.data.files || []) as DriveFile[];
     for (const f of files) {
       if (f.mimeType === 'application/vnd.google-apps.folder') {
         folders.push(f);
@@ -78,11 +103,8 @@ export async function listDriveFolderAll(folderId: string, opts: { recursive?: b
   };
 }
 
-// List subfolders inside the main JJL Drive folder. Used by sync to match
-// student names to folders for users that never created their folder via the
-// app (so users.drive_folder_id is null).
 export async function listMainSubfolders() {
-  const auth = getAuth();
+  const auth = await getAuth();
   const drive = google.drive({ version: 'v3', auth });
   const parentId = process.env.GOOGLE_DRIVE_FOLDER_ID;
   if (!parentId) return [];
@@ -111,14 +133,12 @@ export async function createResumableUploadSession(
   userName: string,
   fileSize: number
 ) {
-  const auth = getAuth();
-  const accessToken = await auth.getAccessToken();
+  const auth = await getAuth();
+  const accessToken = await getAccessTokenString(auth);
   const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
   const finalName = buildFinalName(fileName, userName);
 
-  const metadata: Record<string, any> = { name: finalName };
-  // IMPORTANT: parents must be set so the file is created IN the shared folder
-  // (owned by the folder owner, not the service account — avoids storage quota error)
+  const metadata: Record<string, unknown> = { name: finalName };
   if (folderId) metadata.parents = [folderId];
 
   const res = await fetch(
@@ -146,10 +166,8 @@ export async function createResumableUploadSession(
   return { uploadUrl, finalName };
 }
 
-// After browser finishes uploading, fetch the file metadata to get webViewLink
-// Create a subfolder inside the main Drive folder (for per-student folders)
 export async function createDriveFolder(folderName: string) {
-  const auth = getAuth();
+  const auth = await getAuth();
   const drive = google.drive({ version: 'v3', auth });
   const parentId = process.env.GOOGLE_DRIVE_FOLDER_ID;
 
@@ -163,7 +181,6 @@ export async function createDriveFolder(folderName: string) {
     supportsAllDrives: true,
   });
 
-  // Make the folder accessible to anyone with the link (so students can upload)
   await drive.permissions.create({
     fileId: response.data.id!,
     requestBody: {
@@ -181,7 +198,7 @@ export async function createDriveFolder(folderName: string) {
 }
 
 export async function getDriveFileInfo(fileId: string) {
-  const auth = getAuth();
+  const auth = await getAuth();
   const drive = google.drive({ version: 'v3', auth });
   const { data } = await drive.files.get({
     fileId,
@@ -200,7 +217,7 @@ export async function uploadToDriveStream(
   mimeType: string,
   userName: string
 ) {
-  const auth = getAuth();
+  const auth = await getAuth();
   const drive = google.drive({ version: 'v3', auth });
   const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
   const finalName = buildFinalName(fileName, userName);
