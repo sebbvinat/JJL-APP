@@ -62,12 +62,16 @@ async function handleAlumno(
   // ============================================================
   if (pathname.startsWith('/api/')) {
     if (user) {
-      const { data: profile } = await supabase
+      const { data: prof } = await supabase
         .from('users')
-        .select('rol')
+        .select('rol, program_member')
         .eq('id', user.id)
-        .single<{ rol: string }>();
-      if (profile?.rol === 'cliente_cursos') {
+        .single<{ rol: string; program_member: boolean | null }>();
+      const isAdmin = prof?.rol === 'admin';
+      const isCursosClient = prof?.rol === 'cliente_cursos';
+      const isGhostAlumno =
+        prof?.rol === 'alumno' && prof?.program_member === false;
+      if (!isAdmin && (isCursosClient || isGhostAlumno)) {
         return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
       }
     }
@@ -99,30 +103,43 @@ async function handleAlumno(
     return NextResponse.redirect(url);
   }
 
-  // SINGLE DB READ: admin-gate + onboarding-gate reuse the same row.
-  let profile: { rol: string; onboarding_completed_at: string | null } | null = null;
+  // SINGLE DB READ: admin-gate + onboarding-gate + cross-site gate.
+  let profile: {
+    rol: string;
+    onboarding_completed_at: string | null;
+    program_member: boolean | null;
+  } | null = null;
   if (user && !isPublicRoute) {
     const { data } = await supabase
       .from('users')
-      .select('rol, onboarding_completed_at')
+      .select('rol, onboarding_completed_at, program_member')
       .eq('id', user.id)
-      .single<{ rol: string; onboarding_completed_at: string | null }>();
+      .single<{
+        rol: string;
+        onboarding_completed_at: string | null;
+        program_member: boolean | null;
+      }>();
     profile = data;
   }
 
   // ============================================================
-  // CROSS-SITE GATE: los clientes de cursos sueltos (rol = 'cliente_cursos')
-  // NO deben poder acceder al programa de 6 meses bajo ninguna circunstancia.
-  // Si entran a alumno.jiujitsulatino.com los pateamos a su plataforma.
+  // CROSS-SITE GATE: NO acceso al programa de 6 meses para:
+  //   (a) rol = 'cliente_cursos'  (clientes migrados de cursos sueltos)
+  //   (b) rol = 'alumno' AND program_member = false  (cuentas residuales
+  //       que tienen rol=alumno historico pero no son miembros del programa
+  //       — p.ej. registraron antes para consultoria y solo compraron
+  //       cursos sueltos despues)
   // /auth/* queda excluido para que el callback de password reset funcione.
+  // Admin nunca bloquea — pasa siempre.
   // ============================================================
-  if (
-    user &&
-    profile &&
-    profile.rol === 'cliente_cursos' &&
-    !pathname.startsWith('/auth/')
-  ) {
-    return NextResponse.redirect('https://jiujitsulatino.com/mis-cursos');
+  if (user && profile && !pathname.startsWith('/auth/')) {
+    const isAdmin = profile.rol === 'admin';
+    const isCursosClient = profile.rol === 'cliente_cursos';
+    const isGhostAlumno =
+      profile.rol === 'alumno' && profile.program_member === false;
+    if (!isAdmin && (isCursosClient || isGhostAlumno)) {
+      return NextResponse.redirect('https://jiujitsulatino.com/mis-cursos');
+    }
   }
 
   // ADMIN ROUTE PROTECTION — server-side role check
