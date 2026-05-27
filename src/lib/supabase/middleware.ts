@@ -64,13 +64,19 @@ async function handleAlumno(
     if (user) {
       const { data: prof } = await supabase
         .from('users')
-        .select('rol, program_member')
+        .select('rol, program_member, onboarding_completed_at')
         .eq('id', user.id)
-        .single<{ rol: string; program_member: boolean | null }>();
+        .single<{
+          rol: string;
+          program_member: boolean | null;
+          onboarding_completed_at: string | null;
+        }>();
       const isAdmin = prof?.rol === 'admin';
       const isCursosClient = prof?.rol === 'cliente_cursos';
       const isGhostAlumno =
-        prof?.rol === 'alumno' && prof?.program_member === false;
+        prof?.rol === 'alumno' &&
+        prof?.program_member === false &&
+        prof?.onboarding_completed_at !== null;
       if (!isAdmin && (isCursosClient || isGhostAlumno)) {
         return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
       }
@@ -135,8 +141,14 @@ async function handleAlumno(
   if (user && profile && !pathname.startsWith('/auth/')) {
     const isAdmin = profile.rol === 'admin';
     const isCursosClient = profile.rol === 'cliente_cursos';
+    // "Alumno fantasma": rol=alumno historico pero nunca pago el programa,
+    // y YA paso por el sistema (onboarding completado). Estos son los
+    // casos como nachomagaldi. Prospects en pleno onboarding (sin completar)
+    // pasan de largo y el onboarding gate los rutea a /bienvenida.
     const isGhostAlumno =
-      profile.rol === 'alumno' && profile.program_member === false;
+      profile.rol === 'alumno' &&
+      profile.program_member === false &&
+      profile.onboarding_completed_at !== null;
     if (!isAdmin && (isCursosClient || isGhostAlumno)) {
       return NextResponse.redirect('https://jiujitsulatino.com/mis-cursos');
     }
