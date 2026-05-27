@@ -127,7 +127,16 @@ function uploadResumable(file: File, uploadUrl: string, onProgress: (pct: number
           reject(new Error('Respuesta inesperada de Drive'));
         }
       } else {
-        reject(new Error(`Drive PUT falló (${xhr.status})`));
+        // Surface the actual Drive error message — useful para diagnosticar
+        // 403 storage quota, permisos, etc.
+        let detail = '';
+        try {
+          const parsed = JSON.parse(xhr.responseText);
+          detail = parsed?.error?.message || parsed?.error || xhr.responseText;
+        } catch {
+          detail = xhr.responseText || '';
+        }
+        reject(new Error(`Drive PUT ${xhr.status}: ${String(detail).slice(0, 300)}`));
       }
     };
     xhr.onerror = () => reject(new Error('Error de red al subir a Drive'));
