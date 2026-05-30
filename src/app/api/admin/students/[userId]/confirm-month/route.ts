@@ -44,17 +44,24 @@ export async function POST(request: NextRequest, ctx: Ctx) {
     unlockedModuleIds = ((courseRows as { module_id: string }[] | null) || []).map((r) => r.module_id);
   }
 
-  // Upsert user_access para esos módulos
+  // Upsert user_access para esos módulos. Primero intentamos con unlocked_at;
+  // si la DB de prod no tiene esa columna (PostgREST "schema cache" error),
+  // reintentamos sin ese campo. is_unlocked es lo unico critico para acceso.
   if (unlockedModuleIds.length > 0) {
-    const rows = unlockedModuleIds.map((module_id) => ({
+    const baseRows = unlockedModuleIds.map((module_id) => ({
       user_id: userId,
       module_id,
       is_unlocked: true,
-      unlocked_at: new Date().toISOString(),
     }));
-    const { error: accErr } = await auth.admin
-      .from('user_access')
-      .upsert(rows, { onConflict: 'user_id,module_id' });
+    const rowsWithTs = baseRows.map((r) => ({ ...r, unlocked_at: new Date().toISOString() }));
+
+    let accErr: { message: string } | null = null;
+    const first = await auth.admin.from('user_access').upsert(rowsWithTs, { onConflict: 'user_id,module_id' });
+    accErr = first.error;
+    if (accErr && /unlocked_at.*schema cache|column .* does not exist/i.test(accErr.message)) {
+      const fb = await auth.admin.from('user_access').upsert(baseRows, { onConflict: 'user_id,module_id' });
+      accErr = fb.error;
+    }
     if (accErr) return NextResponse.json({ error: accErr.message }, { status: 500 });
   }
 

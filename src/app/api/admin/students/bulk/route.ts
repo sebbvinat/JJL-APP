@@ -50,11 +50,14 @@ export async function POST(request: NextRequest) {
           .in('semana_numero', block.semanas);
         const moduleIds = ((courseRows as { module_id: string }[] | null) || []).map((r) => r.module_id);
         if (moduleIds.length === 0) continue;
+        // No incluimos unlocked_at acá porque la DB de prod no tiene esa
+        // columna en algunos entornos (PostgREST tira "column not found
+        // in schema cache"). El campo is_unlocked es lo unico que importa
+        // para la lógica de acceso.
         const rows = moduleIds.map((module_id) => ({
           user_id: uid,
           module_id,
           is_unlocked: isUnlock,
-          unlocked_at: isUnlock ? new Date().toISOString() : null,
         }));
         const { error } = await admin.from('user_access').upsert(rows, { onConflict: 'user_id,module_id' });
         if (!error) affected += moduleIds.length;

@@ -127,13 +127,14 @@ export async function POST(request: NextRequest, ctx: Ctx) {
       .in('semana_numero', semanasToUnlock);
     const moduleIds = ((courseMods as { module_id: string }[] | null) || []).map((r) => r.module_id);
     if (moduleIds.length > 0) {
-      const accessRows = moduleIds.map((module_id) => ({
-        user_id: userId,
-        module_id,
-        is_unlocked: true,
-        unlocked_at: new Date().toISOString(),
-      }));
-      await auth.admin.from('user_access').upsert(accessRows, { onConflict: 'user_id,module_id' });
+      // Intentamos con unlocked_at; fallback sin esa columna si la DB de
+      // prod no la tiene en el schema cache.
+      const baseRows = moduleIds.map((module_id) => ({ user_id: userId, module_id, is_unlocked: true }));
+      const rowsTs = baseRows.map((r) => ({ ...r, unlocked_at: new Date().toISOString() }));
+      const first = await auth.admin.from('user_access').upsert(rowsTs, { onConflict: 'user_id,module_id' });
+      if (first.error && /unlocked_at.*schema cache|column .* does not exist/i.test(first.error.message)) {
+        await auth.admin.from('user_access').upsert(baseRows, { onConflict: 'user_id,module_id' });
+      }
     }
   }
 
