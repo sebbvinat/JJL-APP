@@ -257,17 +257,30 @@ export default function AdminStudentPage() {
   }
 
   async function handleLoadPlanilla(planillaId: string) {
+    // Defensiva: capturamos el id del alumno desde varias fuentes por si
+    // useParams() devuelve algo raro (Next 16 a veces se porta distinto).
+    const uid = userId || (typeof window !== 'undefined' ? window.location.pathname.split('/').pop() : '') || student?.id || '';
+    if (!uid) {
+      showToast('No detecté el ID del alumno. Recargá la página y reintentá.', 'error');
+      return;
+    }
+    if (!planillaId) {
+      showToast('Falta seleccionar planilla', 'error');
+      return;
+    }
     if (!confirm(`Cargar planilla "${PLANILLAS.find(p => p.id === planillaId)?.nombre}"? Reemplaza el curso actual.`)) return;
     setLoadingAction(true);
     try {
       const res = await fetch('/api/admin/load-planilla', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ planillaId, userId }),
+        body: JSON.stringify({ planillaId, userId: uid }),
       });
       const data = await res.json();
       if (data.success) {
         showToast(`Planilla cargada (${data.saved} modulos)`, 'success');
+        // Refrescamos student tambien para que se actualice el planilla_id en el header
+        setStudent((prev) => prev ? ({ ...prev, planilla_id: planillaId } as User) : prev);
         await loadStudentCourse();
       } else {
         showToast(data.error || `${data.saved || 0} cargados, errores`, 'error');
@@ -356,6 +369,50 @@ export default function AdminStudentPage() {
         onConfirmMonthClick={openConfirmMonth}
         refreshKey={crmRefreshKey}
       />
+
+      {/* Planilla activa — visible PRIMERO, muy fácil de ver */}
+      <Card>
+        <div className="flex items-start justify-between gap-3 flex-wrap">
+          <div className="min-w-0 flex-1">
+            <p className="text-[11px] uppercase tracking-[0.18em] text-jjl-muted font-semibold mb-1">Planilla activa</p>
+            {student?.planilla_id ? (
+              <p className="text-lg font-bold text-white">
+                {PLANILLAS.find((p) => p.id === student?.planilla_id)?.nombre || student?.planilla_id}
+              </p>
+            ) : (
+              <p className="text-lg font-bold text-amber-400">⚠️ Sin planilla asignada</p>
+            )}
+          </div>
+          <button
+            onClick={() => setShowPlanillaMenu(!showPlanillaMenu)}
+            className="shrink-0 inline-flex items-center gap-1.5 h-9 px-3 rounded-lg bg-jjl-red text-white text-[13px] font-semibold hover:bg-jjl-red-hover"
+          >
+            {student?.planilla_id ? 'Cambiar' : 'Asignar planilla'}
+            <ChevronDown className={`h-4 w-4 transition-transform ${showPlanillaMenu ? 'rotate-180' : ''}`} />
+          </button>
+        </div>
+        {showPlanillaMenu && (
+          <div className="mt-3 pt-3 border-t border-jjl-border/40 grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {PLANILLAS.map((planilla) => {
+              const isActive = student?.planilla_id === planilla.id;
+              return (
+                <button
+                  key={planilla.id}
+                  disabled={loadingAction}
+                  onClick={() => handleLoadPlanilla(planilla.id)}
+                  className={`text-left p-3 rounded-lg border transition-colors disabled:opacity-50 ${
+                    isActive ? 'bg-jjl-red/10 border-jjl-red/40' : 'bg-white/[0.03] border-jjl-border hover:bg-white/[0.05]'
+                  }`}
+                >
+                  <p className="text-sm font-bold text-white">{planilla.nombre} {isActive && '✓'}</p>
+                  <p className="text-[11px] text-jjl-muted mt-0.5 line-clamp-2">{planilla.descripcion}</p>
+                  <p className="text-[10px] text-jjl-muted/70 mt-1">{planilla.weeks.length} semanas</p>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </Card>
 
       {/* Acceso al programa (separado del CRM porque es flag técnico, no de journey) */}
       <Card>
