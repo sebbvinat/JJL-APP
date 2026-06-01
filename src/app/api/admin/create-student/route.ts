@@ -37,14 +37,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: createError.message }, { status: 400 });
     }
 
-    // 4. Ensure users row exists
+    // 4. Ensure users row exists. program_member=true por default porque
+    //    crearlos manualmente desde Admin = es para el programa de 6
+    //    meses. Los compradores de cursos sueltos se autoregistran por
+    //    otro flujo y caen como rol='cliente_cursos' + program_member=false.
     if (newUser.user) {
-      const { error: upsertError } = await adminClient.from('users').upsert({
-        id: newUser.user.id,
-        nombre,
-        email,
-        rol: 'alumno',
-      } as any);
+      const baseRow = { id: newUser.user.id, nombre, email, rol: 'alumno' };
+      let upsertError = null;
+      const r = await adminClient.from('users').upsert({ ...baseRow, program_member: true } as any);
+      upsertError = r.error;
+      // Fallback pre-migración si la columna program_member no existe
+      if (upsertError && /column .* does not exist|program_member.*schema cache/i.test(upsertError.message)) {
+        const fb = await adminClient.from('users').upsert(baseRow as any);
+        upsertError = fb.error;
+      }
 
       if (upsertError) {
         console.error('Users table upsert error:', upsertError);
