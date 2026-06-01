@@ -23,6 +23,7 @@ import Button from '@/components/ui/Button';
 import Toggle from '@/components/ui/Toggle';
 import { MOCK_MODULES, MOCK_LESSONS } from '@/lib/mock-data';
 import { PLANILLAS } from '@/lib/planillas';
+import { MONTH_RANGES } from '@/lib/crm';
 import { calculateGamification } from '@/lib/gamification';
 import { BELT_LABELS } from '@/lib/constants';
 import type { User } from '@/lib/supabase/types';
@@ -256,6 +257,47 @@ export default function AdminStudentPage() {
     setSaving(null);
   }
 
+  async function quickUnlockMonth(mes: number, label: string, total: number) {
+    if (total === 0) return;
+    const uid = userId || student?.id;
+    if (!uid) {
+      showToast('No detecté el ID del alumno', 'error');
+      return;
+    }
+    if (!confirm(`Desbloquear los ${total} módulo${total === 1 ? '' : 's'} de ${label}? Se notifica al alumno.`)) return;
+    setLoadingAction(true);
+    try {
+      const res = await fetch('/api/admin/students/bulk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userIds: [uid],
+          action: 'unlock_month',
+          payload: { mes },
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || 'Error');
+      // Marcar todos los modulos del block como unlocked en UI local
+      const block = MONTH_RANGES.find((b) => b.mes === mes);
+      if (block) {
+        const blockModuleIds = studentModules
+          .filter((m) => block.semanas.includes(m.semana_numero))
+          .map((m) => m.id);
+        setUnlockedModules((prev) => {
+          const next = new Set(prev);
+          blockModuleIds.forEach((id) => next.add(id));
+          return next;
+        });
+      }
+      showToast(`${label} desbloqueado (${data.affected_modules || total} módulos)`, 'success');
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : 'Error', 'error');
+    } finally {
+      setLoadingAction(false);
+    }
+  }
+
   async function handleLoadPlanilla(planillaId: string) {
     // Defensiva: capturamos el id del alumno desde varias fuentes por si
     // useParams() devuelve algo raro (Next 16 a veces se porta distinto).
@@ -413,6 +455,48 @@ export default function AdminStudentPage() {
           </div>
         )}
       </Card>
+
+      {/* Desbloqueo rápido por mes — solo si hay planilla + módulos cargados */}
+      {student?.planilla_id && studentModules.length > 0 && (
+        <Card>
+          <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
+            <div>
+              <p className="text-[11px] uppercase tracking-[0.18em] text-jjl-muted font-semibold">Desbloqueo rápido</p>
+              <p className="text-[11px] text-jjl-muted mt-0.5">Click un mes para desbloquearle todos sus módulos al toque.</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {MONTH_RANGES.map((block) => {
+              const blockModules = studentModules.filter((m) => block.semanas.includes(m.semana_numero));
+              const total = blockModules.length;
+              if (total === 0) return null;   // planilla no tiene este bloque (raro)
+              const unlockedInBlock = blockModules.filter((m) => unlockedModules.has(m.id)).length;
+              const allUnlocked = unlockedInBlock === total;
+              const partial = unlockedInBlock > 0 && unlockedInBlock < total;
+              return (
+                <button
+                  key={block.mes}
+                  disabled={loadingAction || allUnlocked}
+                  onClick={() => quickUnlockMonth(block.mes, block.label, total)}
+                  className={`p-3 rounded-lg border text-left transition-colors ${
+                    allUnlocked
+                      ? 'bg-green-500/10 border-green-500/40 text-green-300 cursor-default'
+                      : partial
+                        ? 'bg-amber-500/10 border-amber-500/30 text-amber-300 hover:bg-amber-500/15'
+                        : 'bg-white/[0.03] border-jjl-border text-jjl-muted hover:border-jjl-red/40 hover:text-white'
+                  } disabled:opacity-50`}
+                >
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-[13px] font-bold">{block.label}</p>
+                    {allUnlocked && <span className="text-[14px]">✓</span>}
+                  </div>
+                  <p className="text-[10px] mt-0.5 opacity-80">{unlockedInBlock}/{total} desbloqueados</p>
+                </button>
+              );
+            })}
+          </div>
+        </Card>
+      )}
 
       {/* Acceso al programa (separado del CRM porque es flag técnico, no de journey) */}
       <Card>
