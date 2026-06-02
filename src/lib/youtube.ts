@@ -159,6 +159,49 @@ export interface SearchResult {
 }
 
 /**
+ * Lista los videos del canal subidos durante el día UTC dado (YYYY-MM-DD).
+ * Hasta 50 por llamada. Incluye unlisted del canal por ser owner.
+ */
+export async function listChannelVideosOnDate(dateYmd: string): Promise<SearchResult[]> {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateYmd)) throw new Error('date debe ser YYYY-MM-DD');
+  const { channel_id } = envs();
+  const afterIso = `${dateYmd}T00:00:00Z`;
+  const next = new Date(`${dateYmd}T00:00:00Z`); next.setUTCDate(next.getUTCDate() + 1);
+  const beforeIso = next.toISOString();
+
+  interface YtSearchItem {
+    id?: { videoId?: string };
+    snippet?: { title?: string; description?: string; publishedAt?: string; thumbnails?: Record<string, { url?: string }> };
+  }
+
+  const data = (await ytFetch('/search', {
+    part: 'snippet',
+    channelId: channel_id,
+    type: 'video',
+    publishedAfter: afterIso,
+    publishedBefore: beforeIso,
+    maxResults: 50,
+    order: 'date',
+  })) as { items?: YtSearchItem[] };
+
+  return (data.items || [])
+    .map((item) => {
+      const id = item.id?.videoId;
+      if (!id) return null;
+      const s = item.snippet || {};
+      const thumb = s.thumbnails?.medium?.url || s.thumbnails?.default?.url || s.thumbnails?.high?.url || null;
+      return {
+        id,
+        title: s.title || '',
+        description: s.description || '',
+        publishedAt: s.publishedAt || '',
+        thumbnailUrl: thumb,
+      } satisfies SearchResult;
+    })
+    .filter((x): x is SearchResult => x !== null);
+}
+
+/**
  * Search the configured channel for videos matching `q`. Returns up to
  * `maxResults` hits (capped at 25 by the API). Unlisted videos from the
  * channel are included because we're authenticated as the channel owner.
