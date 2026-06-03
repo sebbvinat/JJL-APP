@@ -1,680 +1,238 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import {
-  ArrowLeft,
-  Save,
-  Video,
-  Search,
-  ChevronDown,
-  Check,
-  AlertTriangle,
-  ExternalLink,
-} from 'lucide-react';
-import Card from '@/components/ui/Card';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { ArrowLeft, Video, RefreshCw } from 'lucide-react';
 import Button from '@/components/ui/Button';
-import { useToast } from '@/components/ui/Toast';
 import { logger } from '@/lib/logger';
-import { MOCK_MODULES, MOCK_LESSONS, type MockLesson } from '@/lib/mock-data';
+import { PLANILLAS } from '@/lib/planillas';
+import {
+  computePlanillaStats,
+  indexOverridesByKey,
+  normTitle,
+  type PlanillaStats,
+  type VideoOverride,
+} from '@/lib/admin-videos';
+import PlanillaSidebar from '@/components/admin/videos/PlanillaSidebar';
+import PlanillaPanel from '@/components/admin/videos/PlanillaPanel';
 
-const YT_ID_RE = /^[A-Za-z0-9_-]{11}$/;
-
-function normalizeYoutubeId(input: string): string | null {
-  const s = input.trim();
-  if (!s) return null;
-  const m = s.match(
-    /(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/|v\/))([a-zA-Z0-9_-]{11})/
-  );
-  if (m) return m[1];
-  if (YT_ID_RE.test(s)) return s;
-  return null;
-}
-
-interface VideoMetadata {
-  id: string;
-  title: string;
-  publishedAt: string;
-  privacyStatus: 'public' | 'unlisted' | 'private';
-  embeddable: boolean;
-  thumbnailUrl: string | null;
-  channelTitle: string;
-}
-
-interface SearchHit {
-  id: string;
-  title: string;
-  publishedAt: string;
-  thumbnailUrl: string | null;
-}
-
-// Lesson stored in course_data (admin canonical view)
-interface DBLesson {
-  id: string;
-  titulo: string;
-  tipo: 'video' | 'reflection';
-  youtube_id?: string;
-  descripcion?: string;
-}
-
-const normTitulo = (s: string) =>
-  s.toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '').trim();
+const DEFAULT_PLANILLA = 'livianos';
 
 export default function AdminVideosPage() {
-  const [query, setQuery] = useState('');
-  const [expanded, setExpanded] = useState<Set<string>>(new Set(['mod-0']));
-  // Cache of DB-current lessons per module so the editor reflects what's
-  // actually saved instead of MOCK_LESSONS (whose youtube_id is mostly empty).
-  const [dbModules, setDbModules] = useState<Record<string, DBLesson[]>>({});
-  const [loadingModules, setLoadingModules] = useState<Set<string>>(new Set());
+  const router = useRouter();
+  const params = useSearchParams();
 
-  const q = query.trim().toLowerCase();
-  const filteredModules = useMemo(() => {
-    if (!q) return MOCK_MODULES;
-    return MOCK_MODULES.filter((m) => {
-      if (m.titulo.toLowerCase().includes(q)) return true;
-      const lessons = MOCK_LESSONS[m.id] || [];
-      return lessons.some((l) => l.titulo.toLowerCase().includes(q));
-    });
-  }, [q]);
+  const activePlanillaId = useMemo(() => {
+    const q = params.get('planilla');
+    return PLANILLAS.some((p) => p.id === q) ? (q as string) : DEFAULT_PLANILLA;
+  }, [params]);
 
-  const fetchModule = useCallback(async (moduleId: string) => {
-    setLoadingModules((prev) => {
-      const next = new Set(prev);
-      next.add(moduleId);
-      return next;
-    });
+  const mesFilter = useMemo(() => {
+    const q = params.get('mes');
+    if (!q) return null;
+    const n = Number(q);
+    if (!Number.isFinite(n) || n < 0 || n > 6) return null;
+    return n;
+  }, [params]);
+
+  const [overridesRaw, setOverridesRaw] = useState<VideoOverride[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [searchFilter, setSearchFilter] = useState('');
+  const [expandedLessonKey, setExpandedLessonKey] = useState<string | null>(null);
+
+  // Index overrides by lesson_key (titulo normalizado) — usado por todas las planillas
+  const ovByKey = useMemo(() => indexOverridesByKey(overridesRaw), [overridesRaw]);
+
+  // Stats por planilla (post-override)
+  const statsByPlanilla = useMemo(() => {
+    const out: Record<string, PlanillaStats> = {};
+    for (const p of PLANILLAS) out[p.id] = computePlanillaStats(p, ovByKey);
+    return out;
+  }, [ovByKey]);
+
+  // Planilla activa
+  const activePlanilla = useMemo(
+    () => PLANILLAS.find((p) => p.id === activePlanillaId) || PLANILLAS[0],
+    [activePlanillaId],
+  );
+
+  // Fetch overrides
+  const fetchState = useCallback(async (mode: 'initial' | 'refresh' = 'initial') => {
+    if (mode === 'initial') setLoading(true);
+    else setRefreshing(true);
+    setError(null);
     try {
-      const res = await fetch(`/api/course-data?moduleId=${moduleId}`);
-      if (res.ok) {
-        const data = await res.json();
-        const dbLessons: DBLesson[] = Array.isArray(data?.module?.lessons) ? data.module.lessons : [];
-        setDbModules((prev) => ({ ...prev, [moduleId]: dbLessons }));
-      }
-    } catch {
-      /* silent — fall back to mock display */
+      const res = await fetch('/api/admin/videos/state', { cache: 'no-store' });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body?.error || 'Error');
+      setOverridesRaw(body.overrides || []);
+    } catch (err) {
+      logger.error('admin.videos.state.failed', { err });
+      setError(err instanceof Error ? err.message : 'Error al cargar el estado');
     }
-    setLoadingModules((prev) => {
-      const next = new Set(prev);
-      next.delete(moduleId);
-      return next;
-    });
+    if (mode === 'initial') setLoading(false);
+    else setRefreshing(false);
   }, []);
 
-  // Pre-fetch the initially-expanded module so its inputs show DB values on first render.
   useEffect(() => {
-    if (expanded.has('mod-0') && !dbModules['mod-0'] && !loadingModules.has('mod-0')) {
-      void fetchModule('mod-0');
-    }
-    // Only on mount.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    void fetchState('initial');
+  }, [fetchState]);
+
+  // Cerrar la leccion expandida al cambiar de planilla (puede no existir en la nueva)
+  useEffect(() => {
+    setExpandedLessonKey(null);
+    setSearchFilter('');
+  }, [activePlanillaId]);
+
+  // Handlers de query param (sidebar)
+  const setPlanilla = useCallback(
+    (id: string) => {
+      const next = new URLSearchParams(params.toString());
+      next.set('planilla', id);
+      next.delete('mes');
+      router.replace(`?${next.toString()}`, { scroll: false });
+    },
+    [params, router],
+  );
+
+  const setMes = useCallback(
+    (mes: number | null) => {
+      const next = new URLSearchParams(params.toString());
+      if (mes == null) next.delete('mes');
+      else next.set('mes', String(mes));
+      router.replace(`?${next.toString()}`, { scroll: false });
+    },
+    [params, router],
+  );
+
+  const onToggleLesson = useCallback((lessonKey: string) => {
+    setExpandedLessonKey((prev) => (prev === lessonKey ? null : lessonKey));
   }, []);
 
-  function toggle(moduleId: string) {
-    setExpanded((prev) => {
-      const next = new Set(prev);
-      if (next.has(moduleId)) {
-        next.delete(moduleId);
-      } else {
-        next.add(moduleId);
-        if (!dbModules[moduleId] && !loadingModules.has(moduleId)) {
-          void fetchModule(moduleId);
-        }
-      }
-      return next;
-    });
-  }
-
-  // After a successful save, the LessonRow calls this so the row's
-  // canonical state in dbModules stays in sync with what was just written.
+  // Local update post-save: refleja el cambio en memoria sin refetch completo
   const onLessonSaved = useCallback(
-    (moduleId: string, originalTitulo: string, patch: Partial<DBLesson>) => {
-      setDbModules((prev) => {
-        const lessons = prev[moduleId] || [];
-        const target = normTitulo(originalTitulo);
-        const next = lessons.map((l) =>
-          normTitulo(l.titulo) === target ? { ...l, ...patch } : l,
-        );
-        return { ...prev, [moduleId]: next };
+    (savedFromTitulo: string, patch: { youtube_id?: string; titulo?: string; descripcion?: string }) => {
+      const key = normTitle(savedFromTitulo);
+      setOverridesRaw((prev) => {
+        const idx = prev.findIndex((o) => o.lesson_key === key);
+        const moduleId = idx >= 0 ? prev[idx].module_id : '';   // si es nuevo, dejamos placeholder
+        const merged: VideoOverride = idx >= 0
+          ? {
+              ...prev[idx],
+              ...(patch.youtube_id !== undefined ? { youtube_id: patch.youtube_id } : {}),
+              ...(patch.titulo !== undefined ? { titulo: patch.titulo } : {}),
+              ...(patch.descripcion !== undefined ? { descripcion: patch.descripcion } : {}),
+            }
+          : {
+              module_id: moduleId,
+              lesson_key: key,
+              ...(patch.youtube_id !== undefined ? { youtube_id: patch.youtube_id } : {}),
+              ...(patch.titulo !== undefined ? { titulo: patch.titulo } : {}),
+              ...(patch.descripcion !== undefined ? { descripcion: patch.descripcion } : {}),
+            };
+        if (idx >= 0) {
+          const next = [...prev];
+          next[idx] = merged;
+          return next;
+        }
+        return [merged, ...prev];
       });
     },
     [],
   );
 
-  return (
-    <div className="max-w-4xl mx-auto space-y-5 pb-12">
-      <header>
-        <Link
-          href="/admin"
-          className="inline-flex items-center gap-1.5 text-[12px] text-jjl-muted hover:text-white mb-3"
-        >
-          <ArrowLeft className="h-3.5 w-3.5" />
-          Volver al panel
-        </Link>
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-xl bg-jjl-red/10 ring-1 ring-jjl-red/25 text-jjl-red flex items-center justify-center">
-            <Video className="h-5 w-5" />
-          </div>
-          <div>
-            <p className="text-[11px] uppercase tracking-[0.18em] text-jjl-muted font-semibold">
-              Admin
-            </p>
-            <h1 className="text-2xl font-black tracking-tight">Editor de videos</h1>
-            <p className="text-sm text-jjl-muted mt-0.5">
-              Escribi el titulo del video de tu canal o pega el link. El cambio aplica a todos tus alumnos.
-            </p>
-          </div>
-        </div>
-      </header>
+  // ──────────────────────────────────────────────
+  // Render
+  // ──────────────────────────────────────────────
 
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-jjl-muted pointer-events-none" />
-        <input
-          type="search"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Buscar modulo o leccion..."
-          className="w-full h-10 pl-10 pr-4 bg-white/[0.03] border border-jjl-border rounded-lg text-[13px] text-white placeholder:text-jjl-muted/50 focus:outline-none focus:border-jjl-red focus:ring-2 focus:ring-jjl-red/25"
-        />
-      </div>
-
-      <div className="space-y-2">
-        {filteredModules.map((mod) => {
-          const lessons = (MOCK_LESSONS[mod.id] || []).filter((l) => l.tipo !== 'reflection');
-          const isOpen = expanded.has(mod.id);
-          return (
-            <div
-              key={mod.id}
-              className="rounded-xl border border-jjl-border bg-white/[0.02] overflow-hidden"
-            >
-              <button
-                onClick={() => toggle(mod.id)}
-                className="w-full flex items-center gap-3 p-3.5 text-left hover:bg-white/[0.03] transition-colors"
-              >
-                <span className="inline-flex h-8 px-2 items-center rounded-md bg-jjl-red/10 border border-jjl-red/20 text-jjl-red text-[10px] font-bold uppercase tracking-[0.14em] shrink-0">
-                  {mod.semana_numero === 0 ? 'Intro' : `S${mod.semana_numero}`}
-                </span>
-                <div className="flex-1 min-w-0">
-                  <p className="text-[14px] font-semibold text-white truncate">{mod.titulo}</p>
-                  <p className="text-[11px] text-jjl-muted">{lessons.length} videos</p>
-                </div>
-                <ChevronDown
-                  className={`h-4 w-4 text-jjl-muted shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''}`}
-                />
-              </button>
-
-              {isOpen && (
-                <div className="border-t border-jjl-border/60 bg-black/20 p-3 space-y-3 animate-slide-down">
-                  {loadingModules.has(mod.id) && !dbModules[mod.id] && (
-                    <p className="text-[11px] text-jjl-muted italic py-2 text-center">
-                      Cargando datos guardados...
-                    </p>
-                  )}
-                  {lessons.map((lesson) => {
-                    const dbLessons = dbModules[mod.id];
-                    const target = normTitulo(lesson.titulo);
-                    const dbLesson = dbLessons?.find((l) => normTitulo(l.titulo) === target);
-                    const merged = dbLesson
-                      ? {
-                          ...lesson,
-                          titulo: dbLesson.titulo,
-                          youtube_id: dbLesson.youtube_id || '',
-                          descripcion: dbLesson.descripcion || lesson.descripcion,
-                        }
-                      : lesson;
-                    return (
-                      <LessonRow
-                        // Remount when DB data arrives so initial state reflects it.
-                        key={`${lesson.id}-${dbLesson?.youtube_id ?? 'mock'}-${dbLesson?.titulo ?? ''}`}
-                        moduleId={mod.id}
-                        lesson={merged}
-                        onSaved={onLessonSaved}
-                      />
-                    );
-                  })}
-                  {lessons.length === 0 && (
-                    <p className="text-[12px] text-jjl-muted italic py-3 text-center">
-                      Sin videos en este modulo.
-                    </p>
-                  )}
-                </div>
-              )}
+  if (loading) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        <div className="animate-pulse space-y-4">
+          <div className="h-8 w-64 bg-white/10 rounded" />
+          <div className="grid grid-cols-1 lg:grid-cols-[16rem_1fr] gap-4">
+            <div className="h-96 bg-white/5 rounded-xl" />
+            <div className="space-y-3">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="h-32 bg-white/5 rounded-xl" />
+              ))}
             </div>
-          );
-        })}
-        {filteredModules.length === 0 && (
-          <Card>
-            <p className="text-center py-8 text-[13px] text-jjl-muted">
-              No hay modulos que coincidan con &quot;{q}&quot;.
-            </p>
-          </Card>
-        )}
+          </div>
+        </div>
       </div>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// LessonRow — search-by-title or paste-ID, preview, save
-// ---------------------------------------------------------------------------
-
-function LessonRow({
-  moduleId,
-  lesson,
-  onSaved,
-}: {
-  moduleId: string;
-  lesson: MockLesson;
-  onSaved?: (
-    moduleId: string,
-    originalTitulo: string,
-    patch: { youtube_id?: string; titulo?: string; descripcion?: string },
-  ) => void;
-}) {
-  const toast = useToast();
-
-  const [currentId, setCurrentId] = useState<string>(lesson.youtube_id || '');
-  const [pendingId, setPendingId] = useState<string>(lesson.youtube_id || '');
-  const [titulo, setTitulo] = useState<string>(lesson.titulo || '');
-  const [descripcion, setDescripcion] = useState<string>(lesson.descripcion || '');
-  const [originalTitulo, setOriginalTitulo] = useState<string>(lesson.titulo || '');
-  const [originalDescripcion, setOriginalDescripcion] = useState<string>(lesson.descripcion || '');
-  const [query, setQuery] = useState<string>('');
-  const [inspectMeta, setInspectMeta] = useState<VideoMetadata | null>(null);
-  const [searchHits, setSearchHits] = useState<SearchHit[] | null>(null);
-  const [activeHitIdx, setActiveHitIdx] = useState<number>(-1);
-  const [showHits, setShowHits] = useState(false);
-  const [loadingInspect, setLoadingInspect] = useState(false);
-  const [loadingSearch, setLoadingSearch] = useState(false);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
-
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const reqIdRef = useRef(0);
-  const blurCloseRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const idChanged = pendingId !== currentId;
-  const tituloChanged = titulo.trim() !== originalTitulo;
-  const descripcionChanged = descripcion !== originalDescripcion;
-  const changed = idChanged || tituloChanged || descripcionChanged;
-  const idValidForSave = !idChanged || (!!pendingId && !!inspectMeta && inspectMeta.embeddable) || pendingId === '';
-  const canSave = changed && idValidForSave && !!titulo.trim() && !saving;
-
-  // On mount: fetch metadata for the currently-saved ID so the preview
-  // card shows the user what's stored today.
-  useEffect(() => {
-    if (!currentId) return;
-    (async () => {
-      const meta = await fetchMeta([currentId]);
-      setInspectMeta(meta[currentId] || null);
-    })();
-    // Only on mount.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // React to query changes (debounced):
-  //   empty    → clear hits
-  //   ID/URL   → inspect
-  //   text ≥3  → search the channel
-  useEffect(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    setErrorMsg(null);
-    const trimmed = query.trim();
-    if (!trimmed) {
-      setSearchHits(null);
-      setShowHits(false);
-      return;
-    }
-    const asId = normalizeYoutubeId(trimmed);
-    if (asId) {
-      setSearchHits(null);
-      setShowHits(false);
-      debounceRef.current = setTimeout(() => void inspectOne(asId), 300);
-      return;
-    }
-    if (trimmed.length < 3) {
-      setSearchHits(null);
-      setShowHits(false);
-      return;
-    }
-    debounceRef.current = setTimeout(() => void runSearch(trimmed), 400);
-  }, [query]);
-
-  async function fetchMeta(ids: string[]): Promise<Record<string, VideoMetadata>> {
-    try {
-      const res = await fetch('/api/admin/youtube/inspect', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ids }),
-      });
-      const body = await res.json();
-      if (!res.ok) throw new Error(body?.error || 'Error');
-      return body.videos || {};
-    } catch (err) {
-      logger.error('admin.videos.fetchMeta.failed', { err });
-      return {};
-    }
+    );
   }
-
-  async function inspectOne(id: string) {
-    const reqId = ++reqIdRef.current;
-    setLoadingInspect(true);
-    const meta = await fetchMeta([id]);
-    if (reqId !== reqIdRef.current) return;
-    setLoadingInspect(false);
-    const hit = meta[id];
-    if (!hit) {
-      setInspectMeta(null);
-      setPendingId(id);
-      setErrorMsg('Video no encontrado o privado.');
-      return;
-    }
-    setInspectMeta(hit);
-    setPendingId(id);
-    setErrorMsg(null);
-  }
-
-  async function runSearch(q: string) {
-    const reqId = ++reqIdRef.current;
-    setLoadingSearch(true);
-    try {
-      const res = await fetch(`/api/admin/youtube/search?q=${encodeURIComponent(q)}`);
-      const body = await res.json();
-      if (reqId !== reqIdRef.current) return;
-      if (!res.ok) throw new Error(body?.error || 'Error');
-      setSearchHits(body.results || []);
-      setActiveHitIdx((body.results as SearchHit[] | undefined)?.length ? 0 : -1);
-      setShowHits(true);
-    } catch (err) {
-      logger.error('admin.videos.search.failed', { err });
-      setSearchHits([]);
-      setShowHits(true);
-      setErrorMsg('Error al buscar en YouTube.');
-    }
-    setLoadingSearch(false);
-  }
-
-  function selectHit(hit: SearchHit) {
-    setQuery('');
-    setShowHits(false);
-    setSearchHits(null);
-    void inspectOne(hit.id);
-  }
-
-  function onKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
-    if (!showHits || !searchHits || searchHits.length === 0) return;
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      setActiveHitIdx((i) => Math.min(searchHits.length - 1, i + 1));
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      setActiveHitIdx((i) => Math.max(0, i - 1));
-    } else if (e.key === 'Enter') {
-      e.preventDefault();
-      const hit = searchHits[activeHitIdx];
-      if (hit) selectHit(hit);
-    } else if (e.key === 'Escape') {
-      setShowHits(false);
-    }
-  }
-
-  async function save() {
-    if (!canSave) return;
-    setSaving(true);
-    try {
-      const payload: Record<string, string> = {
-        module_id: moduleId,
-        lesson_id: lesson.id,
-        // Mock-data lesson IDs (les-4-2 etc.) don't match the planilla-generated
-        // IDs in DB rows (livianos-s4-1 etc.), so the endpoint falls back to
-        // matching by the lesson's original titulo.
-        lesson_titulo_original: originalTitulo,
-      };
-      if (idChanged) payload.youtube_id = pendingId;
-      if (tituloChanged) payload.titulo = titulo.trim();
-      if (descripcionChanged) payload.descripcion = descripcion;
-
-      const res = await fetch('/api/admin/update-lesson-video', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      const body = await res.json();
-      if (!res.ok) throw new Error(body?.error || 'Error al guardar');
-      toast.success(
-        body.updated > 0
-          ? `Actualizado en ${body.updated} alumno${body.updated === 1 ? '' : 's'}`
-          : 'Guardado (nadie tiene este modulo asignado todavia)'
-      );
-      // Snapshot what we'll commit locally BEFORE we mutate originals,
-      // so the parent cache update uses the right "old" titulo as key.
-      const savedFromTitulo = originalTitulo;
-      const savedPatch: { youtube_id?: string; titulo?: string; descripcion?: string } = {};
-      if (idChanged) savedPatch.youtube_id = pendingId;
-      if (tituloChanged) savedPatch.titulo = titulo.trim();
-      if (descripcionChanged) savedPatch.descripcion = descripcion;
-
-      if (idChanged) setCurrentId(pendingId);
-      if (tituloChanged) setOriginalTitulo(titulo.trim());
-      if (descripcionChanged) setOriginalDescripcion(descripcion);
-      onSaved?.(moduleId, savedFromTitulo, savedPatch);
-    } catch (err) {
-      logger.error('admin.videos.save.failed', { err, moduleId, lessonId: lesson.id });
-      toast.error(err instanceof Error ? err.message : 'Error al guardar');
-    }
-    setSaving(false);
-  }
-
-  const titleSimilarityWarn =
-    inspectMeta && !fuzzyIncludes(inspectMeta.title, lesson.titulo)
-      ? 'El titulo del video no coincide con la leccion — confirma que es el correcto.'
-      : null;
 
   return (
-    <div className="rounded-lg bg-white/[0.02] border border-jjl-border/60 p-3 space-y-2.5">
-      <div className="flex items-start justify-between gap-2">
-        <input
-          type="text"
-          value={titulo}
-          onChange={(e) => setTitulo(e.target.value)}
-          maxLength={200}
-          className="flex-1 text-[13px] font-semibold text-white bg-transparent border-b border-transparent hover:border-jjl-border focus:border-jjl-red focus:outline-none py-0.5"
-          placeholder="Titulo de la leccion"
-        />
-        {currentId && YT_ID_RE.test(currentId) && (
-          <a
-            href={`https://www.youtube.com/watch?v=${currentId}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-[11px] text-jjl-muted hover:text-white inline-flex items-center gap-1"
+    <div className="max-w-7xl mx-auto px-4 py-6 space-y-4">
+      {/* Header */}
+      <header className="flex items-start justify-between gap-3">
+        <div>
+          <Link
+            href="/admin"
+            className="inline-flex items-center gap-1.5 text-[12px] text-jjl-muted hover:text-white mb-3"
           >
-            <ExternalLink className="h-3 w-3" />
-            ver actual
-          </a>
-        )}
-      </div>
-
-      <div className="relative">
-        <input
-          type="text"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={onKeyDown}
-          onFocus={() => {
-            if (blurCloseRef.current) {
-              clearTimeout(blurCloseRef.current);
-              blurCloseRef.current = null;
-            }
-            if (searchHits && searchHits.length > 0) setShowHits(true);
-          }}
-          onBlur={() => {
-            blurCloseRef.current = setTimeout(() => setShowHits(false), 180);
-          }}
-          placeholder="Escribi el titulo del video, o pega la URL / ID"
-          className="w-full h-10 px-3 bg-black/30 border border-jjl-border rounded-md text-[13px] text-white placeholder:text-jjl-muted/50 focus:outline-none focus:border-jjl-red focus:ring-2 focus:ring-jjl-red/25"
-        />
-        {(loadingSearch || loadingInspect) && (
-          <div className="absolute right-3 top-1/2 -translate-y-1/2">
-            <div className="w-4 h-4 border-2 border-jjl-red border-t-transparent rounded-full animate-spin" />
-          </div>
-        )}
-
-        {showHits && searchHits && (
-          <div className="absolute left-0 right-0 top-full mt-1 z-30 bg-black/95 backdrop-blur border border-jjl-border rounded-lg shadow-2xl max-h-80 overflow-y-auto">
-            {searchHits.length === 0 ? (
-              <p className="text-[12px] text-jjl-muted px-3 py-3 italic">
-                Sin resultados en tu canal para &quot;{query.trim()}&quot;.
+            <ArrowLeft className="h-3.5 w-3.5" />
+            Volver al panel
+          </Link>
+          <div className="flex items-center gap-3">
+            <div className="h-11 w-11 rounded-xl bg-jjl-red/10 ring-1 ring-jjl-red/25 text-jjl-red flex items-center justify-center">
+              <Video className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-[11px] uppercase tracking-[0.18em] text-jjl-muted font-semibold">
+                Admin · Editor de videos
               </p>
-            ) : (
-              searchHits.map((hit, i) => (
-                <button
-                  key={hit.id}
-                  onMouseDown={(e) => {
-                    // Use onMouseDown so we fire before onBlur closes the panel.
-                    e.preventDefault();
-                    selectHit(hit);
-                  }}
-                  onMouseEnter={() => setActiveHitIdx(i)}
-                  className={`w-full flex items-start gap-2.5 px-2.5 py-2 text-left transition-colors border-b border-jjl-border/40 last:border-b-0 ${
-                    i === activeHitIdx ? 'bg-jjl-red/10' : 'hover:bg-white/5'
-                  }`}
-                >
-                  {hit.thumbnailUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={hit.thumbnailUrl}
-                      alt=""
-                      className="w-20 h-[45px] object-cover rounded shrink-0"
-                    />
-                  ) : (
-                    <div className="w-20 h-[45px] rounded bg-white/5 shrink-0" />
-                  )}
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[12px] text-white font-semibold line-clamp-2 leading-snug">
-                      {hit.title}
-                    </p>
-                    <p className="text-[10px] text-jjl-muted mt-0.5">
-                      {hit.publishedAt
-                        ? new Date(hit.publishedAt).toLocaleDateString('es-AR')
-                        : ''}
-                    </p>
-                  </div>
-                </button>
-              ))
-            )}
+              <h1 className="text-2xl font-black tracking-tight">Planillas y lecciones</h1>
+              <p className="text-sm text-jjl-muted mt-0.5">
+                Elegí una planilla, navegá por mes y semana, y editá las lecciones inline.
+                Las lecciones compartidas afectan las 4 planillas.
+              </p>
+            </div>
           </div>
-        )}
-      </div>
-
-      {errorMsg && (
-        <div className="flex items-start gap-2 rounded-md bg-red-500/10 border border-red-500/30 px-3 py-2 text-[12px] text-red-400">
-          <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
-          <span>{errorMsg}</span>
         </div>
-      )}
-
-      {inspectMeta && <PreviewCard meta={inspectMeta} warning={titleSimilarityWarn} />}
-
-      <textarea
-        value={descripcion}
-        onChange={(e) => setDescripcion(e.target.value)}
-        placeholder="Descripcion (opcional)"
-        rows={2}
-        className="w-full px-3 py-2 bg-black/30 border border-jjl-border rounded-md text-[12px] text-white placeholder:text-jjl-muted/50 focus:outline-none focus:border-jjl-red focus:ring-2 focus:ring-jjl-red/25 resize-y"
-      />
-
-      <div className="flex items-center justify-end">
         <Button
           size="sm"
-          variant={canSave ? 'primary' : 'secondary'}
-          onClick={save}
-          disabled={!canSave}
-          loading={saving}
+          variant="secondary"
+          onClick={() => void fetchState('refresh')}
+          loading={refreshing}
+          title="Volver a leer los overrides desde la base"
         >
-          <Save className="h-3.5 w-3.5" />
-          {changed ? 'Guardar cambio' : 'Sin cambios'}
+          <RefreshCw className="h-3.5 w-3.5" />
+          Refrescar
         </Button>
-      </div>
-    </div>
-  );
-}
+      </header>
 
-function PreviewCard({
-  meta,
-  warning,
-}: {
-  meta: VideoMetadata;
-  warning: string | null;
-}) {
-  const privacyTone =
-    meta.privacyStatus === 'public'
-      ? 'bg-green-500/10 border-green-500/30 text-green-400'
-      : meta.privacyStatus === 'unlisted'
-        ? 'bg-blue-500/10 border-blue-500/30 text-blue-400'
-        : 'bg-amber-500/10 border-amber-500/30 text-amber-400';
-  const privacyLabel =
-    meta.privacyStatus === 'public'
-      ? 'Publico'
-      : meta.privacyStatus === 'unlisted'
-        ? 'Oculto'
-        : 'Privado';
-
-  return (
-    <div className="flex items-start gap-3 rounded-lg border border-jjl-border bg-black/20 p-2.5">
-      {meta.thumbnailUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={meta.thumbnailUrl}
-          alt=""
-          className="w-[120px] h-[68px] object-cover rounded shrink-0"
-        />
-      ) : (
-        <div className="w-[120px] h-[68px] rounded bg-white/5 shrink-0" />
-      )}
-      <div className="min-w-0 flex-1">
-        <p className="text-[13px] font-bold text-white leading-snug line-clamp-2">{meta.title}</p>
-        <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
-          <span
-            className={`inline-flex items-center h-5 px-1.5 rounded border text-[10px] font-bold uppercase tracking-wider ${privacyTone}`}
-          >
-            {privacyLabel}
-          </span>
-          {meta.embeddable ? (
-            <span className="inline-flex items-center gap-1 h-5 px-1.5 rounded bg-green-500/10 border border-green-500/30 text-green-400 text-[10px] font-bold uppercase tracking-wider">
-              <Check className="h-3 w-3" />
-              Embed OK
-            </span>
-          ) : (
-            <span className="inline-flex items-center gap-1 h-5 px-1.5 rounded bg-red-500/10 border border-red-500/30 text-red-400 text-[10px] font-bold uppercase tracking-wider">
-              Embed bloqueado
-            </span>
-          )}
-          <span className="text-[10px] text-jjl-muted font-mono">{meta.id}</span>
+      {error && (
+        <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-[13px] text-red-300">
+          {error}
         </div>
-        {!meta.embeddable && (
-          <p className="text-[11px] text-red-400 mt-1.5">
-            Este video tiene embed desactivado en YouTube — no se vera en la app.
-          </p>
-        )}
-        {warning && <p className="text-[11px] text-amber-400 mt-1.5">{warning}</p>}
+      )}
+
+      {/* Layout 2-pane */}
+      <div className="grid grid-cols-1 lg:grid-cols-[16rem_1fr] gap-4">
+        <PlanillaSidebar
+          planillas={PLANILLAS}
+          activePlanillaId={activePlanilla.id}
+          onSelectPlanilla={setPlanilla}
+          statsByPlanilla={statsByPlanilla}
+          mesFilter={mesFilter}
+          onSelectMes={setMes}
+        />
+        <PlanillaPanel
+          planilla={activePlanilla}
+          overrides={ovByKey}
+          searchFilter={searchFilter}
+          setSearchFilter={setSearchFilter}
+          expandedLessonKey={expandedLessonKey}
+          onToggleLesson={onToggleLesson}
+          onLessonSaved={onLessonSaved}
+          mesFilter={mesFilter}
+        />
       </div>
     </div>
   );
-}
-
-function fuzzyIncludes(a: string, b: string): boolean {
-  const norm = (s: string) =>
-    s
-      .toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/[^a-z0-9]+/g, ' ')
-      .trim();
-  const A = norm(a);
-  const B = norm(b);
-  if (!A || !B) return false;
-  if (A.includes(B) || B.includes(A)) return true;
-  const tokensA = new Set(A.split(' ').filter((t) => t.length >= 3));
-  const tokensB = B.split(' ').filter((t) => t.length >= 3);
-  return tokensB.some((t) => tokensA.has(t));
 }
