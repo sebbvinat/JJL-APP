@@ -30,7 +30,17 @@ export const runtime = 'nodejs';
 export async function GET(request: NextRequest) {
   const ctx = await requireAdmin(request);
   if (!ctx) return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
-  const { admin } = ctx;
+  const { user, admin } = ctx;
+
+  // Si el caller es un setter (tag='setter'), no le devolvemos el monto
+  // bruto — solo comisión + cuotas. Para que no aparezca en el network tab.
+  const { data: profile } = await admin
+    .from('users')
+    .select('tags')
+    .eq('id', user.id)
+    .single();
+  const callerTags = (profile?.tags || []) as string[];
+  const hideAmount = callerTags.includes('setter');
 
   const { data, error } = await admin
     .from('lead_sales')
@@ -97,12 +107,22 @@ export async function GET(request: NextRequest) {
     if (s.total_monto > 0 || s.has_fee) leads_convertidos += 1;
   }
 
+  const totalComision = Math.round(total_monto * 0.05);
+
+  if (hideAmount) {
+    // Zeroear todo lo que sea monto bruto antes de devolver — para que en el
+    // network tab el setter solo vea su comisión, no el ticket.
+    for (const k of Object.keys(by_lead)) {
+      by_lead[k] = { ...by_lead[k], total_monto: 0, moneda: null };
+    }
+    return NextResponse.json({
+      by_lead,
+      totals: { total_monto: 0, total_comision: totalComision, leads_convertidos },
+    });
+  }
+
   return NextResponse.json({
     by_lead,
-    totals: {
-      total_monto,
-      total_comision: Math.round(total_monto * 0.05),
-      leads_convertidos,
-    },
+    totals: { total_monto, total_comision: totalComision, leads_convertidos },
   });
 }

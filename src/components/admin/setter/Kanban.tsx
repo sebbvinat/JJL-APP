@@ -77,9 +77,12 @@ interface Props {
   salesByLead?: Record<string, SaleSummary>;
   /** Cuando el setter clickea el X de descarte rápido. Si no se pasa, el botón no aparece. */
   onQuickDiscard?: (lead: LeadRowExt) => void | Promise<void>;
+  /** Si el viewer es un setter (tag='setter'): ocultamos el monto bruto y solo
+   *  mostramos la comisión + cantidad de cuotas. El coach SÍ ve todo. */
+  viewerIsSetter?: boolean;
 }
 
-export default function Kanban({ leads, admins, onOpenLead, salesByLead, onQuickDiscard }: Props) {
+export default function Kanban({ leads, admins, onOpenLead, salesByLead, onQuickDiscard, viewerIsSetter }: Props) {
   const adminById = useMemo(() => new Map(admins.map((a) => [a.id, a])), [admins]);
   const [discardingId, setDiscardingId] = useState<string | null>(null);
 
@@ -141,7 +144,7 @@ export default function Kanban({ leads, admins, onOpenLead, salesByLead, onQuick
                       )}
                       {/* Sales summary — solo en Convertido */}
                       {isConverted && sale && (
-                        <SaleSummaryBlock sale={sale} />
+                        <SaleSummaryBlock sale={sale} hideAmount={!!viewerIsSetter} />
                       )}
                       {isConverted && !sale && (
                         <p className="text-[10px] text-jjl-muted/70 italic mt-0.5">Sin movimientos $ registrados</p>
@@ -193,11 +196,15 @@ export default function Kanban({ leads, admins, onOpenLead, salesByLead, onQuick
 }
 
 /**
- * Bloque que se muestra en las cards de la columna "Convertido":
- *   Monto cobrado · "+$X comisión" en verde (5% si no es fee).
- *   Si es solo fee/reserva → "fee/reserva (no suma)" en gris.
+ * Bloque que se muestra en las cards de la columna "Convertido".
+ *
+ * - Admin (coach): ve el monto cobrado total + comisión 5% en verde.
+ * - Setter (hideAmount=true): solo ve "+$X comisión" + cantidad de cuotas.
+ *   No queremos exponer el ticket bruto a los setters contratados.
+ *
+ * Si es solo fee/reserva → "fee/reserva (no suma)" en gris (igual para todos).
  */
-function SaleSummaryBlock({ sale }: { sale: SaleSummary }) {
+function SaleSummaryBlock({ sale, hideAmount }: { sale: SaleSummary; hideAmount: boolean }) {
   const onlyFee = sale.has_fee && sale.total_monto === 0;
   if (onlyFee) {
     return (
@@ -208,14 +215,20 @@ function SaleSummaryBlock({ sale }: { sale: SaleSummary }) {
   }
   return (
     <div className="my-1 px-2 py-1.5 rounded border border-green-500/40 bg-green-500/[0.06]">
-      <div className="flex items-baseline justify-between gap-2">
-        <p className="text-[13px] font-extrabold text-white tabular-nums">
-          {formatMonto(sale.total_monto, sale.moneda)}
-        </p>
-        <span className="text-[11px] font-bold text-green-300 tabular-nums" title="Comisión 5%">
+      {hideAmount ? (
+        <p className="text-[15px] font-extrabold text-green-300 tabular-nums" title="Tu comisión por este cliente">
           +${sale.total_comision.toLocaleString('es-AR')}
-        </span>
-      </div>
+        </p>
+      ) : (
+        <div className="flex items-baseline justify-between gap-2">
+          <p className="text-[13px] font-extrabold text-white tabular-nums">
+            {formatMonto(sale.total_monto, sale.moneda)}
+          </p>
+          <span className="text-[11px] font-bold text-green-300 tabular-nums" title="Comisión 5%">
+            +${sale.total_comision.toLocaleString('es-AR')}
+          </span>
+        </div>
+      )}
       <p className="text-[10px] text-jjl-muted mt-0.5 flex items-center gap-1">
         <DollarSign className="h-2.5 w-2.5" />
         {sale.cuotas === 1 ? '1 cuota' : `${sale.cuotas} cuotas`}

@@ -103,9 +103,10 @@ export default function AgendasClient() {
         <StatCard label="Sin agendar +24h" value={stats.sinAgendar24} tone={stats.sinAgendar24 > 0 ? 'amber' : 'default'} />
         <StatCard label="Conversion últ. 30d" value={`${stats.convRate}%`} sub={`${stats.conv}/${stats.totalUltMes}`} tone={stats.convRate >= 20 ? 'green' : 'default'} />
         <StatCard
-          label="Comisión total (5%)"
+          label={isSetter ? 'Tu comisión total' : 'Comisión total (5%)'}
           value={`$${salesTotals.total_comision.toLocaleString('es-AR')}`}
-          sub={`sobre $${salesTotals.total_monto.toLocaleString('es-AR')} cobrado`}
+          // Al setter no le mostramos el monto bruto cobrado — solo cuánto gana él.
+          sub={isSetter ? `${salesTotals.leads_convertidos} cliente${salesTotals.leads_convertidos === 1 ? '' : 's'}` : `sobre $${salesTotals.total_monto.toLocaleString('es-AR')} cobrado`}
           tone="green"
         />
       </div>
@@ -127,6 +128,7 @@ export default function AgendasClient() {
           leads={leads}
           admins={admins}
           salesByLead={salesByLead}
+          viewerIsSetter={isSetter}
           onOpenLead={(l) => setOpenId(l.id)}
           onQuickDiscard={async (lead) => {
             try {

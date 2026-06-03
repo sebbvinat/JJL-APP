@@ -98,26 +98,25 @@ export default function SetterGuide({ onDismiss }: Props) {
     },
     {
       icon: <Trophy className="h-6 w-6 text-green-400" />,
-      title: 'Tu comisión: 5% sobre lo cobrado',
+      title: 'Tu comisión por cada venta',
       body: (
         <>
           <p className="text-sm text-jjl-muted leading-relaxed">
-            En la columna <strong className="text-green-300">Convertido</strong> cada card muestra el <strong className="text-white">monto cobrado</strong> y al lado, en verde, tu <strong className="text-green-300">+$ comisión (5%)</strong>.
+            En la columna <strong className="text-green-300">Convertido</strong> cada card te muestra cuánto <strong className="text-green-300">ganás vos</strong> por ese cliente.
           </p>
           <div className="my-2 rounded-lg border border-green-500/40 bg-green-500/[0.06] p-2.5">
-            <div className="flex items-baseline justify-between">
-              <span className="text-[13px] font-extrabold text-white tabular-nums">$1.000.000 ARS</span>
-              <span className="text-[11px] font-bold text-green-300 tabular-nums">+$50.000</span>
-            </div>
+            <p className="text-[15px] font-extrabold text-green-300 tabular-nums">
+              +$50.000
+            </p>
             <p className="text-[10px] text-jjl-muted mt-0.5 flex items-center gap-1">
               <DollarSign className="h-2.5 w-2.5" />
               3 cuotas
             </p>
           </div>
           <ul className="space-y-1 text-[12px] text-jjl-muted">
-            <li>· Cada <strong className="text-white">cuota</strong> que se cobra suma su 5%.</li>
-            <li>· Los <strong className="text-white">fees / reservas</strong> NO suman comisión (aparecen como &ldquo;no suma&rdquo;).</li>
-            <li>· Arriba a la derecha del panel ves el <strong className="text-green-300">total acumulado de tu comisión</strong>.</li>
+            <li>· Cada <strong className="text-white">cuota</strong> que se cobra suma tu comisión.</li>
+            <li>· Los <strong className="text-white">fees / reservas</strong> NO suman (aparecen como &ldquo;no suma comisión&rdquo;).</li>
+            <li>· Arriba a la derecha del panel ves el <strong className="text-green-300">total acumulado</strong> de lo que vas a cobrar.</li>
           </ul>
         </>
       ),
