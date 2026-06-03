@@ -85,8 +85,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ found: false, updated: false, message: 'Lead no encontrado por email' }, { status: 200 });
   }
 
-  // Si ya está convertido, no hacemos nada — pero igual registramos el
-  // contacto (puede ser un upgrade / cobro adicional).
+  // Si ya está convertido, no hacemos nada — pero igual registramos la
+  // venta y el contacto (puede ser un upgrade / cuota nueva).
   const alreadyConverted = lead.stage === 'convertido';
   if (!alreadyConverted) {
     const { error: updErr } = await admin
@@ -99,13 +99,37 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // Anotar venta en lead_contacts para que quede en el historial del Drawer.
-  // No bloqueamos la respuesta si esto falla — el cambio de stage ya pasó.
+  // Determinar si es fee/reserva — esos NO suman comisión al setter.
+  // Regla espejada del CRM externo (actualizar_venta.js):
+  //   situacion='Fee' OR concepto contiene fee/reserva.
+  const isFee =
+    (situacion ?? '').toLowerCase() === 'fee' ||
+    /fee|reserva/i.test(notas ?? '');
+
+  // Insertar la venta (cada llamada = una fila — cuotas se acumulan).
+  try {
+    await admin.from('lead_sales').insert({
+      lead_id: lead.id,
+      monto,
+      moneda,
+      situacion,
+      concepto: notas,
+      is_fee: isFee,
+      fecha_venta: fecha,
+      source: 'crm_ventas',
+    });
+  } catch (err) {
+    logger.warn('mark-sold.insert_sale.failed', { err, id: lead.id });
+  }
+
+  // Anotar también en lead_contacts para que quede en el historial del Drawer.
   try {
     const montoText = monto != null ? `${monto.toLocaleString('es-AR')}${moneda ? ' ' + moneda : ''}` : null;
+    const comision = !isFee && monto != null ? Math.round(monto * 0.05) : null;
     const nota = [
-      `💰 Venta registrada en CRM`,
+      `💰 ${isFee ? 'Fee/reserva' : 'Venta'} registrada en CRM`,
       montoText && `Monto: ${montoText}`,
+      comision != null && `Comisión setter (5%): $${comision.toLocaleString('es-AR')}`,
       situacion && `Situación: ${situacion}`,
       fecha && `Fecha: ${new Date(fecha).toLocaleString('es-AR')}`,
       notas && `Notas: ${notas}`,
@@ -127,5 +151,6 @@ export async function POST(request: NextRequest) {
     lead_id: lead.id,
     session_id: lead.session_id,
     already_converted: alreadyConverted,
+    is_fee: isFee,
   });
 }

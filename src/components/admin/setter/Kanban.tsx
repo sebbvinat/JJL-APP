@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Calendar, AtSign, Phone as PhoneIcon, User as UserIcon, AlertCircle, X } from 'lucide-react';
+import { Calendar, AtSign, Phone as PhoneIcon, User as UserIcon, AlertCircle, X, DollarSign } from 'lucide-react';
 import { flagFor, type LeadRow } from '@/lib/lead-labels';
 
 type LeadStage = 'nuevo' | 'contactado' | 'agendado' | 'no_show' | 'convertido' | 'descartado';
@@ -13,20 +13,34 @@ export type LeadRowExt = LeadRow & {
   last_contact_at?: string | null;
 };
 
+export interface SaleSummary {
+  total_monto: number;
+  total_comision: number;
+  cuotas: number;
+  has_fee: boolean;
+  moneda: string | null;
+  last_sale_at: string | null;
+}
+
 // Etiquetas y orden. "Sin agendar (llenó form)" reemplaza "Nuevo" porque
-// es lo que el setter espera ver al frente — leads que completaron quiz
-// pero todavía no agendaron en Calendly.
+// es lo que el setter espera ver al frente. Convertido va al final
+// (post-Descartado) para que la columna que importa al cobrar quede
+// siempre visible aunque haya scroll horizontal.
+// `no_show` se sacó — la columna sumaba ruido sin valor para el setter.
 const STAGES: { key: LeadStage; label: string; color: string }[] = [
   { key: 'nuevo',       label: 'Sin agendar (llenó form)', color: 'border-blue-500/40 bg-blue-500/5' },
   { key: 'agendado',    label: 'Agendados',                color: 'border-amber-500/40 bg-amber-500/5' },
   { key: 'contactado',  label: 'Contactado',               color: 'border-purple-500/40 bg-purple-500/5' },
-  { key: 'no_show',     label: 'No show',                  color: 'border-red-500/40 bg-red-500/5' },
-  { key: 'convertido',  label: 'Convertido',               color: 'border-green-500/40 bg-green-500/5' },
   { key: 'descartado',  label: 'Descartado',               color: 'border-jjl-border bg-white/[0.02]' },
+  { key: 'convertido',  label: 'Convertido 💰',            color: 'border-green-500/40 bg-green-500/5' },
 ];
 
+// Internal-only: leads viejos con stage='no_show' los mostramos en
+// Descartado (no perdemos data pero no aparece la columna).
 function stageOf(l: LeadRowExt): LeadStage {
-  if (l.stage) return l.stage as LeadStage;
+  const raw = l.stage as LeadStage | undefined;
+  if (raw === 'no_show') return 'descartado';
+  if (raw) return raw;
   if (l.disqualified) return 'descartado';
   if (l.booked) return 'agendado';
   return 'nuevo';
@@ -36,7 +50,7 @@ function stageOf(l: LeadRowExt): LeadStage {
 // Priority flags por respuestas del quiz
 // ───────────────────────────────────────────────────────────
 // 🟡 Amarillo  → ocupacion='inestable' (puede tener problema de cash flow)
-// 🔴 Rojo      → compromiso='viendo' o urgencia='no' (no quiere invertir todavía)
+// 🔴 Rojo      → compromiso='viendo' o urgencia='no' (no quiere invertir)
 // Si tiene ambos, gana el rojo.
 type Priority = 'red' | 'yellow' | null;
 
@@ -51,15 +65,21 @@ const PRIORITY_STYLES: Record<NonNullable<Priority>, { border: string; bg: strin
   yellow: { border: 'border-amber-500/60',  bg: 'bg-amber-500/[0.06]',  badge: 'bg-amber-500/20 text-amber-300 border-amber-500/40', label: 'Trabajo inestable' },
 };
 
+function formatMonto(monto: number, moneda: string | null): string {
+  return `$${monto.toLocaleString('es-AR')}${moneda ? ' ' + moneda : ''}`;
+}
+
 interface Props {
   leads: LeadRowExt[];
   admins: { id: string; nombre: string; tags?: string[] | null }[];
   onOpenLead: (lead: LeadRowExt) => void;
+  /** Mapa lead_id → resumen de ventas. Solo se usa para la columna Convertido. */
+  salesByLead?: Record<string, SaleSummary>;
   /** Cuando el setter clickea el X de descarte rápido. Si no se pasa, el botón no aparece. */
   onQuickDiscard?: (lead: LeadRowExt) => void | Promise<void>;
 }
 
-export default function Kanban({ leads, admins, onOpenLead, onQuickDiscard }: Props) {
+export default function Kanban({ leads, admins, onOpenLead, salesByLead, onQuickDiscard }: Props) {
   const adminById = useMemo(() => new Map(admins.map((a) => [a.id, a])), [admins]);
   const [discardingId, setDiscardingId] = useState<string | null>(null);
 
@@ -86,6 +106,7 @@ export default function Kanban({ leads, admins, onOpenLead, onQuickDiscard }: Pr
     <div className="grid grid-flow-col auto-cols-[minmax(240px,1fr)] gap-3 overflow-x-auto pb-2">
       {STAGES.map((s) => {
         const list = byStage[s.key];
+        const isConverted = s.key === 'convertido';
         return (
           <div key={s.key} className={`rounded-xl border ${s.color} p-2.5 min-w-0`}>
             <div className="flex items-center justify-between mb-2 px-1">
@@ -101,8 +122,8 @@ export default function Kanban({ leads, admins, onOpenLead, onQuickDiscard }: Pr
                 const prioStyles = prio ? PRIORITY_STYLES[prio] : null;
                 const cardBorder = prioStyles?.border ?? 'border-jjl-border';
                 const cardBg = prioStyles?.bg ?? 'bg-jjl-gray';
-                // Discard solo aplica en columnas que no son 'descartado'/'convertido'
-                const canQuickDiscard = !!onQuickDiscard && s.key !== 'descartado' && s.key !== 'convertido';
+                const canQuickDiscard = !!onQuickDiscard && s.key !== 'descartado' && !isConverted;
+                const sale = isConverted ? salesByLead?.[l.id] : undefined;
                 return (
                   <div key={l.id} className="relative group">
                     <button
@@ -118,6 +139,13 @@ export default function Kanban({ leads, admins, onOpenLead, onQuickDiscard }: Pr
                           {prioStyles.label}
                         </span>
                       )}
+                      {/* Sales summary — solo en Convertido */}
+                      {isConverted && sale && (
+                        <SaleSummaryBlock sale={sale} />
+                      )}
+                      {isConverted && !sale && (
+                        <p className="text-[10px] text-jjl-muted/70 italic mt-0.5">Sin movimientos $ registrados</p>
+                      )}
                       <div className="space-y-0.5 text-[11px] text-jjl-muted">
                         {l.instagram && (
                           <p className="flex items-center gap-1 truncate"><AtSign className="h-3 w-3 shrink-0" /> @{l.instagram}</p>
@@ -130,7 +158,7 @@ export default function Kanban({ leads, admins, onOpenLead, onQuickDiscard }: Pr
                         {l.telefono && (
                           <p className="flex items-center gap-1 truncate"><PhoneIcon className="h-3 w-3 shrink-0" /> {l.telefono}</p>
                         )}
-                        {l.scheduled_at && (
+                        {l.scheduled_at && !isConverted && (
                           <p className="flex items-center gap-1 truncate text-amber-300"><Calendar className="h-3 w-3 shrink-0" /> {new Date(l.scheduled_at).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' })}</p>
                         )}
                       </div>
@@ -160,6 +188,39 @@ export default function Kanban({ leads, admins, onOpenLead, onQuickDiscard }: Pr
           </div>
         );
       })}
+    </div>
+  );
+}
+
+/**
+ * Bloque que se muestra en las cards de la columna "Convertido":
+ *   Monto cobrado · "+$X comisión" en verde (5% si no es fee).
+ *   Si es solo fee/reserva → "fee/reserva (no suma)" en gris.
+ */
+function SaleSummaryBlock({ sale }: { sale: SaleSummary }) {
+  const onlyFee = sale.has_fee && sale.total_monto === 0;
+  if (onlyFee) {
+    return (
+      <div className="my-1 px-2 py-1.5 rounded border border-jjl-border/40 bg-white/[0.02]">
+        <p className="text-[11px] font-semibold text-jjl-muted">Fee/reserva — no suma comisión</p>
+      </div>
+    );
+  }
+  return (
+    <div className="my-1 px-2 py-1.5 rounded border border-green-500/40 bg-green-500/[0.06]">
+      <div className="flex items-baseline justify-between gap-2">
+        <p className="text-[13px] font-extrabold text-white tabular-nums">
+          {formatMonto(sale.total_monto, sale.moneda)}
+        </p>
+        <span className="text-[11px] font-bold text-green-300 tabular-nums" title="Comisión 5%">
+          +${sale.total_comision.toLocaleString('es-AR')}
+        </span>
+      </div>
+      <p className="text-[10px] text-jjl-muted mt-0.5 flex items-center gap-1">
+        <DollarSign className="h-2.5 w-2.5" />
+        {sale.cuotas === 1 ? '1 cuota' : `${sale.cuotas} cuotas`}
+        {sale.has_fee && ' · incluye fee'}
+      </p>
     </div>
   );
 }

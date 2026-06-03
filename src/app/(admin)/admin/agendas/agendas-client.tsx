@@ -4,17 +4,29 @@ import { useMemo, useState } from 'react';
 import useSWR from 'swr';
 import { Search } from 'lucide-react';
 import { fetcher } from '@/lib/fetcher';
-import Kanban, { type LeadRowExt } from '@/components/admin/setter/Kanban';
+import Kanban, { type LeadRowExt, type SaleSummary } from '@/components/admin/setter/Kanban';
 import LeadDrawer from '@/components/admin/setter/LeadDrawer';
 import ConvertToAlumnoModal from '@/components/admin/setter/ConvertToAlumnoModal';
+import SetterGuide from '@/components/admin/setter/SetterGuide';
 
 type AdminRow = { id: string; nombre: string; avatar_url: string | null; tags: string[] };
+
+interface SalesSummaryResponse {
+  by_lead: Record<string, SaleSummary>;
+  totals: { total_monto: number; total_comision: number; leads_convertidos: number };
+  setupRequired?: boolean;
+}
+
+interface MeResponse {
+  user?: { id: string; nombre: string | null; tags?: string[] | null; setter_guide_seen_at?: string | null };
+}
 
 export default function AgendasClient() {
   const [q, setQ] = useState('');
   const [openId, setOpenId] = useState<string | null>(null);
   const [convertingId, setConvertingId] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [guideDismissed, setGuideDismissed] = useState(false);
 
   const { data, isLoading, mutate } = useSWR<{ leads: LeadRowExt[]; setupRequired?: boolean }>(
     '/api/admin/leads',
@@ -22,9 +34,24 @@ export default function AgendasClient() {
     { revalidateOnFocus: true, refreshInterval: 60_000 },
   );
 
+  // Resumen de ventas (lead_id → { total_monto, total_comision, ... })
+  const { data: salesData } = useSWR<SalesSummaryResponse>(
+    '/api/admin/leads/sales-summary',
+    fetcher,
+    { revalidateOnFocus: true, refreshInterval: 60_000 },
+  );
+  const salesByLead = salesData?.by_lead ?? {};
+  const salesTotals = salesData?.totals ?? { total_monto: 0, total_comision: 0, leads_convertidos: 0 };
+
   // Admins (con sus tags) para el dropdown de asignación. Reusamos /api/admin/tags.
   const { data: adminsData } = useSWR<{ admins: AdminRow[]; setupRequired?: boolean }>('/api/admin/tags', fetcher);
   const admins = useMemo(() => adminsData?.admins || [], [adminsData]);
+
+  // Para decidir si mostrar la guía: usuario actual + tags + flag de visto.
+  const { data: meData, mutate: mutateMe } = useSWR<MeResponse>('/api/auth/me', fetcher);
+  const me = meData?.user;
+  const isSetter = !!me?.tags?.includes('setter');
+  const showGuide = !guideDismissed && isSetter && !me?.setter_guide_seen_at;
 
   const leads: LeadRowExt[] = useMemo(() => {
     const ls = data?.leads || [];
@@ -70,11 +97,17 @@ export default function AgendasClient() {
       )}
 
       {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
         <StatCard label="Leads totales" value={stats.total} />
         <StatCard label="Nuevos hoy" value={stats.nuevosHoy} tone="blue" />
         <StatCard label="Sin agendar +24h" value={stats.sinAgendar24} tone={stats.sinAgendar24 > 0 ? 'amber' : 'default'} />
         <StatCard label="Conversion últ. 30d" value={`${stats.convRate}%`} sub={`${stats.conv}/${stats.totalUltMes}`} tone={stats.convRate >= 20 ? 'green' : 'default'} />
+        <StatCard
+          label="Comisión total (5%)"
+          value={`$${salesTotals.total_comision.toLocaleString('es-AR')}`}
+          sub={`sobre $${salesTotals.total_monto.toLocaleString('es-AR')} cobrado`}
+          tone="green"
+        />
       </div>
 
       {/* Búsqueda */}
@@ -93,6 +126,7 @@ export default function AgendasClient() {
         <Kanban
           leads={leads}
           admins={admins}
+          salesByLead={salesByLead}
           onOpenLead={(l) => setOpenId(l.id)}
           onQuickDiscard={async (lead) => {
             try {
@@ -141,6 +175,19 @@ export default function AgendasClient() {
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-lg text-sm font-medium shadow-xl bg-green-900/90 border border-green-500/30 text-green-300">
           {toast}
         </div>
+      )}
+
+      {/* Guía de bienvenida — primera vez que un setter entra */}
+      {showGuide && (
+        <SetterGuide
+          onDismiss={async () => {
+            setGuideDismissed(true);
+            try {
+              await fetch('/api/admin/setter/guide-seen', { method: 'POST' });
+              void mutateMe();
+            } catch { /* silencioso — la próxima carga vuelve a mostrar si falla */ }
+          }}
+        />
       )}
     </div>
   );
