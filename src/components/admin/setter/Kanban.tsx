@@ -49,20 +49,29 @@ function stageOf(l: LeadRowExt): LeadStage {
 // ───────────────────────────────────────────────────────────
 // Priority flags por respuestas del quiz
 // ───────────────────────────────────────────────────────────
-// 🟡 Amarillo  → ocupacion='inestable' (puede tener problema de cash flow)
+// 🟡 Amarillo  → ocupacion='inestable' (cash flow incierto)
+//              o urgencia='ajustado' (interesado pero ajustado econ.)
 // 🔴 Rojo      → compromiso='viendo' o urgencia='no' (no quiere invertir)
 // Si tiene ambos, gana el rojo.
 type Priority = 'red' | 'yellow' | null;
 
 function priorityOf(l: LeadRowExt): Priority {
   if (l.compromiso === 'viendo' || l.urgencia === 'no') return 'red';
-  if (l.ocupacion === 'inestable') return 'yellow';
+  if (l.ocupacion === 'inestable' || l.urgencia === 'ajustado') return 'yellow';
   return null;
 }
 
-const PRIORITY_STYLES: Record<NonNullable<Priority>, { border: string; bg: string; badge: string; label: string }> = {
-  red:    { border: 'border-red-500/60',    bg: 'bg-red-500/[0.06]',    badge: 'bg-red-500/20 text-red-300 border-red-500/40',     label: 'No quiere invertir' },
-  yellow: { border: 'border-amber-500/60',  bg: 'bg-amber-500/[0.06]',  badge: 'bg-amber-500/20 text-amber-300 border-amber-500/40', label: 'Trabajo inestable' },
+// El badge se decide en base a la razón específica para que el setter sepa
+// por qué está marcado (puede ser cash flow O por respuesta de inversión).
+function priorityLabel(l: LeadRowExt, prio: NonNullable<Priority>): string {
+  if (prio === 'red') return 'No quiere invertir';
+  if (l.urgencia === 'ajustado') return 'Ajustado económicamente';
+  return 'Trabajo inestable';
+}
+
+const PRIORITY_STYLES: Record<NonNullable<Priority>, { border: string; bg: string; badge: string }> = {
+  red:    { border: 'border-red-500/60',    bg: 'bg-red-500/[0.06]',    badge: 'bg-red-500/20 text-red-300 border-red-500/40' },
+  yellow: { border: 'border-amber-500/60',  bg: 'bg-amber-500/[0.06]',  badge: 'bg-amber-500/20 text-amber-300 border-amber-500/40' },
 };
 
 function formatMonto(monto: number, moneda: string | null): string {
@@ -123,6 +132,7 @@ export default function Kanban({ leads, admins, onOpenLead, salesByLead, onQuick
                 const adm = l.assigned_to ? adminById.get(l.assigned_to) : null;
                 const prio = priorityOf(l);
                 const prioStyles = prio ? PRIORITY_STYLES[prio] : null;
+                const prioLabelText = prio ? priorityLabel(l, prio) : null;
                 const cardBorder = prioStyles?.border ?? 'border-jjl-border';
                 const cardBg = prioStyles?.bg ?? 'bg-jjl-gray';
                 const canQuickDiscard = !!onQuickDiscard && s.key !== 'descartado' && !isConverted;
@@ -137,9 +147,9 @@ export default function Kanban({ leads, admins, onOpenLead, salesByLead, onQuick
                         <p className="text-[13px] font-semibold text-white flex-1 truncate">{l.nombre || l.email || 'Sin nombre'}</p>
                         {l.pais && <span title={l.pais} className="text-[14px]">{flagFor(l.pais)}</span>}
                       </div>
-                      {prioStyles && (
+                      {prioStyles && prioLabelText && (
                         <span className={`inline-flex items-center h-4 px-1.5 mb-1 rounded border text-[9px] font-bold uppercase tracking-wider ${prioStyles.badge}`}>
-                          {prioStyles.label}
+                          {prioLabelText}
                         </span>
                       )}
                       {/* Sales summary — solo en Convertido */}

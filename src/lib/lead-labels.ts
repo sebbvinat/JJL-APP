@@ -40,9 +40,11 @@ export const COMPROMISO_LABEL: Record<string, string> = {
 };
 
 export const URGENCIA_LABEL: Record<string, string> = {
-  si: 'Sí, si me cierra, quisiera avanzar',
+  si: 'Sí, dispuesto a invertir si encaja',
+  ajustado: 'Me interesa pero estoy ajustado económicamente',
+  no: 'No quiere invertir',
+  // Legacy — leads anteriores podían tener este valor:
   depende: 'Me interesa, pero necesito evaluarlo bien',
-  no: 'No, por ahora solo estoy viendo',
 };
 
 export interface LeadRow {

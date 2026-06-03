@@ -39,7 +39,8 @@ type AnswerKey =
   | 'limitacion'
   | 'estado'
   | 'vision'
-  | 'compromiso';
+  | 'compromiso'
+  | 'urgencia';
 
 interface Option {
   value: string;
@@ -230,6 +231,31 @@ const QUESTIONS: QuizQuestion[] = [
       },
     ],
   },
+  {
+    kind: 'choice',
+    key: 'urgencia',
+    eyebrow: 'Tu disposición',
+    title: 'Si vemos que realmente podemos ayudarte y que el programa encaja con lo que estás buscando, ¿estarías dispuesto a invertir para construir el juego ideal para vos?',
+    hint: 'Sin compromiso todavía — solo queremos entender en qué momento estás.',
+    options: [
+      {
+        value: 'si',
+        label: 'Sí',
+        Icon: CheckCircle2,
+      },
+      {
+        value: 'no',
+        label: 'No',
+        Icon: Eye,
+        disqualifies: true,
+      },
+      {
+        value: 'ajustado',
+        label: 'Me interesa pero estoy ajustado económicamente',
+        Icon: Hourglass,
+      },
+    ],
+  },
 ];
 
 interface EvaluationQuizProps {
@@ -241,12 +267,14 @@ export default function EvaluationQuiz({ calendlyUrl }: EvaluationQuizProps) {
   const [answers, setAnswers] = useState<Partial<Record<AnswerKey, string>>>({});
   const [pickedValue, setPickedValue] = useState<string | null>(null);
   const advanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const sessionId = useMemo(() => {
+  // useState con lazy initializer: React permite que la función impura
+  // (Date.now/Math.random) corra una sola vez al mount.
+  const [sessionId] = useState<string>(() => {
     if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
       return crypto.randomUUID();
     }
     return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-  }, []);
+  });
 
   const total = QUESTIONS.length;
   const isDone = step >= total;
@@ -276,6 +304,7 @@ export default function EvaluationQuiz({ calendlyUrl }: EvaluationQuizProps) {
       estado: answers.estado,
       vision: answers.vision,
       compromiso: answers.compromiso,
+      urgencia: answers.urgencia,
       disqualified: isDisqualified,
     };
     // Sólo las choice questions son obligatorias para considerar el quiz
@@ -285,7 +314,8 @@ export default function EvaluationQuiz({ calendlyUrl }: EvaluationQuizProps) {
       !payload.limitacion ||
       !payload.estado ||
       !payload.vision ||
-      !payload.compromiso
+      !payload.compromiso ||
+      !payload.urgencia
     ) {
       return;
     }
