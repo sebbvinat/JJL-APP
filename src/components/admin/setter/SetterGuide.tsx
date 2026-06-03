@@ -50,16 +50,20 @@ export default function SetterGuide({ onDismiss }: Props) {
     },
     {
       icon: <AlertTriangle className="h-6 w-6 text-amber-400" />,
-      title: 'Los colores te avisan',
+      title: 'Los colores: oportunidad, no descarte',
       body: (
         <>
           <div className="rounded-lg border border-amber-500/60 bg-amber-500/[0.06] p-2.5 mb-2">
             <p className="text-[11px] font-bold uppercase tracking-wider text-amber-300 mb-1">Amarillo</p>
-            <p className="text-sm text-jjl-muted">El prospecto dijo que su trabajo es <strong className="text-amber-300">inestable</strong>. Ojo con el cash flow — capaz hay que mostrarle planes en cuotas o el plan más accesible.</p>
+            <p className="text-sm text-jjl-muted">El prospecto dijo que le interesa pero está <strong className="text-amber-300">ajustado económicamente</strong>.</p>
           </div>
-          <div className="rounded-lg border border-red-500/60 bg-red-500/[0.06] p-2.5">
+          <div className="rounded-lg border border-red-500/60 bg-red-500/[0.06] p-2.5 mb-2">
             <p className="text-[11px] font-bold uppercase tracking-wider text-red-300 mb-1">Rojo</p>
-            <p className="text-sm text-jjl-muted">El prospecto dijo que <strong className="text-red-300">no está dispuesto a invertir ahora</strong>. Igual contactalo, pero baja la prioridad: probablemente no compre en esta tanda.</p>
+            <p className="text-sm text-jjl-muted">El prospecto dijo que <strong className="text-red-300">no está dispuesto a invertir</strong>.</p>
+          </div>
+          <div className="rounded-lg border border-jjl-red/40 bg-jjl-red/[0.06] p-2.5">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-jjl-red mb-1">Estrategia (para ambos)</p>
+            <p className="text-sm text-jjl-muted">Contactá, preguntá por su situación, y ofrecé el <strong className="text-white">low ticket a precio especial por haber completado el form, válido las próximas 48hs</strong>.</p>
           </div>
         </>
       ),

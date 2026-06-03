@@ -49,24 +49,27 @@ function stageOf(l: LeadRowExt): LeadStage {
 // ───────────────────────────────────────────────────────────
 // Priority flags por respuestas del quiz
 // ───────────────────────────────────────────────────────────
-// 🟡 Amarillo  → ocupacion='inestable' (cash flow incierto)
-//              o urgencia='ajustado' (interesado pero ajustado econ.)
-// 🔴 Rojo      → compromiso='viendo' o urgencia='no' (no quiere invertir)
-// Si tiene ambos, gana el rojo.
+// El filtro real está en la pregunta "¿estarías dispuesto a invertir?".
+// Trabajo inestable solo no es un flag (decidido con Nacho: si dijo que SÍ
+// está dispuesto a invertir, lo trabajamos normal aunque su laburo sea
+// inestable).
+//
+// 🟡 Amarillo  → urgencia='ajustado' (le interesa pero plata corta)
+// 🔴 Rojo      → urgencia='no' o compromiso='viendo' (no quiere invertir)
+//
+// Para ambos colores la estrategia del setter es: contactar, preguntar por
+// la situación real, ofrecer LOW TICKET con precio especial 48hs.
 type Priority = 'red' | 'yellow' | null;
 
 function priorityOf(l: LeadRowExt): Priority {
   if (l.compromiso === 'viendo' || l.urgencia === 'no') return 'red';
-  if (l.ocupacion === 'inestable' || l.urgencia === 'ajustado') return 'yellow';
+  if (l.urgencia === 'ajustado') return 'yellow';
   return null;
 }
 
-// El badge se decide en base a la razón específica para que el setter sepa
-// por qué está marcado (puede ser cash flow O por respuesta de inversión).
-function priorityLabel(l: LeadRowExt, prio: NonNullable<Priority>): string {
-  if (prio === 'red') return 'No quiere invertir';
-  if (l.urgencia === 'ajustado') return 'Ajustado económicamente';
-  return 'Trabajo inestable';
+function priorityLabel(prio: NonNullable<Priority>): string {
+  if (prio === 'red') return 'Ofrecer low ticket 48h';
+  return 'Ajustado · low ticket 48h';
 }
 
 const PRIORITY_STYLES: Record<NonNullable<Priority>, { border: string; bg: string; badge: string }> = {
@@ -132,7 +135,7 @@ export default function Kanban({ leads, admins, onOpenLead, salesByLead, onQuick
                 const adm = l.assigned_to ? adminById.get(l.assigned_to) : null;
                 const prio = priorityOf(l);
                 const prioStyles = prio ? PRIORITY_STYLES[prio] : null;
-                const prioLabelText = prio ? priorityLabel(l, prio) : null;
+                const prioLabelText = prio ? priorityLabel(prio) : null;
                 const cardBorder = prioStyles?.border ?? 'border-jjl-border';
                 const cardBg = prioStyles?.bg ?? 'bg-jjl-gray';
                 const canQuickDiscard = !!onQuickDiscard && s.key !== 'descartado' && !isConverted;
@@ -164,7 +167,7 @@ export default function Kanban({ leads, admins, onOpenLead, salesByLead, onQuick
                           <p className="flex items-center gap-1 truncate"><AtSign className="h-3 w-3 shrink-0" /> @{l.instagram}</p>
                         )}
                         {l.ocupacion && (
-                          <p className={`flex items-center gap-1 truncate ${l.ocupacion === 'inestable' ? 'text-amber-300' : ''}`}>
+                          <p className="flex items-center gap-1 truncate">
                             <UserIcon className="h-3 w-3 shrink-0" /> {l.ocupacion}
                           </p>
                         )}
