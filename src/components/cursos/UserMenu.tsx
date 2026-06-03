@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
-import { LogOut, User } from 'lucide-react';
+import { LogOut, User, Settings } from 'lucide-react';
 
 // Menu de usuario para el header de cursos. Muestra el primer nombre
 // (o inicial del email) con un dropdown para "Mis cursos" y "Cerrar sesion".
@@ -66,6 +66,13 @@ export default function UserMenu({
             className="flex items-center gap-2 px-4 py-2.5 text-[13.5px] font-medium text-cursos-ink hover:bg-black/[0.04]"
           >
             <User size={15} /> Mis cursos
+          </Link>
+          <Link
+            href="/cuenta"
+            onClick={() => setOpen(false)}
+            className="flex items-center gap-2 px-4 py-2.5 text-[13.5px] font-medium text-cursos-ink hover:bg-black/[0.04]"
+          >
+            <Settings size={15} /> Cuenta
           </Link>
           <button
             type="button"
