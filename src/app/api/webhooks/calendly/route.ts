@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'node:crypto';
 import { createAdminSupabaseClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/logger';
+import { notifySettersLeadBooked } from '@/lib/lead-notifications';
 
 export const runtime = 'nodejs';
 
@@ -110,13 +111,45 @@ export async function POST(request: NextRequest) {
 
   try {
     const admin = createAdminSupabaseClient();
-    const { error } = await admin
+    // Releemos en el upsert para tener el lead completo (con quiz answers
+    // que ya estaban antes del agendamiento) y poder armar la notif al setter.
+    const { data: row, error } = await admin
       .from('lead_quiz_responses')
-      .upsert(update, { onConflict: 'session_id' });
+      .upsert(update, { onConflict: 'session_id' })
+      .select(
+        'id, session_id, instagram, ocupacion, fortaleza, limitacion, estado, vision, compromiso, pais, nombre, scheduled_at, setter_notified_booked_at',
+      )
+      .single();
     if (error) {
       logger.error('calendly.webhook.upsert.failed', { err: error });
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
+
+    // Notificar al setter una sola vez por agendamiento. Idempotencia:
+    // si setter_notified_booked_at ya está, no volvemos a disparar
+    // (cubre el caso de webhooks repetidos por reintento de Calendly).
+    if (row && !row.setter_notified_booked_at) {
+      try {
+        const res = await notifySettersLeadBooked(admin, row);
+        if (res.notified > 0) {
+          await admin
+            .from('lead_quiz_responses')
+            .update({ setter_notified_booked_at: new Date().toISOString() })
+            .eq('id', row.id);
+        } else {
+          // Igual marcamos: si no hay setters, no tiene sentido reintentar.
+          await admin
+            .from('lead_quiz_responses')
+            .update({ setter_notified_booked_at: new Date().toISOString() })
+            .eq('id', row.id);
+        }
+      } catch (err) {
+        // No tumbamos el webhook si la notif falla — Calendly reintentaría
+        // y el upsert idempotente terminaría duplicando alertas.
+        logger.error('calendly.webhook.notify_setter.failed', { err, sessionId });
+      }
+    }
+
     return NextResponse.json({ success: true });
   } catch (err) {
     logger.error('calendly.webhook.unhandled', { err });
