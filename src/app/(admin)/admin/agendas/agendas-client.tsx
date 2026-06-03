@@ -28,17 +28,21 @@ export default function AgendasClient() {
   const [toast, setToast] = useState<string | null>(null);
   const [guideDismissed, setGuideDismissed] = useState(false);
 
+  // Polling moderado: cada 5 min para no quemar egress del plan Free de
+  // Supabase. Las notifs auto (in-app + push) ya cubren el tiempo real;
+  // este refresh es para que el Kanban se actualice cuando vuelve el foco
+  // al tab.
   const { data, isLoading, mutate } = useSWR<{ leads: LeadRowExt[]; setupRequired?: boolean }>(
     '/api/admin/leads',
     fetcher,
-    { revalidateOnFocus: true, refreshInterval: 60_000 },
+    { revalidateOnFocus: true, refreshInterval: 300_000, dedupingInterval: 30_000 },
   );
 
-  // Resumen de ventas (lead_id → { total_monto, total_comision, ... })
+  // Resumen de ventas (lead_id → { total_comision, ... }) — mismo polling.
   const { data: salesData } = useSWR<SalesSummaryResponse>(
     '/api/admin/leads/sales-summary',
     fetcher,
-    { revalidateOnFocus: true, refreshInterval: 60_000 },
+    { revalidateOnFocus: true, refreshInterval: 300_000, dedupingInterval: 30_000 },
   );
   const salesByLead = salesData?.by_lead ?? {};
   const salesTotals = salesData?.totals ?? { total_monto: 0, total_comision: 0, leads_convertidos: 0 };
