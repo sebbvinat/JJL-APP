@@ -34,7 +34,6 @@
     { "path": "/api/admin/sync-drive-videos", "schedule": "0 14 * * *" },
     { "path": "/api/admin/sync-drive-videos", "schedule": "0 18 * * *" },
     { "path": "/api/admin/sync-drive-videos", "schedule": "0 23 * * *" },
-    { "path": "/api/cron/students-ready-1on1", "schedule": "0 12 * * *" },
-    { "path": "/api/cron/setter-no-book-followup", "schedule": "0 * * * *" }
+    { "path": "/api/cron/students-ready-1on1", "schedule": "0 12 * * *" }
   ]
 }
