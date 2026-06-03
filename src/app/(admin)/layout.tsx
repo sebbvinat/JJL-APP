@@ -1,8 +1,11 @@
 'use client';
 
+import { useEffect, useMemo } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import useSWR from 'swr';
 import { Users, FileSpreadsheet, CalendarClock, Megaphone, Tag, Cloud } from 'lucide-react';
+import { fetcher } from '@/lib/fetcher';
 
 const ADMIN_TABS = [
   { label: 'Alumnos', href: '/admin', icon: Users },
@@ -19,9 +22,43 @@ const ADMIN_TABS = [
 // en /admin/reviews, /admin/anuncios, /admin/tags, etc.)
 const SUB_PATHS = ADMIN_TABS.filter((t) => t.href !== '/admin').map((t) => t.href);
 
+// Setters (admins con tag='setter') solo pueden ver el Kanban de leads.
+// Cualquier intento de navegar a otra ruta /admin/* los devuelve a
+// /admin/agendas. Tampoco les mostramos las otras tabs ni el link al
+// dashboard de alumno.
+const SETTER_ALLOWED_PATH = '/admin/agendas';
+
+interface MeResponse {
+  user?: { id: string; nombre: string | null; tags?: string[] | null };
+}
+
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const inSubTab = SUB_PATHS.some((p) => pathname.startsWith(p));
+
+  const { data: meData } = useSWR<MeResponse>('/api/auth/me', fetcher, {
+    revalidateOnFocus: false,
+    dedupingInterval: 30_000,
+  });
+  const isSetter = !!meData?.user?.tags?.includes('setter');
+
+  // Si es setter y está en una ruta admin que no es /admin/agendas,
+  // lo mandamos a /admin/agendas. El check espera al fetch de /me para
+  // no redirigir antes de saber si el user está taggeado.
+  useEffect(() => {
+    if (!meData?.user) return;
+    if (!isSetter) return;
+    if (!pathname.startsWith(SETTER_ALLOWED_PATH)) {
+      router.replace(SETTER_ALLOWED_PATH);
+    }
+  }, [meData, isSetter, pathname, router]);
+
+  // Filtramos las tabs visibles: setter solo ve "Agendas".
+  const visibleTabs = useMemo(
+    () => (isSetter ? ADMIN_TABS.filter((t) => t.href === SETTER_ALLOWED_PATH) : ADMIN_TABS),
+    [isSetter],
+  );
 
   return (
     <div className="min-h-screen bg-black">
@@ -34,21 +71,26 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <img src="/logo-jjl.png" alt="JJL" width={28} height={28} />
             </div>
             <div className="min-w-0">
-              <h1 className="text-base font-bold leading-tight truncate">ADMIN PANEL</h1>
+              <h1 className="text-base font-bold leading-tight truncate">
+                {isSetter ? 'PANEL SETTER' : 'ADMIN PANEL'}
+              </h1>
               <p className="text-xs text-jjl-red tracking-widest uppercase -mt-0.5 truncate">Jiu Jitsu Latino</p>
             </div>
           </div>
-          <Link
-            href="/dashboard"
-            className="text-sm text-jjl-muted hover:text-white transition-colors shrink-0"
-          >
-            <span className="hidden sm:inline">Volver a la App</span>
-            <span className="sm:hidden">← App</span>
-          </Link>
+          {/* Setters no necesitan ir al dashboard de alumno */}
+          {!isSetter && (
+            <Link
+              href="/dashboard"
+              className="text-sm text-jjl-muted hover:text-white transition-colors shrink-0"
+            >
+              <span className="hidden sm:inline">Volver a la App</span>
+              <span className="sm:hidden">← App</span>
+            </Link>
+          )}
         </div>
         {/* Tabs — scrollables en horizontal cuando no entran (mobile) */}
         <div className="flex px-4 lg:px-6 gap-1 overflow-x-auto scrollbar-thin">
-          {ADMIN_TABS.map((tab) => {
+          {visibleTabs.map((tab) => {
             const Icon = tab.icon;
             const active = tab.href === '/admin' ? !inSubTab : pathname.startsWith(tab.href);
 

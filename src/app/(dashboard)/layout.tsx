@@ -31,12 +31,13 @@ export default async function DashboardLayout({ children }: { children: React.Re
   try {
     const { data: profile } = await supabase
       .from('users')
-      .select('rol, program_member')
+      .select('rol, program_member, tags')
       .eq('id', user.id)
       .single();
-    type Prof = { rol?: string; program_member?: boolean };
+    type Prof = { rol?: string; program_member?: boolean; tags?: string[] };
     const rol = (profile as Prof | null)?.rol;
     const isAdmin = rol === 'admin';
+    const tags = (profile as Prof | null)?.tags || [];
 
     // 1) Bloqueo duro por rol — los admins pasan; cliente_cursos NUNCA.
     if (rol === 'cliente_cursos') {
@@ -47,6 +48,13 @@ export default async function DashboardLayout({ children }: { children: React.Re
     const programMember = (profile as Prof | null)?.program_member;
     if (programMember === false && !isAdmin) {
       redirect('https://jiujitsulatino.com/mis-cursos');
+    }
+
+    // 3) Setters (admins con tag='setter') solo ven /admin/agendas. Si
+    // entran por error al dashboard de alumno, los redirigimos. Coach y
+    // admins sin ese tag siguen viendo el dashboard normal.
+    if (isAdmin && tags.includes('setter')) {
+      redirect('/admin/agendas');
     }
   } catch {
     // Si falla el query (red, RLS, etc.) permitimos — fail-open para no
