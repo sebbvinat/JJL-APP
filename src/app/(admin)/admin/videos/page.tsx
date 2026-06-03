@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, Video, RefreshCw } from 'lucide-react';
@@ -19,7 +19,37 @@ import PlanillaPanel from '@/components/admin/videos/PlanillaPanel';
 
 const DEFAULT_PLANILLA = 'livianos';
 
+// Next.js App Router exige envolver useSearchParams() en <Suspense> para
+// que el build de produccion pueda renderizar la pagina sin tener que
+// esperar al client. Sin el wrapper, `next build` falla con
+// "useSearchParams() should be wrapped in a suspense boundary".
 export default function AdminVideosPage() {
+  return (
+    <Suspense fallback={<AdminVideosSkeleton />}>
+      <AdminVideosContent />
+    </Suspense>
+  );
+}
+
+function AdminVideosSkeleton() {
+  return (
+    <div className="max-w-7xl mx-auto px-4 py-8">
+      <div className="animate-pulse space-y-4">
+        <div className="h-8 w-64 bg-white/10 rounded" />
+        <div className="grid grid-cols-1 lg:grid-cols-[16rem_1fr] gap-4">
+          <div className="h-96 bg-white/5 rounded-xl" />
+          <div className="space-y-3">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="h-32 bg-white/5 rounded-xl" />
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AdminVideosContent() {
   const router = useRouter();
   const params = useSearchParams();
 
