@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<title>Onboarding Setter · Jiu Jitsu Latino</title>
+<link rel="icon" href="/favicon.ico" />
+<style>
+  :root {
+    --bg: #0a0a0b;
+    --bg-soft: #111114;
+    --card: #18181b;
+    --card-light: #1f1f24;
+    --border: rgba(255,255,255,0.08);
+    --border-strong: rgba(255,255,255,0.16);
+    --text: #fafafa;
+    --muted: rgba(250,250,250,0.62);
+    --muted-strong: rgba(250,250,250,0.78);
+    --red: #dc2626;
+    --red-light: #ef4444;
+    --red-soft: rgba(220,38,38,0.08);
+    --green: #22c55e;
+    --green-soft: rgba(34,197,94,0.08);
+    --amber: #f59e0b;
+    --amber-soft: rgba(245,158,11,0.08);
+    --blue: #3b82f6;
+    --blue-soft: rgba(59,130,246,0.08);
+    --purple: #a855f7;
+    --purple-soft: rgba(168,85,247,0.08);
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Inter",
+                 Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+    line-height: 1.6;
+    font-size: 15px;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  .wrap {
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 48px 24px 96px;
+  }
+  /* ──────────────────────────────────────────────────────── */
+  /* Hero */
+  .hero {
+    background: linear-gradient(135deg, rgba(220,38,38,0.18) 0%, rgba(220,38,38,0) 60%), var(--card);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    padding: 48px 40px;
+    margin-bottom: 40px;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: "";
+    position: absolute;
+    top: -100px; right: -100px;
+    width: 280px; height: 280px;
+    background: radial-gradient(circle, rgba(220,38,38,0.25) 0%, transparent 70%);
+    border-radius: 50%;
+    pointer-events: none;
+  }
+  .hero-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--red-soft);
+    border: 1px solid rgba(220,38,38,0.3);
+    color: var(--red-light);
+    padding: 6px 12px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+  }
+  .hero h1 {
+    font-size: clamp(28px, 4.5vw, 44px);
+    font-weight: 900;
+    line-height: 1.1;
+    margin: 0 0 12px;
+    letter-spacing: -0.02em;
+  }
+  .hero h1 em {
+    color: var(--red-light);
+    font-style: normal;
+  }
+  .hero p {
+    font-size: 17px;
+    color: var(--muted-strong);
+    margin: 0;
+    max-width: 560px;
+  }
+  .hero-meta {
+    margin-top: 32px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .hero-meta span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--red); }
+
+  /* ──────────────────────────────────────────────────────── */
+  /* Sections */
+  section {
+    margin-bottom: 56px;
+  }
+  .sec-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px; height: 32px;
+    background: var(--red);
+    color: white;
+    border-radius: 10px;
+    font-weight: 900;
+    font-size: 14px;
+    margin-right: 12px;
+    vertical-align: middle;
+  }
+  h2 {
+    font-size: 26px;
+    font-weight: 900;
+    letter-spacing: -0.01em;
+    margin: 0 0 8px;
+    display: flex;
+    align-items: center;
+  }
+  h2 .sec-num { flex-shrink: 0; }
+  .sec-sub {
+    color: var(--muted);
+    margin: 0 0 24px 44px;
+    font-size: 14px;
+  }
+  h3 {
+    font-size: 17px;
+    font-weight: 800;
+    margin: 32px 0 12px;
+    letter-spacing: -0.005em;
+  }
+  p { margin: 0 0 14px; color: var(--muted-strong); }
+  strong { color: var(--text); font-weight: 700; }
+  ul, ol { margin: 0 0 16px; padding-left: 22px; color: var(--muted-strong); }
+  li { margin-bottom: 8px; }
+
+  /* ──────────────────────────────────────────────────────── */
+  /* Callouts */
+  .callout {
+    border-radius: 14px;
+    border: 1px solid;
+    padding: 16px 18px;
+    margin: 20px 0;
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+  }
+  .callout-icon {
+    flex-shrink: 0;
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+  }
+  .callout-body { flex: 1; }
+  .callout-body p:last-child { margin-bottom: 0; }
+  .callout-tip {
+    background: var(--blue-soft);
+    border-color: rgba(59,130,246,0.3);
+  }
+  .callout-tip .callout-icon { background: rgba(59,130,246,0.2); color: var(--blue); }
+  .callout-warn {
+    background: var(--amber-soft);
+    border-color: rgba(245,158,11,0.3);
+  }
+  .callout-warn .callout-icon { background: rgba(245,158,11,0.2); color: var(--amber); }
+  .callout-star {
+    background: var(--red-soft);
+    border-color: rgba(220,38,38,0.4);
+  }
+  .callout-star .callout-icon { background: rgba(220,38,38,0.2); color: var(--red-light); }
+  .callout-success {
+    background: var(--green-soft);
+    border-color: rgba(34,197,94,0.3);
+  }
+  .callout-success .callout-icon { background: rgba(34,197,94,0.2); color: var(--green); }
+
+  /* ──────────────────────────────────────────────────────── */
+  /* Daily tasks (special block) */
+  .tasks {
+    background: linear-gradient(135deg, rgba(220,38,38,0.07), rgba(220,38,38,0.01));
+    border: 1px solid rgba(220,38,38,0.3);
+    border-radius: 18px;
+    padding: 24px 28px;
+    margin: 24px 0;
+  }
+  .tasks-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 18px;
+    font-size: 18px;
+    font-weight: 900;
+  }
+  .tasks-title-icon {
+    background: var(--red);
+    color: white;
+    width: 36px; height: 36px;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+  }
+  .task-list { display: flex; flex-direction: column; gap: 10px; }
+  .task {
+    background: rgba(255,255,255,0.02);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 16px;
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+  }
+  .task-check {
+    flex-shrink: 0;
+    width: 22px; height: 22px;
+    border: 2px solid rgba(255,255,255,0.18);
+    border-radius: 6px;
+    margin-top: 2px;
+  }
+  .task-content { flex: 1; }
+  .task-time {
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--red-light);
+    margin-bottom: 4px;
+  }
+  .task-title { font-weight: 700; color: var(--text); margin-bottom: 4px; font-size: 15px; }
+  .task-desc { font-size: 13px; color: var(--muted); margin: 0; line-height: 1.5; }
+
+  /* ──────────────────────────────────────────────────────── */
+  /* Kanban mockup */
+  .kanban {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+    margin: 24px 0;
+    overflow-x: auto;
+    padding: 4px 4px 12px;
+  }
+  .kb-col {
+    background: rgba(255,255,255,0.015);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 8px;
+    min-width: 0;
+  }
+  .kb-col-blue   { border-color: rgba(59,130,246,0.3);  background: var(--blue-soft); }
+  .kb-col-amber  { border-color: rgba(245,158,11,0.3);  background: var(--amber-soft); }
+  .kb-col-purple { border-color: rgba(168,85,247,0.3);  background: var(--purple-soft); }
+  .kb-col-gray   { border-color: var(--border); }
+  .kb-col-green  { border-color: rgba(34,197,94,0.3);   background: var(--green-soft); }
+  .kb-col-head {
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text);
+    padding: 4px 4px 8px;
+    line-height: 1.2;
+  }
+  .kb-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px;
+    margin-bottom: 6px;
+  }
+  .kb-card-red    { border-color: rgba(220,38,38,0.5);  background: rgba(220,38,38,0.05); }
+  .kb-card-amber  { border-color: rgba(245,158,11,0.5); background: rgba(245,158,11,0.05); }
+  .kb-card-green  { border-color: rgba(34,197,94,0.5);  background: rgba(34,197,94,0.05); }
+  .kb-card-name { font-size: 11px; font-weight: 700; margin-bottom: 3px; }
+  .kb-card-meta { font-size: 9px; color: var(--muted); }
+  .kb-tag {
+    display: inline-block;
+    font-size: 8px;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 2px 5px;
+    border-radius: 3px;
+    margin-bottom: 4px;
+  }
+  .kb-tag-red    { background: rgba(220,38,38,0.2); color: #fca5a5; border: 1px solid rgba(220,38,38,0.4); }
+  .kb-tag-amber  { background: rgba(245,158,11,0.2); color: #fcd34d; border: 1px solid rgba(245,158,11,0.4); }
+  .kb-money {
+    background: rgba(34,197,94,0.1);
+    border: 1px solid rgba(34,197,94,0.3);
+    border-radius: 4px;
+    padding: 4px 6px;
+    margin: 4px 0;
+    color: #86efac;
+    font-size: 12px;
+    font-weight: 800;
+  }
+  .kb-money-sub { color: var(--muted); font-size: 9px; margin-top: 2px; font-weight: 400; }
+
+  /* ──────────────────────────────────────────────────────── */
+  /* Color cards (semáforo) */
+  .color-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+  .color-card {
+    border: 1px solid;
+    border-radius: 14px;
+    padding: 18px;
+  }
+  .color-card-yellow {
+    background: var(--amber-soft);
+    border-color: rgba(245,158,11,0.4);
+  }
+  .color-card-red {
+    background: var(--red-soft);
+    border-color: rgba(220,38,38,0.4);
+  }
+  .color-card h4 {
+    margin: 0 0 6px;
+    font-size: 16px;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .color-card .color-circle {
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+  .color-card-yellow .color-circle { background: var(--amber); }
+  .color-card-red    .color-circle { background: var(--red); }
+  .color-card p { margin: 0 0 8px; font-size: 13px; }
+  .color-card ul { margin: 8px 0 12px; font-size: 13px; padding-left: 18px; }
+  .color-card .action {
+    background: rgba(0,0,0,0.25);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px;
+    font-size: 12px;
+    color: var(--muted-strong);
+  }
+  .color-card .action strong { color: var(--text); }
+
+  /* ──────────────────────────────────────────────────────── */
+  /* ManyChat highlight */
+  .manychat {
+    background: linear-gradient(135deg, rgba(34,197,94,0.12), rgba(34,197,94,0.02));
+    border: 2px solid rgba(34,197,94,0.5);
+    border-radius: 16px;
+    padding: 24px;
+    margin: 24px 0;
+  }
+  .manychat-head {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 16px;
+  }
+  .manychat-icon {
+    width: 44px; height: 44px;
+    background: rgba(34,197,94,0.2);
+    border: 1px solid rgba(34,197,94,0.5);
+    color: var(--green);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+  }
+  .manychat h3 { margin: 0; font-size: 16px; font-weight: 900; }
+  .manychat-sub { color: var(--muted); font-size: 12px; margin-top: 2px; }
+  .tag-badge {
+    display: inline-block;
+    background: var(--green);
+    color: #052e0c;
+    font-weight: 900;
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    padding: 4px 10px;
+    border-radius: 4px;
+    margin: 0 2px;
+  }
+
+  /* ──────────────────────────────────────────────────────── */
+  /* Steps */
+  .steps {
+    counter-reset: step;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  .steps > li {
+    counter-increment: step;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 16px 14px 56px;
+    margin-bottom: 10px;
+    position: relative;
+  }
+  .steps > li::before {
+    content: counter(step);
+    position: absolute;
+    left: 14px;
+    top: 14px;
+    width: 28px; height: 28px;
+    background: var(--red);
+    color: white;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 900;
+    font-size: 13px;
+  }
+
+  /* ──────────────────────────────────────────────────────── */
+  /* Cheat sheet table */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    background: var(--card);
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  th {
+    background: rgba(255,255,255,0.05);
+    text-align: left;
+    padding: 10px 14px;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+  }
+  td {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+    vertical-align: top;
+  }
+  tr:last-child td { border-bottom: none; }
+  td:first-child { font-weight: 700; color: var(--text); }
+  td code {
+    background: rgba(255,255,255,0.06);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-family: ui-monospace, Menlo, monospace;
+  }
+
+  /* ──────────────────────────────────────────────────────── */
+  /* Footer */
+  .footer {
+    border-top: 1px solid var(--border);
+    padding-top: 24px;
+    margin-top: 64px;
+    color: var(--muted);
+    font-size: 13px;
+    text-align: center;
+  }
+
+  /* ──────────────────────────────────────────────────────── */
+  /* Print */
+  @media print {
+    body { background: white; color: #111; }
+    .wrap { padding: 20px; max-width: 100%; }
+    .hero, section, .tasks, .manychat, .callout, .color-card, .kb-card, table {
+      page-break-inside: avoid;
+    }
+    h2 { page-break-after: avoid; }
+    .hero { background: #fef2f2; border-color: #fca5a5; }
+    .hero h1, h2, h3, p, li, td { color: #111 !important; }
+    .sec-sub, .task-desc, .kb-card-meta, .muted { color: #444 !important; }
+    .task, .kb-card, .color-card, table, .callout, .manychat, .tasks {
+      background: white !important;
+      border-color: #ddd !important;
+    }
+  }
+
+  @media (max-width: 720px) {
+    .wrap { padding: 24px 16px 64px; }
+    .hero { padding: 28px 24px; }
+    .color-row { grid-template-columns: 1fr; }
+    .kanban { grid-template-columns: repeat(5, 180px); }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- HERO -->
+  <header class="hero">
+    <span class="hero-eyebrow">● Onboarding · Setter JJL</span>
+    <h1>Bienvenido al equipo de <em>Jiu Jitsu Latino</em></h1>
+    <p>Esta guía te lleva paso a paso por todo lo que necesitás para arrancar a trabajar leads desde el primer día. Léela entera una vez — después la dejás como referencia.</p>
+    <div class="hero-meta">
+      <span><span class="dot"></span> Tiempo de lectura ~ 8 min</span>
+      <span><span class="dot"></span> Versión Junio 2026</span>
+    </div>
+  </header>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- 1. CÓMO ENTRAR -->
+  <section>
+    <h2><span class="sec-num">1</span>Cómo entrar al panel</h2>
+    <p class="sec-sub">Tu única herramienta. La vas a tener abierta todo el día.</p>
+
+    <ol class="steps">
+      <li>Abrí en el navegador: <strong>https://alumno.jiujitsulatino.com/admin/agendas</strong></li>
+      <li>Loguéate con el email y contraseña que te pasó el coach.</li>
+      <li>La primera vez aparece una guía rápida de 6 pasos en pantalla. Léela y dale <strong>"Empezar"</strong>.</li>
+      <li>Aceptá los permisos de notificaciones del navegador cuando te pregunte (importante — sin esto no te llegan avisos en tiempo real).</li>
+    </ol>
+
+    <div class="callout callout-tip">
+      <div class="callout-icon">💡</div>
+      <div class="callout-body">
+        <p><strong>Pro tip:</strong> dejá el panel abierto en una pestaña fija (click derecho en la pestaña → "Fijar pestaña") para que no se cierre por accidente.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- 2. TU DÍA A DÍA — TAREAS DIARIAS -->
+  <section>
+    <h2><span class="sec-num">2</span>Tu día a día</h2>
+    <p class="sec-sub">Rutina mínima para no quedar nunca atrás con los leads.</p>
+
+    <div class="tasks">
+      <div class="tasks-title">
+        <div class="tasks-title-icon">📋</div>
+        <span>Tareas diarias obligatorias</span>
+      </div>
+      <div class="task-list">
+        <div class="task">
+          <div class="task-check"></div>
+          <div class="task-content">
+            <div class="task-time">Mañana · 9:00 – 10:00</div>
+            <div class="task-title">Revisión inicial del panel</div>
+            <p class="task-desc">Abrí <code style="background:rgba(255,255,255,0.05);padding:1px 5px;border-radius:3px">/admin/agendas</code>. Mirá la columna <strong>Sin agendar</strong> y los stats arriba. Identificá quién tiene urgencia (los del cron, los amarillos).</p>
+          </div>
+        </div>
+        <div class="task">
+          <div class="task-check"></div>
+          <div class="task-content">
+            <div class="task-time">Mañana · 10:00 – 13:00</div>
+            <div class="task-title">Contactar los "Sin agendar" del día anterior</div>
+            <p class="task-desc">WhatsApp o Instagram DM. Asignate cada lead que abrís (dropdown "Asignado a" → tu nombre). Registrá cada contacto en la ficha.</p>
+          </div>
+        </div>
+        <div class="task">
+          <div class="task-check"></div>
+          <div class="task-content">
+            <div class="task-time">Tarde · 14:00 – 15:00</div>
+            <div class="task-title">Recordatorios a Agendados</div>
+            <p class="task-desc">Mirá la columna <strong>Agendados</strong>. A los que tienen call mañana, mandales un mensaje confirmando hora y dejando expectativa positiva.</p>
+          </div>
+        </div>
+        <div class="task">
+          <div class="task-check"></div>
+          <div class="task-content">
+            <div class="task-time">Tarde · 17:00 – 19:00</div>
+            <div class="task-title">Follow-up de los Contactados</div>
+            <p class="task-desc">Revisá la columna <strong>Contactado</strong>. A los que no respondieron en 24h, segundo intento. A los que no respondieron en 48h+ → descartar con la X.</p>
+          </div>
+        </div>
+        <div class="task">
+          <div class="task-check"></div>
+          <div class="task-content">
+            <div class="task-time">Noche · 20:00 – 20:30</div>
+            <div class="task-title">Cierre del día</div>
+            <p class="task-desc">Limpiá los leads obvios con la X de descarte rápido. Revisá tu comisión total acumulada. Anotá un par de leads "calientes" a los que querés priorizar mañana.</p>
+          </div>
+        </div>
+        <div class="task">
+          <div class="task-check"></div>
+          <div class="task-content">
+            <div class="task-time">Cuando llega una notif</div>
+            <div class="task-title">Reacción a alertas</div>
+            <p class="task-desc">🟢 Alguien agendó → felicitalo y mandale recordatorio para no faltar a la call. ⚠️ Pasaron 2hs y no agendó → contactalo YA, ese es tu momento ideal.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout callout-warn">
+      <div class="callout-icon">⏰</div>
+      <div class="callout-body">
+        <p><strong>Los horarios son una guía.</strong> Lo importante es: <em>todos los días</em> hacer la revisión inicial, el batch de contactos, los recordatorios y el cierre. La velocidad de respuesta es lo que diferencia un buen setter de uno mediocre.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- 3. MANYCHAT — VENTA HIGH TICKET (DESTACADO) -->
+  <section>
+    <h2><span class="sec-num">3</span>ManyChat: etiquetá cada venta</h2>
+    <p class="sec-sub">Acción CRÍTICA que no se puede saltear.</p>
+
+    <div class="manychat">
+      <div class="manychat-head">
+        <div class="manychat-icon">⚡</div>
+        <div>
+          <h3>Cuando se genere una venta en ManyChat</h3>
+          <div class="manychat-sub">Ponele al contacto la etiqueta:</div>
+        </div>
+      </div>
+      <div style="text-align:center; padding: 16px 0;">
+        <span class="tag-badge" style="font-size:16px; padding: 8px 18px;">VENTA HIGH TICKET</span>
+      </div>
+      <p style="margin: 16px 0 0;"><strong>¿Por qué importa?</strong> Esa etiqueta sirve para segmentar a los clientes que ya compraron y excluirlos de campañas de captura nuevas (no queremos venderles dos veces lo mismo). Si te olvidás, el cliente sigue recibiendo mensajes como si nunca hubiera comprado.</p>
+      <p style="margin: 8px 0 0;"><strong>Cuándo:</strong> apenas el coach te confirme que cobró la primera cuota o el pago completo. No esperes a fin de mes.</p>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- 4. LAS COLUMNAS DEL KANBAN -->
+  <section>
+    <h2><span class="sec-num">4</span>Las columnas del panel</h2>
+    <p class="sec-sub">De izquierda a derecha — cómo se mueve un lead por el embudo.</p>
+
+    <div class="kanban">
+      <div class="kb-col kb-col-blue">
+        <div class="kb-col-head">Sin agendar (llenó form)</div>
+        <div class="kb-card">
+          <div class="kb-card-name">@juancho_bjj</div>
+          <div class="kb-card-meta">Llenó hoy 14:30</div>
+        </div>
+        <div class="kb-card kb-card-amber">
+          <span class="kb-tag kb-tag-amber">Ajustado econ.</span>
+          <div class="kb-card-name">Maria L.</div>
+          <div class="kb-card-meta">Inestable</div>
+        </div>
+      </div>
+      <div class="kb-col kb-col-amber">
+        <div class="kb-col-head">Agendados</div>
+        <div class="kb-card">
+          <div class="kb-card-name">Pablo R.</div>
+          <div class="kb-card-meta">Mañana 11:00</div>
+        </div>
+      </div>
+      <div class="kb-col kb-col-purple">
+        <div class="kb-col-head">Contactado</div>
+        <div class="kb-card">
+          <div class="kb-card-name">@dani_jj</div>
+          <div class="kb-card-meta">Hace 1d</div>
+        </div>
+      </div>
+      <div class="kb-col kb-col-gray">
+        <div class="kb-col-head">Descartado</div>
+        <div class="kb-card kb-card-red">
+          <span class="kb-tag kb-tag-red">No invertir</span>
+          <div class="kb-card-name">Anon</div>
+        </div>
+      </div>
+      <div class="kb-col kb-col-green">
+        <div class="kb-col-head">Convertido 💰</div>
+        <div class="kb-card kb-card-green">
+          <div class="kb-card-name">Lucas M.</div>
+          <div class="kb-money">+$50.000<div class="kb-money-sub">3 cuotas</div></div>
+        </div>
+      </div>
+    </div>
+
+    <table>
+      <thead><tr><th>Columna</th><th>Qué hay ahí</th><th>Tu acción</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>Sin agendar</td>
+          <td>Llenaron las preguntas del quiz pero no reservaron Calendly.</td>
+          <td>Contactarlos por WhatsApp/IG para que reserven.</td>
+        </tr>
+        <tr>
+          <td>Agendados</td>
+          <td>Ya tienen call confirmada con el coach (vino del webhook Calendly).</td>
+          <td>Mandar recordatorio el día antes. Confirmar asistencia.</td>
+        </tr>
+        <tr>
+          <td>Contactado</td>
+          <td>Vos los moviste acá cuando empezaste a trabajarlos pero todavía no agendaron.</td>
+          <td>Follow-up periódico hasta que agenden o descarten.</td>
+        </tr>
+        <tr>
+          <td>Descartado</td>
+          <td>No aplica / dijeron que no / no respondieron.</td>
+          <td>Nada — quedan archivados acá.</td>
+        </tr>
+        <tr>
+          <td>Convertido 💰</td>
+          <td>Compraron el programa. Lo dispara el coach desde su CRM al cobrar.</td>
+          <td>Felicitarlo, prepararlo para el arranque. <strong>NO mover a mano</strong> — se mueve solo.</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- 5. LOS COLORES -->
+  <section>
+    <h2><span class="sec-num">5</span>El semáforo</h2>
+    <p class="sec-sub">Cada card puede tener un color según las respuestas del quiz. Es tu indicador de prioridad y estrategia.</p>
+
+    <div class="color-row">
+      <div class="color-card color-card-yellow">
+        <h4><span class="color-circle"></span> Amarillo · "ojo con la plata"</h4>
+        <p>El lead dijo alguna de estas dos cosas:</p>
+        <ul>
+          <li><strong>Trabajo inestable</strong> — cash flow incierto.</li>
+          <li><strong>Me interesa pero estoy ajustado económicamente</strong>.</li>
+        </ul>
+        <div class="action">
+          <strong>Estrategia:</strong> Trabajarlo, pero ofrecer planes en cuotas o el más accesible. NO arrancar con el high ticket de una.
+        </div>
+      </div>
+      <div class="color-card color-card-red">
+        <h4><span class="color-circle"></span> Rojo · "no quiere invertir"</h4>
+        <p>El lead dijo alguna de estas dos cosas:</p>
+        <ul>
+          <li><strong>Solo estoy viendo</strong> — no busca nada puntual.</li>
+          <li><strong>No, no está dispuesto a invertir</strong>.</li>
+        </ul>
+        <div class="action">
+          <strong>Estrategia:</strong> Un solo intento de contacto. Si responde con interés genuino → trabajar. Si no responde en 48h → descartar.
+        </div>
+      </div>
+    </div>
+
+    <p>Sin color = lead "tibio normal" → prioridad estándar.</p>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- 6. TRABAJAR UN LEAD -->
+  <section>
+    <h2><span class="sec-num">6</span>Cómo trabajar un lead</h2>
+    <p class="sec-sub">El flujo completo de cuando vas a contactar a alguien.</p>
+
+    <ol class="steps">
+      <li><strong>Click en la card</strong> del lead. Se abre la ficha lateral (LeadDrawer).</li>
+      <li><strong>Leé el quiz</strong> antes de escribir nada. Mirá fortaleza, limitante, estado, visión y compromiso. Eso te da el ángulo de cómo abordarlo.</li>
+      <li><strong>Asignate el lead</strong>: dropdown "Asignado a" → tu nombre. Evita que dos personas trabajen el mismo lead.</li>
+      <li><strong>Contactá</strong> por el canal que tengas (WhatsApp si hay teléfono, Instagram DM si no). Botones rápidos en la ficha te abren cada canal directo.</li>
+      <li><strong>Registrá el contacto</strong>: sección "Nuevo contacto" → canal + dirección (saliente/entrante) + nota corta (qué hablaron). Guardar.</li>
+      <li><strong>Mové la columna</strong> según el resultado: empezaste a hablar → Contactado · agendó solo → se mueve solo a Agendados · dijo que no → Descartado.</li>
+    </ol>
+
+    <div class="callout callout-tip">
+      <div class="callout-icon">📝</div>
+      <div class="callout-body">
+        <p><strong>Las notas son tu memoria.</strong> No confíes en que vas a recordar qué hablaste con cada uno. Anotá siempre, aunque sea una línea ("le pasé info del Atléticos, me responde mañana").</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- 7. DESCARTE RÁPIDO -->
+  <section>
+    <h2><span class="sec-num">7</span>Descarte rápido</h2>
+    <p class="sec-sub">Cuando ya sabés que un lead no va — no hace falta abrir su ficha.</p>
+
+    <ol class="steps">
+      <li>Pasá el mouse <strong>por encima de la card</strong> del lead que querés descartar.</li>
+      <li>Aparece un <strong>círculo negro con una X</strong> arriba a la derecha de la card.</li>
+      <li>Click en la X → el lead va a "Descartado" al instante. Toast confirma.</li>
+    </ol>
+
+    <p>Útil para vaciar la columna "Sin agendar" rápido cuando ves cuentas obvias (perfiles vacíos, spam, gente que claramente no aplica).</p>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- 8. NOTIFICACIONES -->
+  <section>
+    <h2><span class="sec-num">8</span>Notificaciones automáticas</h2>
+    <p class="sec-sub">El sistema te avisa solo en 2 momentos clave.</p>
+
+    <div class="callout callout-success">
+      <div class="callout-icon">🟢</div>
+      <div class="callout-body">
+        <p><strong>Cuando alguien AGENDA</strong> → llega al instante (en cuanto reserva Calendly).</p>
+        <p style="margin-bottom:0; font-size:12px; color: var(--muted);">Tu acción: mandar recordatorio 24h antes de la call.</p>
+      </div>
+    </div>
+
+    <div class="callout callout-warn">
+      <div class="callout-icon">⚠️</div>
+      <div class="callout-body">
+        <p><strong>Cuando alguien NO agenda en 2 horas</strong> → llega cuando pasaron 2hs desde que llenó el form sin reservar Calendly.</p>
+        <p style="margin-bottom:0; font-size:12px; color: var(--muted);">Tu acción: contactar YA. Es el momento ideal — está caliente.</p>
+      </div>
+    </div>
+
+    <p>Las ves de dos formas:</p>
+    <ul>
+      <li><strong>Campanita</strong> arriba a la derecha del panel.</li>
+      <li><strong>Push del navegador</strong> si diste permiso. Recibís incluso con el tab cerrado (mientras Chrome esté abierto).</li>
+    </ul>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- 9. COMISIÓN -->
+  <section>
+    <h2><span class="sec-num">9</span>Tu comisión</h2>
+    <p class="sec-sub">Cómo se calcula y dónde la ves.</p>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 20px 0;">
+      <div style="background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 18px;">
+        <h3 style="margin-top: 0;">La regla</h3>
+        <ul style="margin-bottom: 0;">
+          <li><strong>5%</strong> de cada venta que trabajaste.</li>
+          <li>Cada cuota suma su 5%.</li>
+          <li>Fees / reservas <strong>NO suman</strong> comisión (marcados "no suma").</li>
+        </ul>
+      </div>
+      <div style="background: var(--green-soft); border: 1px solid rgba(34,197,94,0.4); border-radius: 12px; padding: 18px;">
+        <h3 style="margin-top: 0; color: var(--green);">Ejemplo</h3>
+        <p style="margin-bottom: 0;">Cliente compra el programa en 3 cuotas. Cada vez que el coach cobre una cuota, te suma su 5% automático. Lo ves en su card y en el total acumulado.</p>
+      </div>
+    </div>
+
+    <p><strong>Dónde la ves:</strong></p>
+    <ul>
+      <li>En la columna <strong>Convertido 💰</strong>, cada card muestra cuánto ganaste por ese cliente (ej: <code style="background:rgba(34,197,94,0.1); color: var(--green); padding: 2px 6px; border-radius: 4px;">+$50.000</code>).</li>
+      <li>Arriba a la derecha del panel: <strong>"Tu comisión total"</strong> acumulado.</li>
+    </ul>
+
+    <div class="callout callout-tip">
+      <div class="callout-icon">🔒</div>
+      <div class="callout-body">
+        <p>El monto bruto que cobró el programa <strong>no se te muestra</strong> (solo lo ve el coach). Vos ves tu 5% directo. Si querés saber el total cobrado preguntale al coach.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- 10. CASOS TÍPICOS -->
+  <section>
+    <h2><span class="sec-num">10</span>Casos típicos</h2>
+    <p class="sec-sub">Cómo responder ante cada situación que se va a repetir.</p>
+
+    <h3>🆕 Caso A — Lead nuevo en "Sin agendar"</h3>
+    <ol>
+      <li>Aparece una card en Sin agendar.</li>
+      <li>Te llega notif a las 2hs si no agenda solo.</li>
+      <li>Abrís ficha → leés el quiz → mensaje personalizado a partir de su respuesta.</li>
+      <li>Registrás el contacto.</li>
+      <li>Esperás respuesta o segundo intento al día siguiente.</li>
+    </ol>
+
+    <h3>🟡 Caso B — Lead amarillo "Ajustado económicamente"</h3>
+    <ol>
+      <li>Mismo flujo que A.</li>
+      <li>En la conversación mencionás directamente el <strong>plan en cuotas</strong> o el más accesible.</li>
+      <li>No insistas con el high-ticket si dijo que está justo.</li>
+    </ol>
+
+    <h3>🔴 Caso C — Lead rojo "No quiere invertir"</h3>
+    <ol>
+      <li>Un único intento. Mensaje corto.</li>
+      <li>Ofrecele contenido gratis o trial para mantener relación.</li>
+      <li>Si responde con interés genuino → moverlo a Contactado y trabajarlo.</li>
+      <li>Si no responde en 48h → descartar con la X.</li>
+    </ol>
+
+    <h3>🟢 Caso D — Agendó solo (sin que lo trabajaras)</h3>
+    <ol>
+      <li>Te llega notif: "agendó".</li>
+      <li>Abrís ficha → confirmás fecha.</li>
+      <li>Mensaje 24h antes: "hola, te confirmo que mañana a las XX te llama el coach".</li>
+      <li>Después de la call: si vendió → va a Convertido automático. Si no vendió → vos lo movés a Contactado y seguís follow-up.</li>
+    </ol>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- 11. BUENAS PRÁCTICAS -->
+  <section>
+    <h2><span class="sec-num">11</span>Buenas prácticas</h2>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 20px 0;">
+      <div style="background: var(--green-soft); border: 1px solid rgba(34,197,94,0.4); border-radius: 12px; padding: 18px;">
+        <h3 style="margin-top: 0; color: var(--green);">✅ HACÉ</h3>
+        <ul style="margin: 0;">
+          <li>Asignate los leads que trabajás.</li>
+          <li>Registrá cada contacto en la ficha.</li>
+          <li>Etiquetá VENTA HIGH TICKET en ManyChat apenas se vende.</li>
+          <li>Probá al menos un mensaje en los leads rojos.</li>
+          <li>Revisá el panel mañana, tarde y cierre.</li>
+          <li>Respondé las notifs en el día.</li>
+        </ul>
+      </div>
+      <div style="background: var(--red-soft); border: 1px solid rgba(220,38,38,0.4); border-radius: 12px; padding: 18px;">
+        <h3 style="margin-top: 0; color: var(--red-light);">❌ NO HAGAS</h3>
+        <ul style="margin: 0;">
+          <li>Mover leads a "Convertido" manualmente.</li>
+          <li>Editar el campo Stage si no es necesario.</li>
+          <li>Descartar leads agendados sin antes contactarlos.</li>
+          <li>Olvidarte de etiquetar ventas en ManyChat.</li>
+          <li>Insistir agresivamente con leads rojos.</li>
+          <li>Dejar leads "Sin agendar" más de 24h sin tocar.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- 12. CHEAT SHEET -->
+  <section>
+    <h2><span class="sec-num">12</span>Cheat sheet</h2>
+    <p class="sec-sub">Atajos rápidos para tener a mano.</p>
+
+    <table>
+      <thead><tr><th>Acción</th><th>Cómo</th></tr></thead>
+      <tbody>
+        <tr><td>Abrir ficha de un lead</td><td>Click en la card</td></tr>
+        <tr><td>Descartar rápido</td><td>Hover sobre la card → click en <code>X</code></td></tr>
+        <tr><td>Asignarme un lead</td><td>Ficha → dropdown "Asignado a" → mi nombre</td></tr>
+        <tr><td>Mover a Contactado</td><td>Ficha → dropdown "Stage" → Contactado</td></tr>
+        <tr><td>Registrar contacto</td><td>Ficha → "Nuevo contacto" → completar → Guardar</td></tr>
+        <tr><td>Ver mi comisión</td><td>Arriba a la derecha del panel</td></tr>
+        <tr><td>Etiquetar venta</td><td>ManyChat → contacto del cliente → tag <span class="tag-badge">VENTA HIGH TICKET</span></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- 13. SI ALGO FALLA -->
+  <section>
+    <h2><span class="sec-num">13</span>Si algo falla</h2>
+
+    <table>
+      <thead><tr><th>Problema</th><th>Solución</th></tr></thead>
+      <tbody>
+        <tr><td>No me llegan notificaciones</td><td>Chrome → Settings → Privacy → Notifications → permitir <code>alumno.jiujitsulatino.com</code></td></tr>
+        <tr><td>La página se ve rara</td><td>Recargá con <code>Ctrl+Shift+R</code></td></tr>
+        <tr><td>Un lead aparece duplicado</td><td>Avisale al coach con el ID</td></tr>
+        <tr><td>La comisión no cuadra</td><td>Avisá al coach — él tiene el detalle en el CRM externo</td></tr>
+        <tr><td>Cualquier otra cosa rara</td><td>Screenshot + descripción al coach</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <div class="footer">
+    <p style="margin: 0 0 6px;"><strong style="color: var(--text);">¿Dudas?</strong> Escribile al coach directo.</p>
+    <p style="margin: 0;">Bienvenido al equipo — vamos por todo. 🥋</p>
+  </div>
+
+</div>
+</body>
+</html>
