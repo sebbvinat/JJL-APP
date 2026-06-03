@@ -90,7 +90,25 @@ export default function AgendasClient() {
           <div className="w-6 h-6 border-2 border-jjl-red border-t-transparent rounded-full animate-spin" />
         </div>
       ) : (
-        <Kanban leads={leads} admins={admins} onOpenLead={(l) => setOpenId(l.id)} />
+        <Kanban
+          leads={leads}
+          admins={admins}
+          onOpenLead={(l) => setOpenId(l.id)}
+          onQuickDiscard={async (lead) => {
+            try {
+              const res = await fetch(`/api/admin/leads/${lead.id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ stage: 'descartado' }),
+              });
+              if (!res.ok) throw new Error('No se pudo descartar');
+              await mutate();
+              showToast(`Descartado: ${lead.nombre || lead.instagram || lead.email || 'lead'}`);
+            } catch {
+              showToast('Error al descartar — probá de nuevo');
+            }
+          }}
+        />
       )}
 
       {/* Drawer */}
