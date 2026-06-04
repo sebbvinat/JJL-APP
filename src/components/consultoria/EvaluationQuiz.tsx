@@ -603,19 +603,6 @@ function NoCalendarScreen({ instagram }: { instagram: string | null }) {
         las próximas <strong>24 a 48 horas</strong> con una propuesta personalizada,
         pensada para vos.
       </p>
-      <p className="mt-3 text-[13px] text-jjl-muted leading-relaxed">
-        Si no encontrás el mensaje, fijate en la carpeta de <em>solicitudes</em> de
-        Instagram. Si querés agilizar, escribinos vos directamente —{' '}
-        <a
-          href="https://www.instagram.com/jiujitsulatinoplay/"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-jjl-red hover:underline"
-        >
-          @jiujitsulatinoplay
-        </a>
-        .
-      </p>
     </div>
   );
 }
