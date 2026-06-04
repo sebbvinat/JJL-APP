@@ -56,7 +56,19 @@ type SectionType = 'metricas' | 'videos' | 'curso' | 'modulos' | 'notas' | 'time
 export default function AdminStudentPage() {
   const params = useParams();
   const router = useRouter();
-  const userId = params.userId as string;
+  // useParams() en Next 16 + Turbopack a veces devuelve undefined en
+  // re-renders intermedios. Calculamos un effectiveUserId con fallback
+  // al pathname para que NINGÚN fetch o handler falle con "userId required".
+  // .filter(Boolean) descarta segmentos vacios cuando hay trailing slash.
+  const rawUserId = params.userId as string | undefined;
+  const userId = useMemo(() => {
+    if (typeof rawUserId === 'string' && rawUserId) return rawUserId;
+    if (typeof window !== 'undefined') {
+      const segments = window.location.pathname.split('/').filter(Boolean);
+      if (segments[0] === 'admin' && segments[1]) return segments[1];
+    }
+    return '';
+  }, [rawUserId]);
 
   const [student, setStudent] = useState<User | null>(null);
   const [unlockedModules, setUnlockedModules] = useState<Set<string>>(new Set());
@@ -299,9 +311,9 @@ export default function AdminStudentPage() {
   }
 
   async function handleLoadPlanilla(planillaId: string) {
-    // Defensiva: capturamos el id del alumno desde varias fuentes por si
-    // useParams() devuelve algo raro (Next 16 a veces se porta distinto).
-    const uid = userId || (typeof window !== 'undefined' ? window.location.pathname.split('/').pop() : '') || student?.id || '';
+    // userId ya viene resuelto con fallback al pathname desde el useMemo
+    // del componente. Como ultimo seguro, usamos student?.id si está cargado.
+    const uid = userId || student?.id || '';
     if (!uid) {
       showToast('No detecté el ID del alumno. Recargá la página y reintentá.', 'error');
       return;
