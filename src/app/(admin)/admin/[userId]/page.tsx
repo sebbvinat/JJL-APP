@@ -311,10 +311,16 @@ export default function AdminStudentPage() {
   }
 
   async function handleLoadPlanilla(planillaId: string) {
-    // userId ya viene resuelto con fallback al pathname desde el useMemo
-    // del componente. Como ultimo seguro, usamos student?.id si está cargado.
-    const uid = userId || student?.id || '';
+    // student.id es el UUID resuelto contra la DB - SIEMPRE prioritario sobre
+    // el userId del path (en Next 16 + Turbopack a veces queda undefined en
+    // re-renders intermedios). Como último seguro, fallback al path.
+    const uid = student?.id || userId || '';
     if (!uid) {
+      console.error('[handleLoadPlanilla] No userId resolved', {
+        studentId: student?.id,
+        paramUserId: userId,
+        path: typeof window !== 'undefined' ? window.location.pathname : 'ssr',
+      });
       showToast('No detecté el ID del alumno. Recargá la página y reintentá.', 'error');
       return;
     }

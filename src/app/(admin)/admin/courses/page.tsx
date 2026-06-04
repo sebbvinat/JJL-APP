@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   ArrowLeft, ArrowRight, Plus, Trash2, Eye, Save, Copy, RefreshCw,
-  Search, Upload, Check, ChevronDown, ChevronRight, Play, BookOpen,
+  Search, Check, ChevronDown, ChevronRight, Play, BookOpen,
   FileSpreadsheet, AlertCircle,
 } from 'lucide-react';
 import Card from '@/components/ui/Card';
@@ -381,7 +381,6 @@ function replaceText(text: string, from: string, to: string): string {
 function PlanillaTab() {
   const [expandedPlanilla, setExpandedPlanilla] = useState<string | null>(null);
   const [expandedWeek, setExpandedWeek] = useState<string | null>(null);
-  const [loading, setLoading] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
@@ -407,34 +406,9 @@ function PlanillaTab() {
     setSyncing(false);
   }
 
-  async function handleLoad(planillaId: string) {
-    const planilla = PLANILLAS.find((p) => p.id === planillaId);
-    if (!confirm(`Esto va a cargar la planilla "${planilla?.nombre}" en los modulos. Los modulos existentes se van a sobrescribir. Continuar?`)) {
-      return;
-    }
-
-    setLoading(planillaId);
-    try {
-      const res = await fetch('/api/admin/load-planilla', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ planillaId }),
-      });
-
-      const data = await res.json();
-
-      if (data.success) {
-        showToast(`Planilla "${planilla?.nombre}" cargada (${data.saved} modulos)`, 'success');
-      } else if (data.errors) {
-        showToast(`Cargados ${data.saved} modulos, ${data.errors.length} errores`, 'error');
-      } else {
-        showToast(data.error || 'Error al cargar', 'error');
-      }
-    } catch {
-      showToast('Error de conexion', 'error');
-    }
-    setLoading(null);
-  }
+  // NOTE: el botón "Cargar planilla" se quitó de esta vista — la planilla
+  // ya no es global, se asigna per-alumno desde /admin/[userId]. Lo que queda
+  // aquí es solo el catálogo (preview + estructura).
 
   const monthGroups = [
     { label: 'Fundamentos', range: [0, 0] },
@@ -508,25 +482,13 @@ function PlanillaTab() {
 
               <div className="flex gap-2">
                 {!isEmpty && (
-                  <>
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      onClick={() => handleLoad(planilla.id)}
-                      loading={loading === planilla.id}
-                      disabled={loading !== null}
-                    >
-                      <Upload className="h-4 w-4 mr-1" />
-                      Cargar
-                    </Button>
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => setExpandedPlanilla(isExpanded ? null : planilla.id)}
-                    >
-                      {isExpanded ? 'Ocultar' : 'Ver estructura'}
-                    </Button>
-                  </>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setExpandedPlanilla(isExpanded ? null : planilla.id)}
+                  >
+                    {isExpanded ? 'Ocultar' : 'Ver estructura'}
+                  </Button>
                 )}
               </div>
             </Card>
@@ -627,10 +589,9 @@ function PlanillaTab() {
           <div className="text-sm text-jjl-muted">
             <p className="font-medium text-white mb-1">Como funciona</p>
             <ul className="space-y-1 list-disc list-inside">
-              <li>Al cargar una planilla se crean todas las lecciones en los modulos (sin videos, excepto Atleticos que ya los tiene)</li>
-              <li>Despues podes ir a cada modulo desde la pagina de alumnos y agregar los links de YouTube</li>
-              <li>Cargar una planilla sobrescribe las lecciones existentes de los modulos</li>
-              <li>Para crear semanas individuales usa la pestaña &quot;Crear Manual&quot;</li>
+              <li>Las planillas se asignan <strong>por alumno</strong> desde la página del alumno (Alumnos → seleccionar → Cambiar planilla).</li>
+              <li>Acá solo ves el catálogo y la estructura de cada planilla.</li>
+              <li>Para editar los videos de cada lección, usá <strong>Editor de Videos</strong>.</li>
             </ul>
           </div>
         </div>
