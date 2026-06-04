@@ -48,8 +48,14 @@ interface Option {
   Icon: typeof Activity;
   // Si el lead elige una opción con disqualifies=true, no le mostramos el
   // calendario al final — recibe un mensaje pidiendo que vuelva cuando esté
-  // listo.
+  // listo. ADEMÁS queda marcado como `disqualified=true` en el panel del
+  // setter (sale del pipeline activo).
   disqualifies?: boolean;
+  // hidesCalendar=true oculta el Calendly al final del quiz (se le muestra
+  // una pantalla de "te contactamos pronto") pero NO descalifica el lead.
+  // El setter lo ve normal en el panel — sirve para el flujo "no quiere
+  // invertir vía consultoría, vamos por low-ticket por DM".
+  hidesCalendar?: boolean;
 }
 
 type QuizQuestion =
@@ -247,6 +253,9 @@ const QUESTIONS: QuizQuestion[] = [
         value: 'no',
         label: 'No',
         Icon: Eye,
+        // No descalifica — pero le saltamos el Calendly. El setter lo
+        // contacta por DM con una propuesta low-ticket en 48hs.
+        hidesCalendar: true,
       },
     ],
   },
@@ -283,6 +292,18 @@ export default function EvaluationQuiz({ calendlyUrl }: EvaluationQuizProps) {
       if (!ans) return false;
       const opt = q.options.find((o) => o.value === ans);
       return Boolean(opt?.disqualifies);
+    });
+  }, [answers]);
+
+  // ¿Alguna respuesta nos pide saltar la pantalla de Calendly?
+  // (sin descalificar — el setter lo trabaja por DM con low ticket)
+  const hidesCalendar = useMemo(() => {
+    return QUESTIONS.some((q) => {
+      if (q.kind !== 'choice') return false;
+      const ans = answers[q.key];
+      if (!ans) return false;
+      const opt = q.options.find((o) => o.value === ans);
+      return Boolean(opt?.hidesCalendar);
     });
   }, [answers]);
 
@@ -354,6 +375,9 @@ export default function EvaluationQuiz({ calendlyUrl }: EvaluationQuizProps) {
   if (isDone) {
     if (isDisqualified) {
       return <DisqualifiedScreen onReset={reset} />;
+    }
+    if (hidesCalendar) {
+      return <NoCalendarScreen instagram={answers.instagram || null} />;
     }
     return (
       <QuizResult answers={answers} calendlyUrl={calendlyUrl} sessionId={sessionId} />
@@ -553,6 +577,45 @@ function DisqualifiedScreen({ onReset }: { onReset: () => void }) {
           Volver a empezar
         </button>
       </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// No-calendar screen — al lead que respondió "No" a la pregunta de inversión
+// no le mostramos el Calendly: el setter lo contacta por DM con una
+// propuesta low-ticket en las próximas 48hs.
+// ---------------------------------------------------------------------------
+
+function NoCalendarScreen({ instagram }: { instagram: string | null }) {
+  return (
+    <div className="bg-jjl-gray rounded-2xl border border-jjl-red/30 p-6 sm:p-7 shadow-[0_30px_60px_-30px_rgba(220,38,38,0.35)]">
+      <div className="flex items-center gap-2 text-jjl-red text-[11px] font-semibold tracking-[0.18em] uppercase">
+        <Sparkles className="h-4 w-4" />
+        Recibimos tu información
+      </div>
+      <h3 className="mt-3 text-2xl font-bold leading-tight">
+        Gracias por completar el formulario.
+      </h3>
+      <p className="mt-3 text-[14px] text-white/85 leading-relaxed">
+        Vamos a revisar tu caso y te escribimos por <strong>DM a tu Instagram</strong>
+        {instagram ? <> (<span className="text-jjl-red">@{instagram}</span>)</> : null} en
+        las próximas <strong>24 a 48 horas</strong> con una propuesta personalizada,
+        pensada para vos.
+      </p>
+      <p className="mt-3 text-[13px] text-jjl-muted leading-relaxed">
+        Si no encontrás el mensaje, fijate en la carpeta de <em>solicitudes</em> de
+        Instagram. Si querés agilizar, escribinos vos directamente —{' '}
+        <a
+          href="https://www.instagram.com/jiujitsulatinoplay/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-jjl-red hover:underline"
+        >
+          @jiujitsulatinoplay
+        </a>
+        .
+      </p>
     </div>
   );
 }
