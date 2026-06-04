@@ -45,17 +45,23 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // Also create user_access entries so the admin can toggle them
+  // Crear user_access para cada módulo. Por defecto:
+  //   - Fundamentos (semana 0) + Mes 1 (semanas 1-4) arrancan DESBLOQUEADOS
+  //     para que el alumno pueda empezar a entrenar inmediatamente.
+  //   - El resto queda bloqueado hasta que el admin lo confirme mes a mes.
+  // Usamos ignoreDuplicates: true para no pisar accesos que el alumno
+  // ya pueda tener (caso de re-asignación de la misma planilla).
   for (const mod of modules) {
+    const isInitialUnlock = mod.semana_numero >= 0 && mod.semana_numero <= 4;
     await adminClient
       .from('user_access')
       .upsert(
         {
           user_id: userId,
           module_id: mod.module_id,
-          is_unlocked: false,
+          is_unlocked: isInitialUnlock,
         },
-        { onConflict: 'user_id,module_id' }
+        { onConflict: 'user_id,module_id', ignoreDuplicates: true }
       );
   }
 
