@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<title>Onboarding Profesor · Jiu Jitsu Latino</title>
+<link rel="icon" href="/favicon.ico" />
+<style>
+  :root {
+    --bg: #0a0a0b;
+    --bg-soft: #111114;
+    --card: #18181b;
+    --card-light: #1f1f24;
+    --border: rgba(255,255,255,0.08);
+    --text: #fafafa;
+    --muted: rgba(250,250,250,0.62);
+    --muted-strong: rgba(250,250,250,0.78);
+    --red: #dc2626;
+    --red-light: #ef4444;
+    --red-soft: rgba(220,38,38,0.08);
+    --green: #22c55e;
+    --green-soft: rgba(34,197,94,0.08);
+    --amber: #f59e0b;
+    --amber-soft: rgba(245,158,11,0.08);
+    --blue: #3b82f6;
+    --blue-soft: rgba(59,130,246,0.08);
+    --purple: #a855f7;
+    --purple-soft: rgba(168,85,247,0.08);
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0; background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Inter",
+                 Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+    line-height: 1.6; font-size: 15px;
+    -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 48px 24px 96px; }
+
+  /* Hero */
+  .hero {
+    background: linear-gradient(135deg, rgba(168,85,247,0.18) 0%, rgba(168,85,247,0) 60%), var(--card);
+    border: 1px solid var(--border); border-radius: 24px;
+    padding: 48px 40px; margin-bottom: 40px;
+    position: relative; overflow: hidden;
+  }
+  .hero::before {
+    content: ""; position: absolute; top: -100px; right: -100px;
+    width: 280px; height: 280px;
+    background: radial-gradient(circle, rgba(168,85,247,0.25) 0%, transparent 70%);
+    border-radius: 50%; pointer-events: none;
+  }
+  .hero-eyebrow {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: rgba(168,85,247,0.08); border: 1px solid rgba(168,85,247,0.3);
+    color: #c4b5fd; padding: 6px 12px; border-radius: 999px;
+    font-size: 11px; font-weight: 700; letter-spacing: 0.16em;
+    text-transform: uppercase; margin-bottom: 20px;
+  }
+  .hero h1 {
+    font-size: clamp(28px, 4.5vw, 44px); font-weight: 900;
+    line-height: 1.1; margin: 0 0 12px; letter-spacing: -0.02em;
+  }
+  .hero h1 em { color: #c4b5fd; font-style: normal; }
+  .hero p { font-size: 17px; color: var(--muted-strong); margin: 0; max-width: 560px; }
+  .hero-meta {
+    margin-top: 32px; display: flex; flex-wrap: wrap; gap: 16px;
+    font-size: 12px; color: var(--muted);
+  }
+  .hero-meta span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--purple); }
+
+  /* Sections */
+  section { margin-bottom: 56px; }
+  .sec-num {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 32px; height: 32px; background: var(--purple); color: white;
+    border-radius: 10px; font-weight: 900; font-size: 14px;
+    margin-right: 12px; vertical-align: middle;
+  }
+  h2 {
+    font-size: 26px; font-weight: 900; letter-spacing: -0.01em;
+    margin: 0 0 8px; display: flex; align-items: center;
+  }
+  h2 .sec-num { flex-shrink: 0; }
+  .sec-sub { color: var(--muted); margin: 0 0 24px 44px; font-size: 14px; }
+  h3 {
+    font-size: 17px; font-weight: 800; margin: 32px 0 12px;
+    letter-spacing: -0.005em;
+  }
+  p { margin: 0 0 14px; color: var(--muted-strong); }
+  strong { color: var(--text); font-weight: 700; }
+  ul, ol { margin: 0 0 16px; padding-left: 22px; color: var(--muted-strong); }
+  li { margin-bottom: 8px; }
+  code {
+    background: rgba(255,255,255,0.06); padding: 2px 6px;
+    border-radius: 4px; font-size: 13px;
+    font-family: ui-monospace, Menlo, monospace;
+  }
+
+  /* Callouts */
+  .callout {
+    border-radius: 14px; border: 1px solid; padding: 16px 18px;
+    margin: 20px 0; display: flex; gap: 14px; align-items: flex-start;
+  }
+  .callout-icon {
+    flex-shrink: 0; width: 32px; height: 32px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center; font-size: 16px;
+  }
+  .callout-body { flex: 1; }
+  .callout-body p:last-child { margin-bottom: 0; }
+  .callout-tip { background: var(--blue-soft); border-color: rgba(59,130,246,0.3); }
+  .callout-tip .callout-icon { background: rgba(59,130,246,0.2); color: var(--blue); }
+  .callout-warn { background: var(--amber-soft); border-color: rgba(245,158,11,0.3); }
+  .callout-warn .callout-icon { background: rgba(245,158,11,0.2); color: var(--amber); }
+  .callout-success { background: var(--green-soft); border-color: rgba(34,197,94,0.3); }
+  .callout-success .callout-icon { background: rgba(34,197,94,0.2); color: var(--green); }
+  .callout-purple {
+    background: rgba(168,85,247,0.08); border-color: rgba(168,85,247,0.3);
+  }
+  .callout-purple .callout-icon { background: rgba(168,85,247,0.2); color: var(--purple); }
+
+  /* Tasks */
+  .tasks {
+    background: linear-gradient(135deg, rgba(168,85,247,0.07), rgba(168,85,247,0.01));
+    border: 1px solid rgba(168,85,247,0.3);
+    border-radius: 18px; padding: 24px 28px; margin: 24px 0;
+  }
+  .tasks-title {
+    display: flex; align-items: center; gap: 12px; margin-bottom: 18px;
+    font-size: 18px; font-weight: 900;
+  }
+  .tasks-title-icon {
+    background: var(--purple); color: white; width: 36px; height: 36px;
+    border-radius: 10px; display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+  }
+  .task-list { display: flex; flex-direction: column; gap: 10px; }
+  .task {
+    background: rgba(255,255,255,0.02); border: 1px solid var(--border);
+    border-radius: 12px; padding: 14px 16px;
+    display: flex; align-items: flex-start; gap: 14px;
+  }
+  .task-check {
+    flex-shrink: 0; width: 22px; height: 22px;
+    border: 2px solid rgba(255,255,255,0.18);
+    border-radius: 6px; margin-top: 2px;
+  }
+  .task-content { flex: 1; }
+  .task-time {
+    font-size: 10px; font-weight: 800; letter-spacing: 0.14em;
+    text-transform: uppercase; color: #c4b5fd; margin-bottom: 4px;
+  }
+  .task-title { font-weight: 700; color: var(--text); margin-bottom: 4px; font-size: 15px; }
+  .task-desc { font-size: 13px; color: var(--muted); margin: 0; line-height: 1.5; }
+
+  /* Steps */
+  .steps { counter-reset: step; list-style: none; padding: 0; margin: 0; }
+  .steps > li {
+    counter-increment: step; background: var(--card); border: 1px solid var(--border);
+    border-radius: 12px; padding: 14px 16px 14px 56px; margin-bottom: 10px;
+    position: relative;
+  }
+  .steps > li::before {
+    content: counter(step); position: absolute; left: 14px; top: 14px;
+    width: 28px; height: 28px; background: var(--purple); color: white;
+    border-radius: 8px; display: flex; align-items: center; justify-content: center;
+    font-weight: 900; font-size: 13px;
+  }
+
+  /* Editor mockup */
+  .editor-mock {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 14px; padding: 14px; margin: 20px 0;
+  }
+  .editor-mock-row {
+    display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+    background: rgba(255,255,255,0.02); border: 1px solid var(--border);
+    border-radius: 10px; margin-bottom: 6px;
+  }
+  .editor-mock-row.expanded {
+    border-color: rgba(220,38,38,0.4); background: rgba(220,38,38,0.04);
+    flex-direction: column; align-items: stretch;
+  }
+  .em-num { font-size: 10px; color: var(--muted); width: 18px; font-family: ui-monospace, monospace; }
+  .em-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .em-dot-green { background: var(--green); }
+  .em-dot-gray { background: rgba(255,255,255,0.2); }
+  .em-name { font-size: 12px; font-weight: 600; flex: 1; }
+  .em-id {
+    font-family: ui-monospace, monospace; font-size: 10px;
+    color: var(--muted); background: rgba(255,255,255,0.05);
+    padding: 1px 6px; border-radius: 3px;
+  }
+  .em-badge {
+    font-size: 8px; font-weight: 800; letter-spacing: 0.06em;
+    text-transform: uppercase; padding: 2px 5px; border-radius: 3px;
+    background: rgba(59,130,246,0.15); color: #93c5fd; border: 1px solid rgba(59,130,246,0.4);
+  }
+  .em-preview {
+    width: 100%; display: flex; gap: 10px; padding: 10px;
+    background: rgba(0,0,0,0.3); border-radius: 8px; margin-top: 8px;
+  }
+  .em-thumb { width: 80px; height: 45px; background: rgba(255,255,255,0.05); border-radius: 4px; flex-shrink: 0; }
+  .em-thumb-text {
+    flex: 1; display: flex; flex-direction: column; gap: 4px;
+  }
+  .em-thumb-title { font-size: 11px; font-weight: 700; }
+  .em-thumb-tags { display: flex; gap: 4px; }
+  .em-tag-pub { background: rgba(34,197,94,0.15); color: #86efac; border: 1px solid rgba(34,197,94,0.4); }
+  .em-tag-emb { background: rgba(34,197,94,0.15); color: #86efac; border: 1px solid rgba(34,197,94,0.4); }
+  .em-tag {
+    font-size: 8px; font-weight: 800; letter-spacing: 0.06em;
+    text-transform: uppercase; padding: 1px 5px; border-radius: 3px;
+  }
+
+  /* Table */
+  table {
+    width: 100%; border-collapse: collapse; margin: 16px 0;
+    background: var(--card); border-radius: 12px; overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  th {
+    background: rgba(255,255,255,0.05); text-align: left; padding: 10px 14px;
+    font-size: 11px; font-weight: 800; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--muted);
+    border-bottom: 1px solid var(--border);
+  }
+  td {
+    padding: 12px 14px; border-bottom: 1px solid var(--border);
+    font-size: 13px; vertical-align: top;
+  }
+  tr:last-child td { border-bottom: none; }
+  td:first-child { font-weight: 700; color: var(--text); }
+
+  /* Footer */
+  .footer {
+    border-top: 1px solid var(--border); padding-top: 24px; margin-top: 64px;
+    color: var(--muted); font-size: 13px; text-align: center;
+  }
+
+  /* Print */
+  @media print {
+    body { background: white; color: #111; }
+    .wrap { padding: 20px; max-width: 100%; }
+    .hero, section, .tasks, .callout, table, .steps > li, .editor-mock {
+      page-break-inside: avoid;
+    }
+    h2 { page-break-after: avoid; }
+    .hero { background: #f3e8ff; border-color: #d8b4fe; }
+    .hero h1, h2, h3, p, li, td { color: #111 !important; }
+    .sec-sub, .task-desc, .muted { color: #444 !important; }
+    .task, table, .callout, .tasks, .steps > li, .editor-mock {
+      background: white !important; border-color: #ddd !important;
+    }
+  }
+
+  @media (max-width: 720px) {
+    .wrap { padding: 24px 16px 64px; }
+    .hero { padding: 28px 24px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- HERO -->
+  <header class="hero">
+    <span class="hero-eyebrow">● Onboarding · Profesor JJL</span>
+    <h1>El profe que <em>cuida el contenido</em></h1>
+    <p>Guía operativa de tu rol como profesor: revisar y validar los videos nuevos que se suman al programa, asegurarte de que estén bien etiquetados y embebibles.</p>
+    <div class="hero-meta">
+      <span><span class="dot"></span> Tiempo de lectura ~ 6 min</span>
+      <span><span class="dot"></span> Versión Junio 2026</span>
+    </div>
+  </header>
+
+  <!-- 1. TU ROL -->
+  <section>
+    <h2><span class="sec-num">1</span>Tu rol</h2>
+    <p class="sec-sub">Qué hace un profesor en el sistema JJL.</p>
+
+    <p>Tu trabajo es <strong>el control de calidad del contenido</strong>. Cada vez que se suma un video nuevo al programa, vos sos quien:</p>
+    <ul>
+      <li>Verifica que <strong>se embebe correctamente</strong> en la app (que el alumno lo puede reproducir).</li>
+      <li>Confirma que <strong>el título sea claro</strong> y describa lo que se muestra.</li>
+      <li>Chequea que <strong>esté asignado a la lección correcta</strong> dentro de la planilla.</li>
+      <li>Avisa al coach si <strong>algo no anda</strong> (video privado, embed bloqueado, título confuso).</li>
+    </ul>
+
+    <div class="callout callout-purple">
+      <div class="callout-icon">🎯</div>
+      <div class="callout-body">
+        <p><strong>Tu superpoder:</strong> el alumno nunca debería abrir un video y que no cargue. Si vos hacés bien tu parte, el contenido fluye y el coach se enfoca en vender y enseñar — no en tareas técnicas.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. CÓMO ENTRAR -->
+  <section>
+    <h2><span class="sec-num">2</span>Cómo entrar al panel</h2>
+    <p class="sec-sub">Tu único punto de acceso.</p>
+
+    <ol class="steps">
+      <li>Abrí: <strong>https://alumno.jiujitsulatino.com/admin/videos</strong></li>
+      <li>Loguéate con el email y contraseña que te pasó el coach.</li>
+      <li>La primera vez, aceptá los permisos de notificaciones del navegador (importante — son las que te avisan cuando hay un video nuevo).</li>
+      <li>Vas a entrar directo al editor de videos planilla-centric.</li>
+    </ol>
+
+    <div class="callout callout-tip">
+      <div class="callout-icon">💡</div>
+      <div class="callout-body">
+        <p>Dejá la pestaña fijada (click derecho → "Fijar pestaña") así no se te cierra por accidente y siempre la tenés a mano.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. NOTIFICACIONES -->
+  <section>
+    <h2><span class="sec-num">3</span>Las notificaciones que recibís</h2>
+    <p class="sec-sub">El sistema te avisa solo cuando hay trabajo para vos.</p>
+
+    <div class="callout callout-success">
+      <div class="callout-icon">🎬</div>
+      <div class="callout-body">
+        <p><strong>Nuevo video subido</strong> — llega en 2 situaciones:</p>
+        <p style="margin-bottom:0;">1. Cuando el coach <strong>sube un video directo</strong> desde el panel.<br>
+        2. Cuando el cron de Google Drive <strong>detecta videos nuevos en el Drive del JJL</strong> (4 veces al día).</p>
+      </div>
+    </div>
+
+    <p>Las notifs te llegan por dos canales:</p>
+    <ul>
+      <li>🔔 <strong>Campanita</strong> arriba a la derecha del panel.</li>
+      <li>📱 <strong>Push del navegador</strong> si diste permiso. Te llega incluso con el panel cerrado, mientras Chrome esté abierto.</li>
+    </ul>
+
+    <p>Click en la notificación → te lleva directo al editor con el video pendiente.</p>
+  </section>
+
+  <!-- 4. CÓMO REVISAR UN VIDEO NUEVO -->
+  <section>
+    <h2><span class="sec-num">4</span>Revisar un video nuevo — flujo</h2>
+    <p class="sec-sub">El paso a paso cuando te llega un aviso.</p>
+
+    <ol class="steps">
+      <li>Click en la notif → te abre <code>/admin/videos</code> en la planilla correspondiente.</li>
+      <li>Localizá la lección del video nuevo (el dot rojo o el sin-asignar te lo indica).</li>
+      <li>Click en la lección → se expande inline.</li>
+      <li>Pegá el <strong>URL de YouTube</strong> o buscá por nombre en el canal del JJL.</li>
+      <li>Click en el resultado → se carga el preview con miniatura + privacy + embed check.</li>
+      <li>Verificá los 3 checks que te muestra el preview (ver sección siguiente).</li>
+      <li>Click en <strong>"Guardar"</strong>.</li>
+    </ol>
+
+    <div class="editor-mock">
+      <div class="editor-mock-row">
+        <span class="em-num">1.</span>
+        <span class="em-dot em-dot-green"></span>
+        <span class="em-name">Pasaje De la Riva variante 4</span>
+        <span class="em-badge">🔗 Compartida ×4</span>
+        <span class="em-id">MCHEDVVgW7w</span>
+      </div>
+      <div class="editor-mock-row expanded">
+        <div style="display:flex; gap:10px; align-items:center; width:100%;">
+          <span class="em-num">2.</span>
+          <span class="em-dot em-dot-gray"></span>
+          <span class="em-name">Drill 2: Toreos Variante 4</span>
+        </div>
+        <div class="em-preview">
+          <div class="em-thumb"></div>
+          <div class="em-thumb-text">
+            <div class="em-thumb-title">Drill 2 — Toreos V4 (Coach Sebas)</div>
+            <div class="em-thumb-tags">
+              <span class="em-tag em-tag-pub">Público</span>
+              <span class="em-tag em-tag-emb">✓ Embed OK</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="editor-mock-row">
+        <span class="em-num">3.</span>
+        <span class="em-dot em-dot-gray"></span>
+        <span class="em-name">Drill 1: Guardia cerrada</span>
+        <span class="em-id">— sin video</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. LOS 3 CHECKS -->
+  <section>
+    <h2><span class="sec-num">5</span>Los 3 checks que tenés que validar</h2>
+    <p class="sec-sub">Antes de guardar, asegurate de que cada video pasa estos tres.</p>
+
+    <table>
+      <thead><tr><th>Check</th><th>Qué ver</th><th>Si falla</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>Privacidad</td>
+          <td>Tag verde "Público" o azul "Oculto". <strong>Nunca</strong> "Privado".</td>
+          <td>Pedile al coach que cambie a Público u Oculto en YouTube Studio.</td>
+        </tr>
+        <tr>
+          <td>Embeddable</td>
+          <td>Tag verde "✓ Embed OK". Si dice "Embed bloqueado" en rojo → el alumno NO lo va a poder ver.</td>
+          <td>Pedile al coach que active "Permitir incrustación" en YouTube Studio.</td>
+        </tr>
+        <tr>
+          <td>Título coincide</td>
+          <td>El título del video tiene que tener relación con el de la lección. El editor te avisa si parecen no matchear.</td>
+          <td>Si es claramente el video equivocado → no guardes y avisale al coach.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="callout callout-warn">
+      <div class="callout-icon">⚠️</div>
+      <div class="callout-body">
+        <p><strong>Si una lección está marcada como <span style="color:#93c5fd;">🔗 Compartida ×4</span>:</strong> está en las 4 planillas (Livianos + Medios + Simbio + Atléticos) al mismo tiempo. Editarla afecta a todos los alumnos. Verificá doblemente antes de guardar.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6. STATUS DOTS -->
+  <section>
+    <h2><span class="sec-num">6</span>Los puntos de color en cada lección</h2>
+    <p class="sec-sub">Tu mapa de qué falta revisar.</p>
+
+    <table>
+      <thead><tr><th>Dot</th><th>Significa</th><th>Qué hacer</th></tr></thead>
+      <tbody>
+        <tr><td>🟢 Verde</td><td>La lección tiene video asignado.</td><td>Nada — está OK.</td></tr>
+        <tr><td>⚪ Gris</td><td>La lección no tiene video todavía.</td><td>Cuando llegue uno nuevo, asignárselo.</td></tr>
+        <tr><td>🟣 Púrpura</td><td>Es una "Reflexión semanal" — no necesita video.</td><td>Nada.</td></tr>
+      </tbody>
+    </table>
+
+    <p>Al entrar a una planilla, mirá el sidebar izquierdo: te muestra el <strong>% de completitud</strong> y cuántos videos faltan por mes.</p>
+  </section>
+
+  <!-- 7. TAREAS DIARIAS -->
+  <section>
+    <h2><span class="sec-num">7</span>Tu día a día</h2>
+    <p class="sec-sub">Rutina mínima para mantener el contenido al día.</p>
+
+    <div class="tasks">
+      <div class="tasks-title">
+        <div class="tasks-title-icon">📋</div>
+        <span>Tareas habituales</span>
+      </div>
+      <div class="task-list">
+        <div class="task">
+          <div class="task-check"></div>
+          <div class="task-content">
+            <div class="task-time">Cuando llega una notif</div>
+            <div class="task-title">Revisar el video nuevo</div>
+            <p class="task-desc">Abrí el panel → buscá la lección → pegá el URL → verificá los 3 checks → Guardar. No debería llevarte más de 2 minutos por video.</p>
+          </div>
+        </div>
+        <div class="task">
+          <div class="task-check"></div>
+          <div class="task-content">
+            <div class="task-time">1 vez por semana · viernes</div>
+            <div class="task-title">Auditoría de las 4 planillas</div>
+            <p class="task-desc">Entrá a cada planilla del sidebar. Mirá los dots ⚪ grises pendientes — anotá los que faltan y avisale al coach para que grabe.</p>
+          </div>
+        </div>
+        <div class="task">
+          <div class="task-check"></div>
+          <div class="task-content">
+            <div class="task-time">1 vez por mes</div>
+            <div class="task-title">Sanity check de los videos viejos</div>
+            <p class="task-desc">Tomá una semana al azar de cada planilla. Click en alguna lección. Verificá que el video sigue público + embedable (YouTube a veces bloquea videos viejos).</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8. BUENAS PRÁCTICAS -->
+  <section>
+    <h2><span class="sec-num">8</span>Buenas prácticas</h2>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 20px 0;">
+      <div style="background: var(--green-soft); border: 1px solid rgba(34,197,94,0.4); border-radius: 12px; padding: 18px;">
+        <h3 style="margin-top: 0; color: var(--green);">✅ HACÉ</h3>
+        <ul style="margin: 0;">
+          <li>Revisá los nuevos en el día.</li>
+          <li>Verificá los 3 checks antes de guardar.</li>
+          <li>Avisale al coach si algo no anda.</li>
+          <li>Hacé la auditoría semanal completa.</li>
+          <li>Mantené activadas las notifs del navegador.</li>
+        </ul>
+      </div>
+      <div style="background: var(--red-soft); border: 1px solid rgba(220,38,38,0.4); border-radius: 12px; padding: 18px;">
+        <h3 style="margin-top: 0; color: var(--red-light);">❌ NO HAGAS</h3>
+        <ul style="margin: 0;">
+          <li>Guardar con embed bloqueado.</li>
+          <li>Asignar videos a lecciones equivocadas.</li>
+          <li>Cambiar títulos de lecciones compartidas sin avisar.</li>
+          <li>Ignorar las notifs por más de 24h.</li>
+          <li>Tocar otras tabs del panel sin saber qué hacés.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9. CHEAT SHEET -->
+  <section>
+    <h2><span class="sec-num">9</span>Cheat sheet</h2>
+    <p class="sec-sub">Atajos rápidos para tener a mano.</p>
+
+    <table>
+      <thead><tr><th>Acción</th><th>Cómo</th></tr></thead>
+      <tbody>
+        <tr><td>Abrir el editor</td><td><code>/admin/videos</code></td></tr>
+        <tr><td>Cambiar de planilla</td><td>Click en el sidebar izquierdo</td></tr>
+        <tr><td>Filtrar por mes</td><td>Sidebar → submenú "Navegación" → Mes X</td></tr>
+        <tr><td>Buscar una lección</td><td>Input "Buscar lección..." arriba del panel central</td></tr>
+        <tr><td>Asignar video</td><td>Click en la lección → pegar URL o buscar → Guardar</td></tr>
+        <tr><td>Ver el video actual</td><td>Click en "ver actual" en el header de la lección</td></tr>
+        <tr><td>Refrescar el estado</td><td>Botón "Refrescar" arriba a la derecha</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- 10. SI ALGO FALLA -->
+  <section>
+    <h2><span class="sec-num">10</span>Si algo falla</h2>
+
+    <table>
+      <thead><tr><th>Problema</th><th>Solución</th></tr></thead>
+      <tbody>
+        <tr><td>No me llegan notificaciones</td><td>Chrome → Settings → Privacy → Notifications → permitir <code>alumno.jiujitsulatino.com</code></td></tr>
+        <tr><td>El video dice "Embed bloqueado"</td><td>Avisale al coach — tiene que activarlo en YouTube Studio</td></tr>
+        <tr><td>El video dice "Privado"</td><td>Avisale al coach — debe pasarlo a Público u Oculto</td></tr>
+        <tr><td>No encuentro la lección que me notificaron</td><td>Usá el buscador del panel central — escribí parte del título</td></tr>
+        <tr><td>El editor no carga / pantalla en blanco</td><td>Recargá con <code>Ctrl+Shift+R</code>. Si persiste, avisale al coach</td></tr>
+        <tr><td>Asigné un video mal por error</td><td>Volvé a la lección, cambialo y guardá. Se sobreescribe sin problema</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <div class="footer">
+    <p style="margin: 0 0 6px;"><strong style="color: var(--text);">¿Dudas?</strong> Escribile al coach directo.</p>
+    <p style="margin: 0;">Gracias por cuidar el contenido. 🎬</p>
+  </div>
+
+</div>
+</body>
+</html>
