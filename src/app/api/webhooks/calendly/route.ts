@@ -125,6 +125,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
+    // Promover stage a 'agendado' SOLO si seguía en 'nuevo' (o NULL).
+    // No tocamos los manuales (contactado/descartado/convertido) del setter.
+    await admin
+      .from('lead_quiz_responses')
+      .update({ stage: 'agendado' })
+      .eq('session_id', sessionId)
+      .or('stage.is.null,stage.eq.nuevo');
+
     // Notificar al setter una sola vez por agendamiento. Idempotencia:
     // si setter_notified_booked_at ya está, no volvemos a disparar
     // (cubre el caso de webhooks repetidos por reintento de Calendly).

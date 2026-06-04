@@ -37,9 +37,17 @@ const STAGES: { key: LeadStage; label: string; color: string }[] = [
 
 // Internal-only: leads viejos con stage='no_show' los mostramos en
 // Descartado (no perdemos data pero no aparece la columna).
+//
+// Importante: el webhook de Calendly marca `booked=true` pero NO actualiza
+// el `stage` (queda como 'nuevo' aunque el lead haya agendado). Para que
+// estos leads aparezcan en "Agendados" igual, priorizamos `booked` sobre
+// un `stage='nuevo'` desactualizado. Si el setter movió manualmente el
+// stage a 'contactado' o 'descartado', respetamos esa decisión.
 function stageOf(l: LeadRowExt): LeadStage {
   const raw = l.stage as LeadStage | undefined;
   if (raw === 'no_show') return 'descartado';
+  // Lead agendó pero su stage quedó atras → mostrarlo como Agendado.
+  if (l.booked && (!raw || raw === 'nuevo')) return 'agendado';
   if (raw) return raw;
   if (l.disqualified) return 'descartado';
   if (l.booked) return 'agendado';
