@@ -54,16 +54,12 @@ export default function SetterGuide({ onDismiss }: Props) {
       body: (
         <>
           <div className="rounded-lg border border-amber-500/60 bg-amber-500/[0.06] p-2.5 mb-2">
-            <p className="text-[11px] font-bold uppercase tracking-wider text-amber-300 mb-1">Amarillo</p>
-            <p className="text-sm text-jjl-muted">El prospecto dijo que le interesa pero está <strong className="text-amber-300">ajustado económicamente</strong>.</p>
+            <p className="text-[11px] font-bold uppercase tracking-wider text-amber-300 mb-1">Amarillo — OPORTUNIDAD</p>
+            <p className="text-sm text-jjl-muted">El prospecto dijo <strong className="text-amber-300">&quot;No&quot;</strong> a invertir. <strong className="text-white">No descartes</strong> — completó el form, la objeción es plata. Ofrecé el <strong className="text-white">low ticket a precio especial por haber completado el form, válido 48hs</strong>.</p>
           </div>
-          <div className="rounded-lg border border-red-500/60 bg-red-500/[0.06] p-2.5 mb-2">
-            <p className="text-[11px] font-bold uppercase tracking-wider text-red-300 mb-1">Rojo</p>
-            <p className="text-sm text-jjl-muted">El prospecto dijo que <strong className="text-red-300">no está dispuesto a invertir</strong>.</p>
-          </div>
-          <div className="rounded-lg border border-jjl-red/40 bg-jjl-red/[0.06] p-2.5">
-            <p className="text-[11px] font-bold uppercase tracking-wider text-jjl-red mb-1">Estrategia (para ambos)</p>
-            <p className="text-sm text-jjl-muted">Contactá, preguntá por su situación, y ofrecé el <strong className="text-white">low ticket a precio especial por haber completado el form, válido las próximas 48hs</strong>.</p>
+          <div className="rounded-lg border border-red-500/60 bg-red-500/[0.06] p-2.5">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-red-300 mb-1">Rojo — lead frío</p>
+            <p className="text-sm text-jjl-muted">El prospecto dijo <strong className="text-red-300">&quot;solo estoy viendo&quot;</strong>. Prioridad baja — contactalo solo si te queda tiempo después de los amarillos.</p>
           </div>
         </>
       ),

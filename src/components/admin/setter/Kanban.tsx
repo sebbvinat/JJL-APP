@@ -62,22 +62,21 @@ function stageOf(l: LeadRowExt): LeadStage {
 // está dispuesto a invertir, lo trabajamos normal aunque su laburo sea
 // inestable).
 //
-// 🟡 Amarillo  → urgencia='ajustado' (le interesa pero plata corta)
-// 🔴 Rojo      → urgencia='no' o compromiso='viendo' (no quiere invertir)
-//
-// Para ambos colores la estrategia del setter es: contactar, preguntar por
-// la situación real, ofrecer LOW TICKET con precio especial 48hs.
+// 🟡 Amarillo  → urgencia='no' (OPORTUNIDAD low ticket 48h - el "no" no
+//                descalifica; es la mejor señal para ofrecer low ticket
+//                con precio especial por haber completado el form).
+// 🔴 Rojo      → compromiso='viendo' (lead frío, solo curioseando).
 type Priority = 'red' | 'yellow' | null;
 
 function priorityOf(l: LeadRowExt): Priority {
-  if (l.compromiso === 'viendo' || l.urgencia === 'no') return 'red';
-  if (l.urgencia === 'ajustado') return 'yellow';
+  if (l.urgencia === 'no') return 'yellow';
+  if (l.compromiso === 'viendo') return 'red';
   return null;
 }
 
 function priorityLabel(prio: NonNullable<Priority>): string {
-  if (prio === 'red') return 'Ofrecer low ticket 48h';
-  return 'Ajustado · low ticket 48h';
+  if (prio === 'yellow') return 'Oportunidad · low ticket 48h';
+  return 'Lead frío · solo curiosea';
 }
 
 const PRIORITY_STYLES: Record<NonNullable<Priority>, { border: string; bg: string; badge: string }> = {

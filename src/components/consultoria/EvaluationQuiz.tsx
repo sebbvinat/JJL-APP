@@ -247,12 +247,6 @@ const QUESTIONS: QuizQuestion[] = [
         value: 'no',
         label: 'No',
         Icon: Eye,
-        disqualifies: true,
-      },
-      {
-        value: 'ajustado',
-        label: 'Me interesa pero estoy ajustado económicamente',
-        Icon: Hourglass,
       },
     ],
   },

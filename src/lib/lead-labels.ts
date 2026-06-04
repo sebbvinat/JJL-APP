@@ -41,9 +41,9 @@ export const COMPROMISO_LABEL: Record<string, string> = {
 
 export const URGENCIA_LABEL: Record<string, string> = {
   si: 'Sí, dispuesto a invertir si encaja',
+  no: 'No quiere invertir (= oportunidad low ticket)',
+  // Legacy — leads anteriores podían tener estos valores:
   ajustado: 'Me interesa pero estoy ajustado económicamente',
-  no: 'No quiere invertir',
-  // Legacy — leads anteriores podían tener este valor:
   depende: 'Me interesa, pero necesito evaluarlo bien',
 };
 
