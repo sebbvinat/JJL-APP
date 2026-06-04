@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<title>Onboarding Admin · Jiu Jitsu Latino</title>
+<link rel="icon" href="/favicon.ico" />
+<style>
+  :root {
+    --bg: #0a0a0b;
+    --bg-soft: #111114;
+    --card: #18181b;
+    --card-light: #1f1f24;
+    --border: rgba(255,255,255,0.08);
+    --border-strong: rgba(255,255,255,0.16);
+    --text: #fafafa;
+    --muted: rgba(250,250,250,0.62);
+    --muted-strong: rgba(250,250,250,0.78);
+    --red: #dc2626;
+    --red-light: #ef4444;
+    --red-soft: rgba(220,38,38,0.08);
+    --green: #22c55e;
+    --green-soft: rgba(34,197,94,0.08);
+    --amber: #f59e0b;
+    --amber-soft: rgba(245,158,11,0.08);
+    --blue: #3b82f6;
+    --blue-soft: rgba(59,130,246,0.08);
+    --purple: #a855f7;
+    --purple-soft: rgba(168,85,247,0.08);
+    --cyan: #06b6d4;
+    --cyan-soft: rgba(6,182,212,0.08);
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Inter",
+                 Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+    line-height: 1.6;
+    font-size: 15px;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  .wrap { max-width: 920px; margin: 0 auto; padding: 48px 24px 96px; }
+
+  /* Hero */
+  .hero {
+    background: linear-gradient(135deg, rgba(220,38,38,0.18) 0%, rgba(220,38,38,0) 60%), var(--card);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    padding: 48px 40px;
+    margin-bottom: 40px;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: ""; position: absolute; top: -100px; right: -100px;
+    width: 280px; height: 280px;
+    background: radial-gradient(circle, rgba(220,38,38,0.25) 0%, transparent 70%);
+    border-radius: 50%; pointer-events: none;
+  }
+  .hero-eyebrow {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--red-soft); border: 1px solid rgba(220,38,38,0.3);
+    color: var(--red-light); padding: 6px 12px; border-radius: 999px;
+    font-size: 11px; font-weight: 700; letter-spacing: 0.16em;
+    text-transform: uppercase; margin-bottom: 20px;
+  }
+  .hero h1 {
+    font-size: clamp(28px, 4.5vw, 44px); font-weight: 900;
+    line-height: 1.1; margin: 0 0 12px; letter-spacing: -0.02em;
+  }
+  .hero h1 em { color: var(--red-light); font-style: normal; }
+  .hero p { font-size: 17px; color: var(--muted-strong); margin: 0; max-width: 620px; }
+  .hero-meta {
+    margin-top: 32px; display: flex; flex-wrap: wrap; gap: 16px;
+    font-size: 12px; color: var(--muted);
+  }
+  .hero-meta span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--red); }
+
+  /* Sections */
+  section { margin-bottom: 56px; }
+  .sec-num {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 32px; height: 32px; background: var(--red); color: white;
+    border-radius: 10px; font-weight: 900; font-size: 14px;
+    margin-right: 12px; vertical-align: middle;
+  }
+  h2 {
+    font-size: 26px; font-weight: 900; letter-spacing: -0.01em;
+    margin: 0 0 8px; display: flex; align-items: center;
+  }
+  h2 .sec-num { flex-shrink: 0; }
+  .sec-sub { color: var(--muted); margin: 0 0 24px 44px; font-size: 14px; }
+  h3 {
+    font-size: 17px; font-weight: 800; margin: 32px 0 12px;
+    letter-spacing: -0.005em;
+  }
+  p { margin: 0 0 14px; color: var(--muted-strong); }
+  strong { color: var(--text); font-weight: 700; }
+  ul, ol { margin: 0 0 16px; padding-left: 22px; color: var(--muted-strong); }
+  li { margin-bottom: 8px; }
+  code {
+    background: rgba(255,255,255,0.06); padding: 2px 6px;
+    border-radius: 4px; font-size: 13px;
+    font-family: ui-monospace, Menlo, monospace;
+  }
+
+  /* Callouts */
+  .callout {
+    border-radius: 14px; border: 1px solid; padding: 16px 18px;
+    margin: 20px 0; display: flex; gap: 14px; align-items: flex-start;
+  }
+  .callout-icon {
+    flex-shrink: 0; width: 32px; height: 32px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center; font-size: 16px;
+  }
+  .callout-body { flex: 1; }
+  .callout-body p:last-child { margin-bottom: 0; }
+  .callout-tip { background: var(--blue-soft); border-color: rgba(59,130,246,0.3); }
+  .callout-tip .callout-icon { background: rgba(59,130,246,0.2); color: var(--blue); }
+  .callout-warn { background: var(--amber-soft); border-color: rgba(245,158,11,0.3); }
+  .callout-warn .callout-icon { background: rgba(245,158,11,0.2); color: var(--amber); }
+  .callout-star { background: var(--red-soft); border-color: rgba(220,38,38,0.4); }
+  .callout-star .callout-icon { background: rgba(220,38,38,0.2); color: var(--red-light); }
+  .callout-success { background: var(--green-soft); border-color: rgba(34,197,94,0.3); }
+  .callout-success .callout-icon { background: rgba(34,197,94,0.2); color: var(--green); }
+  .callout-info { background: var(--purple-soft); border-color: rgba(168,85,247,0.3); }
+  .callout-info .callout-icon { background: rgba(168,85,247,0.2); color: var(--purple); }
+
+  /* Tab grid (panel overview) */
+  .tabs-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin: 24px 0;
+  }
+  .tab-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 12px; padding: 14px 16px;
+    display: flex; gap: 12px; align-items: flex-start;
+  }
+  .tab-card-icon {
+    flex-shrink: 0; width: 40px; height: 40px; border-radius: 10px;
+    background: var(--red-soft); border: 1px solid rgba(220,38,38,0.3);
+    color: var(--red-light);
+    display: flex; align-items: center; justify-content: center; font-size: 18px;
+  }
+  .tab-card-body { flex: 1; min-width: 0; }
+  .tab-card h4 { margin: 0 0 4px; font-size: 14px; font-weight: 800; }
+  .tab-card p { margin: 0; font-size: 12px; color: var(--muted); line-height: 1.5; }
+  .tab-card-path {
+    font-family: ui-monospace, Menlo, monospace; font-size: 10px;
+    color: var(--muted); display: block; margin-top: 4px;
+  }
+
+  /* Daily / weekly task block */
+  .tasks {
+    background: linear-gradient(135deg, rgba(220,38,38,0.07), rgba(220,38,38,0.01));
+    border: 1px solid rgba(220,38,38,0.3);
+    border-radius: 18px; padding: 24px 28px; margin: 24px 0;
+  }
+  .tasks-title {
+    display: flex; align-items: center; gap: 12px; margin-bottom: 18px;
+    font-size: 18px; font-weight: 900;
+  }
+  .tasks-title-icon {
+    background: var(--red); color: white; width: 36px; height: 36px;
+    border-radius: 10px; display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+  }
+  .task-list { display: flex; flex-direction: column; gap: 10px; }
+  .task {
+    background: rgba(255,255,255,0.02); border: 1px solid var(--border);
+    border-radius: 12px; padding: 14px 16px;
+    display: flex; align-items: flex-start; gap: 14px;
+  }
+  .task-check {
+    flex-shrink: 0; width: 22px; height: 22px;
+    border: 2px solid rgba(255,255,255,0.18);
+    border-radius: 6px; margin-top: 2px;
+  }
+  .task-content { flex: 1; }
+  .task-time {
+    font-size: 10px; font-weight: 800; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--red-light); margin-bottom: 4px;
+  }
+  .task-title { font-weight: 700; color: var(--text); margin-bottom: 4px; font-size: 15px; }
+  .task-desc { font-size: 13px; color: var(--muted); margin: 0; line-height: 1.5; }
+
+  /* Steps */
+  .steps { counter-reset: step; list-style: none; padding: 0; margin: 0; }
+  .steps > li {
+    counter-increment: step; background: var(--card); border: 1px solid var(--border);
+    border-radius: 12px; padding: 14px 16px 14px 56px; margin-bottom: 10px;
+    position: relative;
+  }
+  .steps > li::before {
+    content: counter(step); position: absolute; left: 14px; top: 14px;
+    width: 28px; height: 28px; background: var(--red); color: white;
+    border-radius: 8px; display: flex; align-items: center; justify-content: center;
+    font-weight: 900; font-size: 13px;
+  }
+
+  /* Tables */
+  table {
+    width: 100%; border-collapse: collapse; margin: 16px 0;
+    background: var(--card); border-radius: 12px; overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  th {
+    background: rgba(255,255,255,0.05); text-align: left; padding: 10px 14px;
+    font-size: 11px; font-weight: 800; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--muted);
+    border-bottom: 1px solid var(--border);
+  }
+  td {
+    padding: 12px 14px; border-bottom: 1px solid var(--border);
+    font-size: 13px; vertical-align: top;
+  }
+  tr:last-child td { border-bottom: none; }
+  td:first-child { font-weight: 700; color: var(--text); }
+
+  /* Pipeline diagram */
+  .pipeline {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
+    margin: 24px 0; align-items: stretch;
+  }
+  .pipe-step {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px; position: relative;
+    text-align: center;
+  }
+  .pipe-step::after {
+    content: "→"; position: absolute; right: -10px; top: 50%;
+    transform: translateY(-50%); color: var(--muted);
+    font-size: 16px; font-weight: 700; z-index: 2;
+  }
+  .pipe-step:last-child::after { display: none; }
+  .pipe-icon { font-size: 22px; margin-bottom: 4px; }
+  .pipe-title { font-size: 11px; font-weight: 800; margin-bottom: 4px; }
+  .pipe-desc { font-size: 10px; color: var(--muted); line-height: 1.4; }
+
+  /* Cron list */
+  .cron-list {
+    display: grid; grid-template-columns: 1fr; gap: 8px; margin: 16px 0;
+  }
+  .cron-item {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px 14px;
+    display: flex; gap: 12px; align-items: center;
+  }
+  .cron-time {
+    flex-shrink: 0; background: rgba(245,158,11,0.15);
+    border: 1px solid rgba(245,158,11,0.4); color: var(--amber);
+    padding: 4px 10px; border-radius: 6px; font-family: ui-monospace, monospace;
+    font-size: 11px; font-weight: 700;
+  }
+  .cron-body { flex: 1; }
+  .cron-title { font-size: 13px; font-weight: 700; margin-bottom: 2px; }
+  .cron-desc { font-size: 11px; color: var(--muted); }
+
+  /* Footer */
+  .footer {
+    border-top: 1px solid var(--border); padding-top: 24px; margin-top: 64px;
+    color: var(--muted); font-size: 13px; text-align: center;
+  }
+
+  /* Print */
+  @media print {
+    body { background: white; color: #111; }
+    .wrap { padding: 20px; max-width: 100%; }
+    .hero, section, .tasks, .callout, .tab-card, table, .cron-item, .pipe-step {
+      page-break-inside: avoid;
+    }
+    h2 { page-break-after: avoid; }
+    .hero { background: #fef2f2; border-color: #fca5a5; }
+    .hero h1, h2, h3, p, li, td { color: #111 !important; }
+    .sec-sub, .task-desc, .tab-card p, .muted, .cron-desc, .pipe-desc { color: #444 !important; }
+    .task, .tab-card, table, .callout, .tasks, .cron-item, .pipe-step {
+      background: white !important; border-color: #ddd !important;
+    }
+  }
+
+  @media (max-width: 720px) {
+    .wrap { padding: 24px 16px 64px; }
+    .hero { padding: 28px 24px; }
+    .tabs-grid { grid-template-columns: 1fr; }
+    .pipeline { grid-template-columns: 1fr 1fr; }
+    .pipe-step::after { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- HERO -->
+  <header class="hero">
+    <span class="hero-eyebrow">● Onboarding · Admin JJL</span>
+    <h1>El panel <em>admin</em> de Jiu Jitsu Latino</h1>
+    <p>Guía operativa para gestionar todo el sistema: alumnos, contenido, leads, setters, ventas y métricas. Léela una vez para tener el mapa completo — después usala como referencia.</p>
+    <div class="hero-meta">
+      <span><span class="dot"></span> Tiempo de lectura ~ 12 min</span>
+      <span><span class="dot"></span> Versión Junio 2026</span>
+    </div>
+  </header>
+
+  <!-- 1. CÓMO ENTRAR -->
+  <section>
+    <h2><span class="sec-num">1</span>Cómo entrar al panel</h2>
+    <p class="sec-sub">El punto de partida.</p>
+
+    <ol class="steps">
+      <li>Abrí: <strong>https://alumno.jiujitsulatino.com/admin</strong></li>
+      <li>Loguéate con tu cuenta admin (rol=<code>admin</code> en la tabla <code>users</code>).</li>
+      <li>Vas a ver el header con <strong>"ADMIN PANEL"</strong> y las 6 tabs principales.</li>
+    </ol>
+
+    <div class="callout callout-info">
+      <div class="callout-icon">👤</div>
+      <div class="callout-body">
+        <p><strong>¿Qué te diferencia de un setter?</strong> Vos sos admin <em>sin</em> el tag <code>setter</code>. Eso te da acceso a las 6 tabs. Cualquier admin que tenga el tag <code>setter</code> solo ve "Agendas" — su pantalla está restringida.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. LAS 6 TABS — OVERVIEW -->
+  <section>
+    <h2><span class="sec-num">2</span>El mapa del panel</h2>
+    <p class="sec-sub">Las 6 tabs y para qué sirve cada una.</p>
+
+    <div class="tabs-grid">
+      <div class="tab-card">
+        <div class="tab-card-icon">👥</div>
+        <div class="tab-card-body">
+          <h4>Alumnos</h4>
+          <p>Lista de todos los miembros del programa. Buscar, ver progreso, asignar planilla, dar/quitar acceso.</p>
+          <span class="tab-card-path">/admin</span>
+        </div>
+      </div>
+      <div class="tab-card">
+        <div class="tab-card-icon">📚</div>
+        <div class="tab-card-body">
+          <h4>Cursos</h4>
+          <p>Estructura de los programas (módulos, semanas). Editar títulos, agregar/quitar lecciones, asignar planillas.</p>
+          <span class="tab-card-path">/admin/courses</span>
+        </div>
+      </div>
+      <div class="tab-card">
+        <div class="tab-card-icon">📅</div>
+        <div class="tab-card-body">
+          <h4>Agendas</h4>
+          <p>El Kanban de leads. Lo que ve el setter, pero vos también podés trabajarlo. Aquí caen los formularios + agendas Calendly.</p>
+          <span class="tab-card-path">/admin/agendas</span>
+        </div>
+      </div>
+      <div class="tab-card">
+        <div class="tab-card-icon">📢</div>
+        <div class="tab-card-body">
+          <h4>Anuncios</h4>
+          <p>Avisos que aparecen para los alumnos dentro de la app (banner arriba del dashboard).</p>
+          <span class="tab-card-path">/admin/anuncios</span>
+        </div>
+      </div>
+      <div class="tab-card">
+        <div class="tab-card-icon">🏷️</div>
+        <div class="tab-card-body">
+          <h4>Tags</h4>
+          <p>Sistema de etiquetas de usuarios. Aquí asignás <code>setter</code> a quien vas a contratar.</p>
+          <span class="tab-card-path">/admin/tags</span>
+        </div>
+      </div>
+      <div class="tab-card">
+        <div class="tab-card-icon">☁️</div>
+        <div class="tab-card-body">
+          <h4>Drive</h4>
+          <p>Sincronización con Google Drive. Sirve para subir contenido masivo (no tocar a menos que sea estrictamente necesario).</p>
+          <span class="tab-card-path">/admin/google-drive</span>
+        </div>
+      </div>
+    </div>
+
+    <h3>Páginas internas (no en las tabs)</h3>
+    <p>Hay rutas adicionales que no aparecen como tabs pero son críticas:</p>
+    <ul>
+      <li><strong>Editor de videos</strong> · <code>/admin/videos</code> — editor planilla-centric de YouTube IDs por lección. <em>Tu herramienta principal de contenido.</em></li>
+      <li><strong>Ficha de alumno</strong> · <code>/admin/[userId]</code> — click en cualquier alumno desde /admin para abrir su ficha completa.</li>
+      <li><strong>Edit módulo</strong> · <code>/admin/edit/[moduleId]</code> — editor estructural de un módulo (cambiar el orden, agregar/quitar lecciones).</li>
+      <li><strong>YouTube import</strong> · <code>/admin/youtube-import</code> — import bulk por fecha desde tu canal YT.</li>
+    </ul>
+  </section>
+
+  <!-- 3. EDITOR DE VIDEOS -->
+  <section>
+    <h2><span class="sec-num">3</span>Editor de videos (planilla-centric)</h2>
+    <p class="sec-sub">Donde editás los YouTube IDs y títulos de cada lección del programa.</p>
+
+    <p>El editor está en <code>/admin/videos</code>. Su lógica:</p>
+    <ul>
+      <li><strong>Sidebar izquierdo</strong>: 4 planillas (Livianos, Medios, Simbio, Atléticos) con barra de progreso "X/Y videos asignados".</li>
+      <li><strong>Panel central</strong>: vas a ver Mes 0-6 con sus semanas y lecciones, con dot de status (🟢 tiene video / ⚪ sin video / 🟣 reflexión).</li>
+      <li><strong>Click en una lección</strong>: se expande inline. Cambiás título, pegás un URL/ID de YouTube o buscás por nombre en tu canal.</li>
+      <li><strong>Lecciones compartidas</strong> (Fundamentos + Mes 1 + Mes 2): tienen badge <strong>🔗 Compartida ×4</strong>. Si las editás, afecta las 4 planillas al mismo tiempo.</li>
+    </ul>
+
+    <div class="callout callout-warn">
+      <div class="callout-icon">⚠️</div>
+      <div class="callout-body">
+        <p><strong>Cuidado con las compartidas.</strong> Si cambiás el título o el video de una lección compartida (cualquier Sem 0-8), el cambio se replica a Livianos + Medios + Simbio + Atléticos. Pensalo dos veces antes de guardar.</p>
+      </div>
+    </div>
+
+    <h3>Cómo guardás un cambio</h3>
+    <ol class="steps">
+      <li>Click en la lección → se expande.</li>
+      <li>Pegás un URL/ID de YouTube o tipeás el nombre (busca en tu canal con la API).</li>
+      <li>Click en el resultado → preview se carga (privacy, embeddable, etc.).</li>
+      <li>Si todo está OK, click en <strong>"Guardar"</strong>.</li>
+    </ol>
+    <p>El cambio se aplica en tiempo real a <strong>todos los alumnos que ya tienen ese módulo asignado</strong> + queda registrado en la tabla <code>lesson_video_overrides</code> como canónico.</p>
+  </section>
+
+  <!-- 4. GESTIÓN DE ALUMNOS -->
+  <section>
+    <h2><span class="sec-num">4</span>Gestión de alumnos</h2>
+    <p class="sec-sub">Cómo agregar/asignar/configurar un alumno del programa.</p>
+
+    <h3>Crear un alumno nuevo (manual)</h3>
+    <ol class="steps">
+      <li>Andate a <code>/admin</code>.</li>
+      <li>Click en <strong>"Crear alumno"</strong>.</li>
+      <li>Completá nombre, email, contraseña inicial, planilla asignada (Livianos / Medios / Simbio / Atléticos).</li>
+      <li>El alumno arranca con <code>program_member=true</code> y todo el curso configurado.</li>
+      <li>Pasale las credenciales por DM/WhatsApp.</li>
+    </ol>
+
+    <h3>Cambiar la planilla de un alumno</h3>
+    <p>Click en la fila del alumno → ficha → dropdown "Planilla" → elegir → guardar. Reasigna todo el contenido del programa según la nueva planilla.</p>
+
+    <h3>Ver progreso de un alumno</h3>
+    <p>En su ficha vas a ver: % completado, última semana iniciada, qué lecciones marcó como vistas, reflexiones, todo.</p>
+  </section>
+
+  <!-- 5. SISTEMA DE LEADS -->
+  <section>
+    <h2><span class="sec-num">5</span>El sistema de leads</h2>
+    <p class="sec-sub">Cómo entra un prospecto, dónde aparece y cómo termina convertido.</p>
+
+    <h3>El embudo automático</h3>
+    <div class="pipeline">
+      <div class="pipe-step">
+        <div class="pipe-icon">📝</div>
+        <div class="pipe-title">1. Quiz</div>
+        <div class="pipe-desc">Lead llena /consultoria-gratuita</div>
+      </div>
+      <div class="pipe-step">
+        <div class="pipe-icon">📅</div>
+        <div class="pipe-title">2. Calendly</div>
+        <div class="pipe-desc">Reserva la call (opcional)</div>
+      </div>
+      <div class="pipe-step">
+        <div class="pipe-icon">💬</div>
+        <div class="pipe-title">3. Setter</div>
+        <div class="pipe-desc">Trabaja el lead</div>
+      </div>
+      <div class="pipe-step">
+        <div class="pipe-icon">💰</div>
+        <div class="pipe-title">4. Venta</div>
+        <div class="pipe-desc">Vos cobrás en CRM externo</div>
+      </div>
+    </div>
+
+    <h3>Cómo entra un lead al panel</h3>
+    <p>Cualquier persona que llene el quiz en <code>/consultoria-gratuita</code> genera una fila en <code>lead_quiz_responses</code> y aparece automáticamente en la columna <strong>"Sin agendar"</strong> del Kanban. Si después reserva en Calendly, el webhook lo mueve a <strong>"Agendados"</strong> y notifica al setter.</p>
+
+    <h3>Las 5 columnas del Kanban</h3>
+    <table>
+      <thead><tr><th>Columna</th><th>Significado</th><th>Quién la maneja</th></tr></thead>
+      <tbody>
+        <tr><td>Sin agendar</td><td>Llenó quiz pero no reservó Calendly</td><td>Setter</td></tr>
+        <tr><td>Agendados</td><td>Reservó Calendly</td><td>Setter (vos confirmás cuando haces la call)</td></tr>
+        <tr><td>Contactado</td><td>Setter empezó a trabajarlo</td><td>Setter</td></tr>
+        <tr><td>Descartado</td><td>No aplica / no quiere</td><td>Setter (con la X de hover)</td></tr>
+        <tr><td>Convertido 💰</td><td>Compró el programa</td><td><strong>Vos</strong> (vía CRM externo — auto)</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Cómo se mueve a "Convertido" automáticamente</h3>
+    <p>Cuando registrás una venta corriendo el script <code>node actualizar_venta.js '...'</code> del repo <code>crm-ventas</code>, el script:</p>
+    <ol>
+      <li>Actualiza tus Sheets (CRM, Finanzas, Cuotas).</li>
+      <li>Hace POST a <code>/api/integrations/crm-ventas/mark-sold</code> de jjl-app con email + monto + situación.</li>
+      <li>jjl-app busca el lead por email y mueve la card a "Convertido" automáticamente + persiste la venta en <code>lead_sales</code> para que aparezca con monto + comisión del setter.</li>
+    </ol>
+
+    <div class="callout callout-star">
+      <div class="callout-icon">🔑</div>
+      <div class="callout-body">
+        <p><strong>Crítico:</strong> el JSON que pasás al script tiene que incluir <code>email</code> del cliente. Sin eso, jjl-app no puede joinear con su lead — la venta queda registrada en Sheets pero la card no se mueve.</p>
+      </div>
+    </div>
+
+    <h3>Reglas de comisión del setter (5%)</h3>
+    <ul>
+      <li>Cada cuota que se cobra → 5% al setter.</li>
+      <li><strong>Fees / reservas</strong> NO suman comisión por sí solos. La comisión empieza cuando el cliente completa al menos una cuota del programa.</li>
+      <li>El setter ve solo su comisión y la cantidad de cuotas. <strong>Vos ves el monto bruto y la comisión.</strong></li>
+    </ul>
+  </section>
+
+  <!-- 6. TAGS Y CREAR UN SETTER -->
+  <section>
+    <h2><span class="sec-num">6</span>Onboardear un setter nuevo</h2>
+    <p class="sec-sub">El proceso end-to-end cuando contratás a alguien.</p>
+
+    <ol class="steps">
+      <li><strong>Crear su cuenta admin</strong>: andate a <code>/admin</code> → "Crear alumno" → completá email + password + rol = admin (manual via Supabase Dashboard si la UI no expone "admin").</li>
+      <li><strong>Asignarle el tag <code>setter</code></strong>: andate a <code>/admin/tags</code> → buscar al usuario → agregar tag "setter" → guardar.</li>
+      <li><strong>Pasale la guía de onboarding del setter</strong>: link → <code>https://alumno.jiujitsulatino.com/setter-onboarding.html</code></li>
+      <li><strong>Pasale el link de la planilla de actividad diaria</strong>: <code>https://docs.google.com/spreadsheets/d/1lPFajo8NMq_ZmIKZdRpDhb81t40HUOwFa3FiDD5knx0/edit?usp=sharing</code></li>
+      <li><strong>Pedile que active las notificaciones</strong> del browser cuando entre por primera vez (sin esto no recibe push en tiempo real).</li>
+      <li><strong>Mostrale el panel en vivo</strong>: hacé una call de 15 min con él para que vea el Kanban abierto, abra una ficha, registre un contacto. Mientras tanto, la guía de bienvenida de 6 pasos se le muestra automáticamente la primera vez.</li>
+    </ol>
+
+    <div class="callout callout-tip">
+      <div class="callout-icon">🎯</div>
+      <div class="callout-body">
+        <p><strong>Por qué el flujo del setter es restringido:</strong> al tener el tag <code>setter</code>, solo ve la tab "Agendas" y nada más. Si intenta entrar a <code>/admin/videos</code> o <code>/dashboard</code> por URL, el sistema lo redirige automático. <strong>No necesitás hacer nada extra</strong> — el sistema lo restringe solo.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7. SISTEMAS AUTOMÁTICOS -->
+  <section>
+    <h2><span class="sec-num">7</span>Lo que corre solo (sin que toques nada)</h2>
+    <p class="sec-sub">Crons, webhooks y notificaciones automáticas que ya están funcionando.</p>
+
+    <h3>Crons programados</h3>
+    <div class="cron-list">
+      <div class="cron-item">
+        <div class="cron-time">00:00 diario</div>
+        <div class="cron-body">
+          <div class="cron-title">/api/cron/daily-reminder</div>
+          <div class="cron-desc">Notif diaria a alumnos con racha activa.</div>
+        </div>
+      </div>
+      <div class="cron-item">
+        <div class="cron-time">23:00 dom</div>
+        <div class="cron-body">
+          <div class="cron-title">/api/cron/weekly-insight</div>
+          <div class="cron-desc">Insight semanal a alumnos (resumen + objetivo).</div>
+        </div>
+      </div>
+      <div class="cron-item">
+        <div class="cron-time">08:00 diario</div>
+        <div class="cron-body">
+          <div class="cron-title">/api/events/remind</div>
+          <div class="cron-desc">Recordatorios de eventos del calendario JJL.</div>
+        </div>
+      </div>
+      <div class="cron-item">
+        <div class="cron-time">13:00 diario</div>
+        <div class="cron-body">
+          <div class="cron-title">/api/cron/leads-followup</div>
+          <div class="cron-desc">Re-engagement de leads viejos (24h+ sin agendar).</div>
+        </div>
+      </div>
+      <div class="cron-item">
+        <div class="cron-time">9/14/18/23 diario</div>
+        <div class="cron-body">
+          <div class="cron-title">/api/admin/sync-drive-videos</div>
+          <div class="cron-desc">Sincro de videos desde Google Drive (4 veces al día).</div>
+        </div>
+      </div>
+      <div class="cron-item">
+        <div class="cron-time">12:00 diario</div>
+        <div class="cron-body">
+          <div class="cron-title">/api/cron/students-ready-1on1</div>
+          <div class="cron-desc">Detecta alumnos listos para call 1-on-1.</div>
+        </div>
+      </div>
+      <div class="cron-item">
+        <div class="cron-time">cada 1h</div>
+        <div class="cron-body">
+          <div class="cron-title">/api/cron/setter-no-book-followup <em style="color:var(--muted); font-weight:400;">(externo · cron-job.org)</em></div>
+          <div class="cron-desc">SLA: si un lead completó quiz hace +2hs y no agendó, notifica al setter. Por límite del plan Vercel Hobby, corre desde un cron externo gratis.</div>
+        </div>
+      </div>
+    </div>
+
+    <h3>Webhooks entrantes</h3>
+    <ul>
+      <li><strong>Calendly</strong> · cuando alguien agenda → <code>/api/webhooks/calendly</code> → marca <code>booked=true</code>, mueve a Agendados, notifica al setter.</li>
+      <li><strong>CRM ventas</strong> · cuando registrás una venta → <code>/api/integrations/crm-ventas/mark-sold</code> → mueve a Convertido + registra comisión.</li>
+    </ul>
+
+    <h3>Notificaciones automáticas al setter</h3>
+    <ul>
+      <li>🟢 <strong>Alguien agendó</strong>: instantánea via webhook Calendly.</li>
+      <li>⚠️ <strong>2hs sin agendar</strong>: SLA del cron horario externo.</li>
+    </ul>
+  </section>
+
+  <!-- 8. TAREAS PERIÓDICAS -->
+  <section>
+    <h2><span class="sec-num">8</span>Tus tareas como admin</h2>
+    <p class="sec-sub">Rutina recomendada — el panel funciona sin que hagas mucho, pero hay revisiones que conviene mantener.</p>
+
+    <div class="tasks">
+      <div class="tasks-title">
+        <div class="tasks-title-icon">📋</div>
+        <span>Diarias</span>
+      </div>
+      <div class="task-list">
+        <div class="task">
+          <div class="task-check"></div>
+          <div class="task-content">
+            <div class="task-time">Después de una venta</div>
+            <div class="task-title">Correr <code>actualizar_venta.js</code></div>
+            <p class="task-desc">Cada vez que cobrás algo (cuota, fee, venta nueva) → terminal → <code>node actualizar_venta.js '{ ...email... }'</code>. Esto actualiza Sheets + jjl-app automáticamente.</p>
+          </div>
+        </div>
+        <div class="task">
+          <div class="task-check"></div>
+          <div class="task-content">
+            <div class="task-time">5 min · una vez al día</div>
+            <div class="task-title">Mirar el Kanban</div>
+            <p class="task-desc">Verificá que el setter esté trabajando los leads (que no se acumulen en "Sin agendar"). Si ves más de 10 acumulados +24hs, charlá con él.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tasks">
+      <div class="tasks-title">
+        <div class="tasks-title-icon">📅</div>
+        <span>Semanales</span>
+      </div>
+      <div class="task-list">
+        <div class="task">
+          <div class="task-check"></div>
+          <div class="task-content">
+            <div class="task-time">Lunes</div>
+            <div class="task-title">Revisar planilla de actividad del setter</div>
+            <p class="task-desc">Abrí su Google Sheet. Volumen razonable: 20-40 outbound/día, 10-20 FUPs/día, 2-5 calls agendadas/semana. Si está muy abajo, charlá.</p>
+          </div>
+        </div>
+        <div class="task">
+          <div class="task-check"></div>
+          <div class="task-content">
+            <div class="task-time">Miércoles</div>
+            <div class="task-title">Conversión vs lead</div>
+            <p class="task-desc">En <code>/admin/agendas</code> stats arriba → "Conversión últ. 30d". Sano: ≥15%. Bajo: revisar quiz o estrategia con el setter.</p>
+          </div>
+        </div>
+        <div class="task">
+          <div class="task-check"></div>
+          <div class="task-content">
+            <div class="task-time">Viernes</div>
+            <div class="task-title">Limpieza de leads viejos</div>
+            <p class="task-desc">Filtrar leads con +30 días sin actividad y mandar a Descartado. Mantiene el Kanban limpio. SQL: <code>UPDATE lead_quiz_responses SET stage='descartado' WHERE created_at &lt; NOW() - INTERVAL '30 days' AND stage IN ('nuevo','contactado')</code>.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tasks">
+      <div class="tasks-title">
+        <div class="tasks-title-icon">🗓️</div>
+        <span>Mensuales</span>
+      </div>
+      <div class="task-list">
+        <div class="task">
+          <div class="task-check"></div>
+          <div class="task-content">
+            <div class="task-time">Primera semana del mes</div>
+            <div class="task-title">Cierre del mes anterior</div>
+            <p class="task-desc">Comisión total del setter del mes (de <code>/admin/agendas</code> stat top-right). Verificar manualmente con Sheets de Finanzas. Liquidar pago al setter.</p>
+          </div>
+        </div>
+        <div class="task">
+          <div class="task-check"></div>
+          <div class="task-content">
+            <div class="task-time">Revisar Supabase</div>
+            <div class="task-title">Egress vs límite del plan Free</div>
+            <p class="task-desc">Supabase Dashboard → Billing → ver <strong>Egress / 5 GB</strong>. Si está cerca del límite, bajar polling de algún panel o cachear más.</p>
+          </div>
+        </div>
+        <div class="task">
+          <div class="task-check"></div>
+          <div class="task-content">
+            <div class="task-time">Revisar Vercel</div>
+            <div class="task-title">Function invocations</div>
+            <p class="task-desc">Vercel Dashboard → Usage → ver "Function Invocations". Si llegás cerca del límite Hobby, optimizar endpoints más usados.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9. INTEGRACIÓN CON OTROS SISTEMAS -->
+  <section>
+    <h2><span class="sec-num">9</span>Cómo se conecta con el resto</h2>
+    <p class="sec-sub">jjl-app no vive aislada — interactúa con varios sistemas externos.</p>
+
+    <table>
+      <thead><tr><th>Sistema</th><th>Conexión</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>Supabase</td>
+          <td>DB + Auth. Service-role key en envs. <strong>Es tu único datastore.</strong></td>
+        </tr>
+        <tr>
+          <td>Calendly</td>
+          <td>Webhook entrante a <code>/api/webhooks/calendly</code> firmado con HMAC.</td>
+        </tr>
+        <tr>
+          <td>YouTube API</td>
+          <td>OAuth refresh token. Usado por <code>/admin/videos</code> y crons de sync.</td>
+        </tr>
+        <tr>
+          <td>CRM ventas</td>
+          <td>Script local <code>actualizar_venta.js</code> hace POST a <code>/api/integrations/crm-ventas/mark-sold</code>.</td>
+        </tr>
+        <tr>
+          <td>ManyChat</td>
+          <td>Manual. El setter tagea <strong>VENTA HIGH TICKET</strong> después de cada venta.</td>
+        </tr>
+        <tr>
+          <td>WhatsApp (CallMeBot)</td>
+          <td>Notifs salientes via env <code>WHATSAPP_NOTIFY_PHONE</code>. Para emergencias / alertas a vos.</td>
+        </tr>
+        <tr>
+          <td>cron-job.org</td>
+          <td>Trigger horario del SLA de leads (Vercel Hobby no permite sub-daily).</td>
+        </tr>
+        <tr>
+          <td>Vercel</td>
+          <td>Deploy + crons diarios + edge runtime.</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- 10. URLS Y RUTAS CLAVE -->
+  <section>
+    <h2><span class="sec-num">10</span>URLs clave</h2>
+    <p class="sec-sub">Para tener bookmarkeadas.</p>
+
+    <table>
+      <thead><tr><th>URL</th><th>Para qué</th></tr></thead>
+      <tbody>
+        <tr><td>/admin</td><td>Listado alumnos</td></tr>
+        <tr><td>/admin/agendas</td><td>Kanban leads</td></tr>
+        <tr><td>/admin/videos</td><td>Editor de videos</td></tr>
+        <tr><td>/admin/tags</td><td>Gestión de tags (asignar setter)</td></tr>
+        <tr><td>/admin/youtube-import</td><td>Import bulk YT</td></tr>
+        <tr><td>/setter-onboarding.html</td><td>Guía pública para el setter</td></tr>
+        <tr><td>/admin-onboarding.html</td><td>Esta guía (vos)</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- 11. TROUBLESHOOTING -->
+  <section>
+    <h2><span class="sec-num">11</span>Si algo falla</h2>
+
+    <table>
+      <thead><tr><th>Problema</th><th>Solución</th></tr></thead>
+      <tbody>
+        <tr><td>Vendí pero el lead sigue en "Agendados"</td><td>El script de CRM no incluyó <code>email</code> del cliente o el email no matchea. Movelo manualmente desde el Kanban.</td></tr>
+        <tr><td>Lead no aparece en el panel</td><td>Verificar en Supabase tabla <code>lead_quiz_responses</code>. Si está ahí, problema de cache (Ctrl+Shift+R). Si no, el formulario falló.</td></tr>
+        <tr><td>El setter no recibe notificaciones</td><td>Verificá que tenga tag <code>setter</code> en /admin/tags. Pedile que active push notifications en Chrome.</td></tr>
+        <tr><td>Cambié un video y no aparece para el alumno</td><td>Refresh hard de la app del alumno (Ctrl+Shift+R). El override se aplica al instante pero el cliente puede tener cache.</td></tr>
+        <tr><td>Build de Vercel falla</td><td>Mirar logs en Vercel → Deployments → Build Logs. Buscar la línea con <code>×</code>. Errores comunes: typecheck o useSearchParams sin Suspense.</td></tr>
+        <tr><td>Egress de Supabase pasó el límite</td><td>Bajar polling en agendas-client (<code>refreshInterval</code>). Ya está en 5 min, no bajar más.</td></tr>
+        <tr><td>cron-job.org dejó de disparar</td><td>Login a cron-job.org → ver si el job está habilitado y mirá el log de la última corrida.</td></tr>
+        <tr><td>Alguien se loguea y no ve nada</td><td>Verificá su <code>program_member=true</code> en la tabla users + que tenga <code>course_data</code> asignado.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <div class="footer">
+    <p style="margin: 0 0 6px;"><strong style="color: var(--text);">Este doc es la referencia. Tu memoria del sistema.</strong></p>
+    <p style="margin: 0;">Actualizalo cuando agreguemos algo nuevo. 🥋</p>
+  </div>
+
+</div>
+</body>
+</html>
