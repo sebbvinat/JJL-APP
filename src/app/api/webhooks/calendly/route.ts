@@ -125,13 +125,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    // Promover stage a 'agendado' SOLO si seguía en 'nuevo' (o NULL).
-    // No tocamos los manuales (contactado/descartado/convertido) del setter.
+    // Promover stage a 'agendado' siempre que el lead agendó, salvo si ya
+    // fue 'convertido' (terminal — ya cobramos, no degradar).
+    // OJO: pisamos 'descartado' a propósito: si un lead descartado vuelve
+    // y agenda, queremos verlo de nuevo en Agendados (no perderlo).
     await admin
       .from('lead_quiz_responses')
       .update({ stage: 'agendado' })
       .eq('session_id', sessionId)
-      .or('stage.is.null,stage.eq.nuevo');
+      .neq('stage', 'convertido');
 
     // Notificar al setter una sola vez por agendamiento. Idempotencia:
     // si setter_notified_booked_at ya está, no volvemos a disparar
