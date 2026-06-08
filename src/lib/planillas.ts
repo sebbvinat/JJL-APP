@@ -5,6 +5,7 @@ export interface PlanillaLesson {
   titulo: string;
   tipo: 'video' | 'reflection';
   youtube_id?: string;
+  descripcion?: string;
 }
 
 export interface PlanillaWeek {
@@ -21,8 +22,36 @@ export interface Planilla {
 }
 
 // Helpers
-const v = (titulo: string, youtube_id?: string): PlanillaLesson => ({ titulo, tipo: 'video', ...(youtube_id ? { youtube_id } : {}) });
+const v = (titulo: string, youtube_id?: string, descripcion?: string): PlanillaLesson => ({
+  titulo,
+  tipo: 'video',
+  ...(youtube_id ? { youtube_id } : {}),
+  ...(descripcion ? { descripcion } : {}),
+});
 const r = (): PlanillaLesson => ({ titulo: 'Reflexión semanal', tipo: 'reflection' });
+
+// =============================================
+// SHARED: Intro to the app (before Fundamentos)
+// =============================================
+// Aparece en TODAS las planillas, antes de Fundamentos. semana_numero=-1
+// para que el order ASC lo ponga primero. El module_id resultante es
+// 'mod-intro' (manejado en getPlanillaForSave).
+
+const INTRO_APP: PlanillaWeek = {
+  semana_numero: -1,
+  titulo: 'Cómo usar la app',
+  lessons: [
+    v('Intro + Módulos', '0JfFIickw04'),
+    v(
+      'El Diario',
+      'xwozOn-7olk',
+      'Importante: bajá la aplicación al celular — la vas a usar durante el entrenamiento para leer tus objetivos y anotar en el diario. Para descargarla, andá a https://alumno.jiujitsulatino.com desde tu celular: te va a ofrecer instalar la app, o vas a ver la opción de "Instalar en escritorio" (o similar) según tu navegador.',
+    ),
+    v('Subir Videos', 'r8snUHF1jnQ'),
+    v('Chat y Soporte', '140Zo0s1o7s'),
+    v('Herramientas Adicionales', '_wWGANPTKLU'),
+  ],
+};
 
 // =============================================
 // SHARED: Fundamentos + Months 1 & 2 (all programs)
@@ -1006,6 +1035,7 @@ export const PLANILLAS: Planilla[] = [
     nombre: 'Livianos',
     descripcion: 'Programa enfocado en Leg Trap, Stack Pass, Gola Manga y Cross Grip',
     weeks: [
+      INTRO_APP,
       FUNDAMENTOS,
       ...SHARED_MONTH_1,
       ...SHARED_MONTH_2,
@@ -1020,6 +1050,7 @@ export const PLANILLAS: Planilla[] = [
     nombre: 'Medios',
     descripcion: 'Programa enfocado en Pasaje De la Riva, Cross Grip y Guardia X',
     weeks: [
+      INTRO_APP,
       FUNDAMENTOS,
       ...SHARED_MONTH_1,
       ...SHARED_MONTH_2,
@@ -1034,6 +1065,7 @@ export const PLANILLAS: Planilla[] = [
     nombre: 'Simbio',
     descripcion: 'Programa enfocado en Reverse DLR, 1/2 Guardia, Over Under, Butterfly y Dog Fight',
     weeks: [
+      INTRO_APP,
       FUNDAMENTOS,
       ...SHARED_MONTH_1,
       ...SHARED_MONTH_2,
@@ -1048,6 +1080,7 @@ export const PLANILLAS: Planilla[] = [
     nombre: 'Atleticos',
     descripcion: 'Programa enfocado en Leg Trap, Cross Grip y Gola Manga',
     weeks: [
+      INTRO_APP,
       FUNDAMENTOS,
       ...SHARED_MONTH_1,
       ...SHARED_MONTH_2,
@@ -1103,7 +1136,11 @@ export function getPlanillaForSave(planillaId: string) {
   }
 
   return weeks.map((week) => {
-    const moduleId = `mod-${week.semana_numero}`;
+    // semana_numero=-1 es el módulo "Cómo usar la app" — tiene un module_id
+    // semántico ('mod-intro') en lugar de 'mod--1' que sería feo.
+    const isIntro = week.semana_numero === -1;
+    const moduleId = isIntro ? 'mod-intro' : `mod-${week.semana_numero}`;
+    const lessonSlug = isIntro ? 'intro' : `s${week.semana_numero}`;
     const mockLessons = mockLessonsMap ? (mockLessonsMap[moduleId] || []) : [];
 
     return {
@@ -1112,11 +1149,12 @@ export function getPlanillaForSave(planillaId: string) {
       titulo: week.titulo,
       descripcion: '',
       lessons: week.lessons.map((lesson, idx) => ({
-        id: `${planillaId}-s${week.semana_numero}-${idx}`,
+        id: `${planillaId}-${lessonSlug}-${idx}`,
         titulo: lesson.titulo,
         tipo: lesson.tipo,
         youtube_id: lesson.youtube_id || mockLessons[idx]?.youtube_id || '',
-        descripcion: mockLessons[idx]?.descripcion || '',
+        // descripcion del planilla tiene prioridad; si no, fallback al mock.
+        descripcion: lesson.descripcion || mockLessons[idx]?.descripcion || '',
         orden: idx,
       })),
     };

@@ -400,6 +400,7 @@ export default function AdminStudentPage() {
   }
 
   const monthGroups = [
+    { label: 'Cómo usar la app', range: [-1, -1] },
     { label: 'Fundamentos', range: [0, 0] },
     { label: 'Mes 1 (S1-S4)', range: [1, 4] },
     { label: 'Mes 2 (S5-S8)', range: [5, 8] },

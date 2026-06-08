@@ -52,7 +52,9 @@ export async function POST(request: NextRequest) {
   // Usamos ignoreDuplicates: true para no pisar accesos que el alumno
   // ya pueda tener (caso de re-asignación de la misma planilla).
   for (const mod of modules) {
-    const isInitialUnlock = mod.semana_numero >= 0 && mod.semana_numero <= 4;
+    // -1 = "Cómo usar la app" (siempre desbloqueado, sin contenido técnico).
+    // 0-4 = Fundamentos + Mes 1 (auto-unlock para arranque del alumno).
+    const isInitialUnlock = mod.semana_numero >= -1 && mod.semana_numero <= 4;
     await adminClient
       .from('user_access')
       .upsert(
