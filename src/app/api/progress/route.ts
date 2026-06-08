@@ -52,8 +52,18 @@ export async function GET(request: NextRequest) {
   const completedRows = (progressRes.data as Array<{ lesson_id: string }> | null) || [];
   const accessRows = (accessRes.data as Array<{ module_id: string }> | null) || [];
 
-  return NextResponse.json({
-    completedLessonIds: completedRows.map((d) => d.lesson_id),
-    unlockedModuleIds: accessRows.map((d) => d.module_id),
-  });
+  return NextResponse.json(
+    {
+      completedLessonIds: completedRows.map((d) => d.lesson_id),
+      unlockedModuleIds: accessRows.map((d) => d.module_id),
+    },
+    {
+      // Cache corto: el progreso cambia más seguido que la lista de módulos
+      // (cada vez que el alumno marca una lección). 30s es suficiente para
+      // ahorrar round-trip entre navegaciones rápidas y SWR revalida igual.
+      headers: {
+        'Cache-Control': 'private, max-age=30, stale-while-revalidate=120',
+      },
+    },
+  );
 }

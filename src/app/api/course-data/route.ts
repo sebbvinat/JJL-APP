@@ -84,7 +84,17 @@ export async function GET(request: NextRequest) {
         : [],
     }));
 
-    return NextResponse.json({ modules });
+    return NextResponse.json(
+      { modules },
+      {
+        // Cache de 60s en el browser + stale-while-revalidate 5min: el alumno
+        // vuelve a /modules y carga instantáneo desde cache, mientras tanto
+        // SWR revalida en background y refresca si hay cambios.
+        headers: {
+          'Cache-Control': 'private, max-age=60, stale-while-revalidate=300',
+        },
+      },
+    );
   }
 
   // Return single module for this user

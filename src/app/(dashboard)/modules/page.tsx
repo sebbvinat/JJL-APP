@@ -58,9 +58,11 @@ export default function ModulesPage() {
     { revalidateOnFocus: true, dedupingInterval: 30_000 }
   );
 
-  const loading = courseLoading || progressLoading;
-
-  if (loading && !courseData && !progress) {
+  // Render progresivo: en cuanto llega courseData mostramos las cards aunque
+  // progress todavía esté cargando. El alumno ve la lista al instante y el
+  // contador "X/Y lecciones" se rellena cuando llega el segundo fetch.
+  // Antes se esperaba a AMBOS endpoints — duplicaba el tiempo de espera.
+  if (courseLoading && !courseData) {
     return (
       <div className="space-y-6 max-w-4xl lg:max-w-5xl xl:max-w-6xl">
         <div className="space-y-2">
