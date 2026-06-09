@@ -1,6 +1,6 @@
 // NOTE: CACHE_NAME is bumped on every build by scripts/build-sw.mjs so the
 // browser detects an update → skipWaiting → controllerchange → client reload.
-const CACHE_NAME = 'jjl-1779296049950';
+const CACHE_NAME = 'jjl-1779910159132';
 const STATIC_CACHE = `${CACHE_NAME}-static`;
 const RUNTIME_CACHE = `${CACHE_NAME}-runtime`;
 
@@ -96,6 +96,47 @@ async function cacheFirst(request, cache) {
   return response;
 }
 
+/**
+ * Stale-while-revalidate: devolvemos lo que haya en cache INMEDIATAMENTE
+ * (si existe) y lanzamos un fetch en background para actualizarlo. La
+ * próxima carga ve el dato fresco. Es lo que hace que /modules cargue
+ * instantáneo cuando ya lo visitaste antes.
+ */
+async function staleWhileRevalidate(request, cache) {
+  const cached = await cache.match(request);
+  const networkPromise = fetch(request)
+    .then((response) => {
+      if (response && response.ok && request.method === 'GET') {
+        cache.put(request, response.clone()).catch(() => undefined);
+      }
+      return response;
+    })
+    .catch(() => undefined);
+  if (cached) return cached;
+  // Sin cache previo → esperar al network como network-first.
+  const response = await networkPromise;
+  if (response) return response;
+  return new Response(JSON.stringify({ error: 'offline' }), {
+    status: 503,
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+
+// APIs de SOLO LECTURA seguras de cachear con SWR. Endpoints sensibles
+// o que mutan estado (POST/PUT/DELETE, admin ops) NO entran acá.
+const SWR_API_PATHS = [
+  '/api/student-dashboard',
+  '/api/course-data',
+  '/api/progress',
+  '/api/auth/me',
+  '/api/announcements',
+  '/api/notifications',
+];
+
+function isSwrCacheable(url) {
+  return SWR_API_PATHS.some((p) => url.pathname === p || url.pathname.startsWith(`${p}?`));
+}
+
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   if (request.method !== 'GET') return;
@@ -103,7 +144,19 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
 
-  // API + versioning: always network, never cache, no offline fallback.
+  // API endpoints de SOLO LECTURA seguros → stale-while-revalidate. La
+  // segunda navegación a /modules carga instantáneo desde cache mientras
+  // SW pide al server en background.
+  if (isSwrCacheable(url)) {
+    event.respondWith(
+      caches.open(RUNTIME_CACHE).then((runtime) =>
+        staleWhileRevalidate(request, runtime),
+      ),
+    );
+    return;
+  }
+
+  // Resto de /api/* → network only, sin cache. POSTs, admin sensible, etc.
   if (url.pathname.startsWith('/api/')) {
     event.respondWith(
       fetch(request).catch(

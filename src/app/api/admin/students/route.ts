@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/supabase/server';
-import { computeMonthProgress, computeLastContactAt, MONTH_RANGES } from '@/lib/crm';
-import { computeStudentHealth } from '@/lib/student-health';
+import { MONTH_RANGES } from '@/lib/crm';
+import { computeStudentsEnrichmentBulk } from '@/lib/admin-students-bulk';
 
 /**
  * GET /api/admin/students
@@ -74,44 +74,47 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // ENRICH: por cada alumno, compute health + month progress. Solo para
-    // los program_member (no enriquecemos compradores de cursos sueltos).
-    const enrichedStudents = await Promise.all(
-      baseStudents.map(async (u) => {
-        const isProgramMember = (u as { program_member?: boolean }).program_member === true;
-        if (!isProgramMember || u.rol === 'admin') {
-          return u;
-        }
-        try {
-          const [month, lastContact] = await Promise.all([
-            computeMonthProgress(adminClient, u.id),
-            computeLastContactAt(adminClient, u.id),
-          ]);
-          const health = await computeStudentHealth(adminClient, u.id, {
-            isEligibleFor1on1: month.isEligibleFor1on1,
-          });
-          const currentBlock = month.currentMes !== null ? MONTH_RANGES.find((b) => b.mes === month.currentMes) : null;
-          const nextBlock = month.nextMes !== null ? MONTH_RANGES.find((b) => b.mes === month.nextMes) : null;
-          const startedAt = (u as { started_at?: string | null; created_at?: string }).started_at || u.created_at || null;
-          const daysInProgram = startedAt ? Math.floor((Date.now() - new Date(startedAt).getTime()) / 86_400_000) : null;
-          return {
-            ...u,
-            last_contact_at: lastContact,
-            days_in_program: daysInProgram,
-            current_mes_label: currentBlock?.label || null,
-            current_mes_percent: month.currentMesPercent,
-            next_mes_label: nextBlock?.label || null,
-            is_eligible_1on1: month.isEligibleFor1on1,
-            days_since_activity: health.daysSinceActivity,
-            alerts: health.alerts.slice(0, 3),
-            health_streak: health.streak,
-          };
-        } catch (err) {
-          console.error('[students enrich]', u.id, err);
-          return u;
-        }
-      })
-    );
+    // ENRICH: BULK compute. Antes este bloque hacía 11 queries POR alumno
+    // (Promise.all sobre map async + Promise.all interno). Ahora hace 9
+    // queries CONSTANTES en paralelo, batchando por userIds. Para 15
+    // alumnos eso es 165 queries → 9 (-94%).
+    //
+    // Seguimos enriqueciendo solo program_member (cursos sueltos quedan
+    // como baseStudents).
+    const programMemberIds = baseStudents
+      .filter((u) => (u as { program_member?: boolean }).program_member === true && u.rol !== 'admin')
+      .map((u) => u.id);
+
+    let enrichmentMap = new Map<string, Awaited<ReturnType<typeof computeStudentsEnrichmentBulk>> extends Map<string, infer V> ? V : never>();
+    if (programMemberIds.length > 0) {
+      try {
+        enrichmentMap = await computeStudentsEnrichmentBulk(adminClient, programMemberIds);
+      } catch (err) {
+        console.error('[students enrich bulk]', err);
+      }
+    }
+
+    const enrichedStudents = baseStudents.map((u) => {
+      const enrichment = enrichmentMap.get(u.id);
+      if (!enrichment) return u;
+      const { month, lastContactAt, health } = enrichment;
+      const currentBlock = month.currentMes !== null ? MONTH_RANGES.find((b) => b.mes === month.currentMes) : null;
+      const nextBlock = month.nextMes !== null ? MONTH_RANGES.find((b) => b.mes === month.nextMes) : null;
+      const startedAt = (u as { started_at?: string | null; created_at?: string }).started_at || u.created_at || null;
+      const daysInProgram = startedAt ? Math.floor((Date.now() - new Date(startedAt).getTime()) / 86_400_000) : null;
+      return {
+        ...u,
+        last_contact_at: lastContactAt,
+        days_in_program: daysInProgram,
+        current_mes_label: currentBlock?.label || null,
+        current_mes_percent: month.currentMesPercent,
+        next_mes_label: nextBlock?.label || null,
+        is_eligible_1on1: month.isEligibleFor1on1,
+        days_since_activity: health.daysSinceActivity,
+        alerts: health.alerts.slice(0, 3),
+        health_streak: health.streak,
+      };
+    });
 
     return NextResponse.json(
       { students: enrichedStudents },

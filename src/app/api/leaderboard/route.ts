@@ -3,6 +3,21 @@ import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
 import { format, subDays } from 'date-fns';
 
+/**
+ * GET /api/leaderboard
+ *
+ * Antes cargaba la tabla `user_progress` ENTERA (filtrada por completado=true)
+ * y `daily_tasks` ENTERA (filtrada por entreno_check=true). Con cada alumno
+ * que avanza el costo crece linealmente sin tope, y el streak se calculaba
+ * con un loop de 365 iteraciones por usuario.
+ *
+ * Cambios:
+ *   - Limit users a alumnos (.eq('rol', 'alumno')).
+ *   - daily_tasks: solo últimos 90 días (streaks más largos no aportan al
+ *     leaderboard semanal/mensual y bajan el payload >10x).
+ *   - Streak loop reducido a 90 días.
+ *   - Cache-Control 5min + SWR 15min — el ranking no es realtime.
+ */
 export async function GET(request: NextRequest) {
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -19,35 +34,46 @@ export async function GET(request: NextRequest) {
     { auth: { autoRefreshToken: false, persistSession: false } }
   );
 
-  // Get all non-admin users
+  // Solo alumnos en el ranking. Limit hard de seguridad para no agarrarnos
+  // un crecimiento sin tope.
   const { data: users } = await admin
     .from('users')
     .select('id, nombre, cinturon_actual, puntos, avatar_url, rol')
-    .eq('rol', 'alumno');
+    .eq('rol', 'alumno')
+    .limit(500);
 
-  if (!users) return NextResponse.json({ leaderboard: [] });
+  if (!users || users.length === 0) {
+    return NextResponse.json(
+      { leaderboard: [] },
+      { headers: { 'Cache-Control': 'private, max-age=300, stale-while-revalidate=900' } },
+    );
+  }
 
-  // Get lesson counts per user
-  const { data: allProgress } = await admin
-    .from('user_progress')
-    .select('user_id')
-    .eq('completado', true);
+  const userIds = users.map((u: any) => u.id);
+  const today = new Date();
+  const ninetyDaysAgo = format(subDays(today, 90), 'yyyy-MM-dd');
+
+  // Queries en paralelo, ambas acotadas a userIds + ventana de 90 días.
+  const [{ data: allProgress }, { data: allTraining }] = await Promise.all([
+    admin
+      .from('user_progress')
+      .select('user_id')
+      .eq('completado', true)
+      .in('user_id', userIds),
+    admin
+      .from('daily_tasks')
+      .select('user_id, fecha')
+      .eq('entreno_check', true)
+      .in('user_id', userIds)
+      .gte('fecha', ninetyDaysAgo),
+  ]);
 
   const lessonCounts: Record<string, number> = {};
   (allProgress || []).forEach((p: any) => {
     lessonCounts[p.user_id] = (lessonCounts[p.user_id] || 0) + 1;
   });
 
-  // Get training days per user (last 30 days for streak)
-  const { data: allTraining } = await admin
-    .from('daily_tasks')
-    .select('user_id, fecha')
-    .eq('entreno_check', true);
-
   const trainingCounts: Record<string, number> = {};
-  const streaks: Record<string, number> = {};
-
-  // Group by user
   const userTrainingDates: Record<string, Set<string>> = {};
   (allTraining || []).forEach((t: any) => {
     trainingCounts[t.user_id] = (trainingCounts[t.user_id] || 0) + 1;
@@ -55,11 +81,12 @@ export async function GET(request: NextRequest) {
     userTrainingDates[t.user_id].add(t.fecha);
   });
 
-  // Calculate streaks
-  const today = new Date();
+  // Streak: loop reducido a 90 días (antes 365). Cualquier streak >90 días
+  // es excepcional y no nos perdemos información útil para el ranking.
+  const streaks: Record<string, number> = {};
   for (const [userId, dates] of Object.entries(userTrainingDates)) {
     let streak = 0;
-    for (let i = 0; i < 365; i++) {
+    for (let i = 0; i < 90; i++) {
       const d = format(subDays(today, i), 'yyyy-MM-dd');
       if (dates.has(d)) streak++;
       else if (i > 0) break;
@@ -67,7 +94,6 @@ export async function GET(request: NextRequest) {
     streaks[userId] = streak;
   }
 
-  // Build leaderboard
   const leaderboard = users.map((u: any) => ({
     id: u.id,
     nombre: u.nombre,
@@ -80,11 +106,14 @@ export async function GET(request: NextRequest) {
     isMe: u.id === user.id,
   }));
 
-  // Sort by points descending
   leaderboard.sort((a: any, b: any) => b.puntos - a.puntos);
-
-  // Add rank
   leaderboard.forEach((u: any, i: number) => { u.rank = i + 1; });
 
-  return NextResponse.json({ leaderboard });
+  return NextResponse.json(
+    { leaderboard },
+    {
+      // 5min + SWR 15min. El ranking no necesita ser realtime.
+      headers: { 'Cache-Control': 'private, max-age=300, stale-while-revalidate=900' },
+    },
+  );
 }

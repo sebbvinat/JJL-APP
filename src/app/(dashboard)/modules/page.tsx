@@ -23,11 +23,8 @@ interface ModuleInfo {
   lessons: LessonBasic[];
 }
 
-interface CourseDataResponse {
+interface StudentDashboardResponse {
   modules: ModuleInfo[];
-}
-
-interface ProgressResponse {
   completedLessonIds: string[];
   unlockedModuleIds: string[];
 }
@@ -46,19 +43,18 @@ const FALLBACK_MODULES: ModuleInfo[] = MOCK_MODULES.map((mod) => {
 });
 
 export default function ModulesPage() {
-  const { data: courseData, isLoading: courseLoading } = useSWR<CourseDataResponse>(
-    '/api/course-data?all=true',
-    fetcher,
-    // revalidateOnFocus:false — el cache HTTP (60s + SWR=300s) ya cubre.
-    // Re-fetchear en cada cambio de tab era exceso.
-    { revalidateOnFocus: false, dedupingInterval: 60_000 }
-  );
-
-  const { data: progress, isLoading: progressLoading } = useSWR<ProgressResponse>(
-    '/api/progress',
+  // Un solo endpoint combina lo que antes hacían 2 (course-data + progress).
+  // Mismo cache + half the round-trips → carga más rápida en first paint.
+  const { data, isLoading: loading } = useSWR<StudentDashboardResponse>(
+    '/api/student-dashboard',
     fetcher,
     { revalidateOnFocus: false, dedupingInterval: 30_000 }
   );
+
+  const courseData = data;
+  const progress = data;
+  const courseLoading = loading;
+  const progressLoading = loading;
 
   // Render progresivo: en cuanto llega courseData mostramos las cards aunque
   // progress todavía esté cargando. El alumno ve la lista al instante y el
