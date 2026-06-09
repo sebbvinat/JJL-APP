@@ -5,9 +5,10 @@ export function normTitle(s: string): string {
   return (s || '').toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '').trim();
 }
 
-/** Lecciones de las semanas 0..8 son SHARED entre las 4 planillas. */
+/** Lecciones de las semanas -1..8 son SHARED entre las 4 planillas
+ *  (-1 = "Cómo usar la app", igual en las 4). */
 export function isSharedSemana(semana_numero: number): boolean {
-  return semana_numero >= 0 && semana_numero <= 8;
+  return semana_numero >= -1 && semana_numero <= 8;
 }
 
 /** Mapea semana_numero -> número de mes (0=Fundamentos, 1-6 meses). */

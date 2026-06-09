@@ -1,6 +1,6 @@
 // NOTE: CACHE_NAME is bumped on every build by scripts/build-sw.mjs so the
 // browser detects an update → skipWaiting → controllerchange → client reload.
-const CACHE_NAME = 'jjl-1780973000003-fix-user-provider';
+const CACHE_NAME = 'jjl-1781037368204';
 const STATIC_CACHE = `${CACHE_NAME}-static`;
 const RUNTIME_CACHE = `${CACHE_NAME}-runtime`;
 

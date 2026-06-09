@@ -40,7 +40,7 @@ export default function ModuleCard({
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <span className="inline-flex items-center h-6 px-2 rounded-md bg-jjl-red/10 border border-jjl-red/20 text-jjl-red text-[11px] font-bold uppercase tracking-[0.14em]">
-              {semana === 0 ? 'Intro' : `S${semana}`}
+              {semana === -1 ? 'App' : semana === 0 ? 'Intro' : `S${semana}`}
             </span>
             {isCompleted && unlocked && (
               <span className="inline-flex items-center gap-1 h-6 px-2 rounded-md bg-green-500/10 border border-green-500/20 text-green-400 text-[11px] font-semibold">

@@ -15,7 +15,12 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 export type MonthBlock = { mes: number; label: string; semanas: number[] };
 
 export const MONTH_RANGES: MonthBlock[] = [
-  { mes: 0, label: 'Fundamentos', semanas: [0] },
+  // semana_numero=-1 es el módulo "Cómo usar la app" (mod-intro). Lo
+  // agrupamos dentro del bloque Fundamentos (mes 0) para que TODA la lógica
+  // CRM lo contemple: progreso, % de mes, elegibilidad 1-on-1 y desbloqueo
+  // rápido por mes. No le damos un mes propio negativo porque el resto del
+  // código asume que el valor `mes` coincide con el índice del array (0-6).
+  { mes: 0, label: 'Fundamentos', semanas: [-1, 0] },
   { mes: 1, label: 'Mes 1', semanas: [1, 2, 3, 4] },
   { mes: 2, label: 'Mes 2', semanas: [5, 6, 7, 8] },
   { mes: 3, label: 'Mes 3', semanas: [9, 10, 11, 12] },

@@ -76,7 +76,7 @@ export default function Step2Program({ isAdmin, onNext, onSkip }: Props) {
               className="flex items-center gap-3 rounded-lg border border-jjl-border bg-white/[0.02] p-3"
             >
               <span className="inline-flex h-8 px-2 items-center rounded-md bg-jjl-red/10 border border-jjl-red/20 text-jjl-red text-[10px] font-bold uppercase tracking-[0.14em]">
-                {m.semana_numero === 0 ? 'Intro' : `S${m.semana_numero}`}
+                {m.semana_numero === -1 ? 'App' : m.semana_numero === 0 ? 'Intro' : `S${m.semana_numero}`}
               </span>
               <div className="flex-1 min-w-0">
                 <p className="text-[13px] font-semibold text-white truncate">{m.titulo}</p>

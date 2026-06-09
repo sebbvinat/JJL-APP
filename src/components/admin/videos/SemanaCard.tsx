@@ -56,7 +56,7 @@ export default function SemanaCard({
       <header className="flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-white/[0.025] to-transparent border-b border-jjl-border/50">
         <div className="flex items-center gap-2 shrink-0">
           <span className="inline-flex h-7 px-2 items-center rounded-md bg-jjl-red/12 border border-jjl-red/25 text-jjl-red text-[10px] font-bold uppercase tracking-[0.14em]">
-            {week.semana_numero === 0 ? 'Intro' : `Sem ${week.semana_numero}`}
+            {week.semana_numero === -1 ? 'App' : week.semana_numero === 0 ? 'Intro' : `Sem ${week.semana_numero}`}
           </span>
           {shared && (
             <span className="hidden sm:inline-block text-[9px] font-bold uppercase tracking-wider text-blue-300 bg-blue-500/10 border border-blue-500/30 px-1.5 py-0.5 rounded">

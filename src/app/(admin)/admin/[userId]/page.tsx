@@ -690,7 +690,7 @@ export default function AdminStudentPage() {
                 return (
                   <div key={mod.id} className="flex items-center gap-3">
                     <span className="text-xs font-bold text-jjl-red w-8 shrink-0">
-                      {mod.semana_numero === 0 ? 'Intro' : `S${mod.semana_numero}`}
+                      {mod.semana_numero === -1 ? 'App' : mod.semana_numero === 0 ? 'Intro' : `S${mod.semana_numero}`}
                     </span>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between mb-0.5">
@@ -877,7 +877,7 @@ export default function AdminStudentPage() {
                           {isExpanded ? <ChevronDown className="h-4 w-4 text-jjl-muted shrink-0" />
                             : <ChevronRight className="h-4 w-4 text-jjl-muted shrink-0" />}
                           <span className="text-xs font-bold text-jjl-red w-8 shrink-0">
-                            {mod.semana_numero === 0 ? 'Intro' : `S${mod.semana_numero}`}
+                            {mod.semana_numero === -1 ? 'App' : mod.semana_numero === 0 ? 'Intro' : `S${mod.semana_numero}`}
                           </span>
                           <div className="min-w-0">
                             <span className={`text-sm truncate block ${isUnlocked ? 'text-white' : 'text-jjl-muted'}`}>

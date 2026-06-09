@@ -181,7 +181,8 @@ export default function ModuleDetailPage() {
   const progress = videoLessons.length > 0 ? Math.round((completedCount / videoLessons.length) * 100) : 0;
   const isReflection = activeLesson?.tipo === 'reflection';
 
-  const monthLabel = moduleInfo.semana_numero === 0 ? 'Intro' :
+  const monthLabel = moduleInfo.semana_numero === -1 ? 'Inicio' :
+    moduleInfo.semana_numero === 0 ? 'Intro' :
     moduleInfo.semana_numero <= 4 ? 'Mes 1' :
     moduleInfo.semana_numero <= 8 ? 'Mes 2' :
     moduleInfo.semana_numero <= 12 ? 'Mes 3' :
@@ -215,7 +216,7 @@ export default function ModuleDetailPage() {
         <div>
           <div className="flex items-center gap-2">
             <span className="text-xs text-jjl-red font-semibold uppercase tracking-wider">
-              {moduleInfo.semana_numero === 0 ? 'Fundamentos' : `Semana ${moduleInfo.semana_numero}`}
+              {moduleInfo.semana_numero === -1 ? 'Cómo usar la app' : moduleInfo.semana_numero === 0 ? 'Fundamentos' : `Semana ${moduleInfo.semana_numero}`}
             </span>
             <span className="text-xs text-jjl-muted">— {monthLabel}</span>
           </div>
