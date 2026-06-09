@@ -20,17 +20,11 @@ export async function GET(request: NextRequest) {
       .eq('leido', false),
   ]);
 
-  return NextResponse.json(
-    {
-      notifications: notifications || [],
-      unreadCount: unreadCount ?? 0,
-    },
-    {
-      // 30s de cache + SWR 2min. Es suficiente — push real-time igual entra
-      // por service worker independientemente del polling de GET.
-      headers: { 'Cache-Control': 'private, max-age=30, stale-while-revalidate=120' },
-    },
-  );
+  // Cache HTTP removido (defensivo).
+  return NextResponse.json({
+    notifications: notifications || [],
+    unreadCount: unreadCount ?? 0,
+  });
 }
 
 // PATCH: mark notifications as read

@@ -64,16 +64,10 @@ export async function GET(request: NextRequest) {
   const completedRows = (progressRes.data as Array<{ lesson_id: string }> | null) || [];
   const accessRows = (accessRes.data as Array<{ module_id: string }> | null) || [];
 
-  return NextResponse.json(
-    {
-      modules,
-      completedLessonIds: completedRows.map((d) => d.lesson_id),
-      unlockedModuleIds: accessRows.map((d) => d.module_id),
-    },
-    {
-      headers: {
-        'Cache-Control': 'private, max-age=30, stale-while-revalidate=180',
-      },
-    },
-  );
+  // Cache HTTP removido (defensivo).
+  return NextResponse.json({
+    modules,
+    completedLessonIds: completedRows.map((d) => d.lesson_id),
+    unlockedModuleIds: accessRows.map((d) => d.module_id),
+  });
 }
