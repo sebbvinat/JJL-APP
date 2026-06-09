@@ -51,7 +51,10 @@ export default function DashboardPage() {
     `/api/dashboard-stats?today=${today}`,
     fetcher,
     {
-      revalidateOnFocus: true,
+      // revalidateOnFocus:false — dashboard-stats no es tiempo real; cambia
+      // con cada lección completada o entreno marcado. SWR igual revalida
+      // si el dato está stale al volver a la página.
+      revalidateOnFocus: false,
       revalidateIfStale: true,
       dedupingInterval: 30_000,
     }

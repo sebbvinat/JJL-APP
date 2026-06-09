@@ -30,7 +30,15 @@ export default function VersionCheck() {
     }
 
     checkVersion();
-    const interval = setInterval(checkVersion, 60_000);
+    // Polling cada 5 min (antes era 60s — innecesariamente agresivo). El
+    // chequeo en visibilitychange cubre "vuelvo después de horas" sin
+    // gastar requests en background. Además ahora salteamos el tick del
+    // setInterval si el tab está oculto: si estás haciendo otra cosa, no
+    // tiene sentido chequear versión.
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'hidden') return;
+      checkVersion();
+    }, 300_000);
     const onVisible = () => {
       if (document.visibilityState === 'visible') checkVersion();
     };

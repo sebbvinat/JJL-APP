@@ -115,14 +115,20 @@ export async function GET(request: NextRequest) {
     for (const k of Object.keys(by_lead)) {
       by_lead[k] = { ...by_lead[k], total_monto: 0, moneda: null };
     }
-    return NextResponse.json({
-      by_lead,
-      totals: { total_monto: 0, total_comision: totalComision, leads_convertidos },
-    });
+    return NextResponse.json(
+      {
+        by_lead,
+        totals: { total_monto: 0, total_comision: totalComision, leads_convertidos },
+      },
+      { headers: { 'Cache-Control': 'private, max-age=30, stale-while-revalidate=120' } },
+    );
   }
 
-  return NextResponse.json({
-    by_lead,
-    totals: { total_monto, total_comision: totalComision, leads_convertidos },
-  });
+  return NextResponse.json(
+    {
+      by_lead,
+      totals: { total_monto, total_comision: totalComision, leads_convertidos },
+    },
+    { headers: { 'Cache-Control': 'private, max-age=30, stale-while-revalidate=120' } },
+  );
 }

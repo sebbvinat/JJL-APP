@@ -40,7 +40,12 @@ export async function GET(request: NextRequest) {
     }
     return NextResponse.json({ announcements: [], error: error.message });
   }
-  if (!data || data.length === 0) return NextResponse.json({ announcements: [] });
+  if (!data || data.length === 0) {
+    return NextResponse.json(
+      { announcements: [] },
+      { headers: { 'Cache-Control': 'private, max-age=60, stale-while-revalidate=300' } },
+    );
+  }
 
   const { data: dismissals } = await admin
     .from('announcement_dismissals')
@@ -57,5 +62,11 @@ export async function GET(request: NextRequest) {
       return (b.created_at || '').localeCompare(a.created_at || '');
     });
 
-  return NextResponse.json({ announcements: active });
+  return NextResponse.json(
+    { announcements: active },
+    {
+      // Anuncios cambian raro — vale cachear 1min con SWR de 5min.
+      headers: { 'Cache-Control': 'private, max-age=60, stale-while-revalidate=300' },
+    },
+  );
 }

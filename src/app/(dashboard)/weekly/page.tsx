@@ -97,7 +97,7 @@ export default function WeeklyPage() {
   const { data, isLoading } = useSWR<WeeklyResponse>(
     `/api/weekly-summary?week=${weekParam}`,
     fetcher,
-    { revalidateOnFocus: true, dedupingInterval: 30_000 }
+    { revalidateOnFocus: false, dedupingInterval: 30_000 }
   );
   const { mutate } = useSWRConfig();
   const toast = useToast();

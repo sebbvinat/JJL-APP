@@ -35,7 +35,12 @@ export default function AnnouncementsBar() {
 
   useEffect(() => {
     void load();
-    const t = setInterval(load, 60_000); // chequea cada minuto si hay nuevos
+    // Cada 5 min (antes 60s). Los anuncios cambian raro — no vale gastar
+    // 60 requests/hora por usuario chequeándolos cada minuto.
+    const t = setInterval(() => {
+      if (document.visibilityState === 'hidden') return;
+      void load();
+    }, 300_000);
     return () => clearInterval(t);
   }, [load]);
 

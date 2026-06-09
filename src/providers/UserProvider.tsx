@@ -39,7 +39,10 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         if (user) {
           const { data } = await supabase
             .from('users')
-            .select('*')
+            // Columnas específicas en lugar de '*' — reduce el payload y la
+            // latencia. Incluye todo lo que se lee desde profile en cliente
+            // (rol, tags, planilla, onboarding, cinturón, lifecycle, etc.).
+            .select('id, nombre, email, avatar_url, rol, tags, program_member, planilla_id, cinturon_actual, puntos, onboarding_step, onboarding_completed_at, lifecycle_stage, started_at, setter_guide_seen_at, created_at, updated_at')
             .eq('id', user.id)
             .single();
           if (mounted) setProfile(data);

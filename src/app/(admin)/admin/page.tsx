@@ -101,7 +101,8 @@ function StudentsManagement() {
   const { data, isLoading } = useSWR<{ students: StudentRow[] }>(
     '/api/admin/students',
     fetcher,
-    { revalidateOnFocus: true }
+    // Lista de alumnos cambia raro mid-sesión — no vale revalidar en focus.
+    { revalidateOnFocus: false, dedupingInterval: 60_000 }
   );
   const students = data?.students || [];
 

@@ -76,7 +76,14 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    return NextResponse.json({ leads });
+    return NextResponse.json(
+      { leads },
+      {
+        // 30s + SWR 2min. El Kanban polea cada 5min — entre navegaciones
+        // rápidas conviene cachear para no traer 500 filas siempre.
+        headers: { 'Cache-Control': 'private, max-age=30, stale-while-revalidate=120' },
+      },
+    );
   } catch (err) {
     logger.error('admin.leads.unhandled', { err });
     return NextResponse.json({ error: 'Error interno' }, { status: 500 });

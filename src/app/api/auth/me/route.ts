@@ -21,6 +21,11 @@ export async function GET(request: NextRequest) {
     .eq('id', user.id)
     .single();
 
+  // 2min de cache + SWR 10min. El perfil del admin rarísimo cambia mid-sesión.
+  const cacheHeaders = {
+    'Cache-Control': 'private, max-age=120, stale-while-revalidate=600',
+  };
+
   if (error) {
     // Pre-migración: columna setter_guide_seen_at puede no existir todavía
     if (/column .* does not exist/i.test(error.message)) {
@@ -29,10 +34,10 @@ export async function GET(request: NextRequest) {
         .select('id, nombre, tags')
         .eq('id', user.id)
         .single();
-      return NextResponse.json({ user: fallback });
+      return NextResponse.json({ user: fallback }, { headers: cacheHeaders });
     }
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  return NextResponse.json({ user: data });
+  return NextResponse.json({ user: data }, { headers: cacheHeaders });
 }

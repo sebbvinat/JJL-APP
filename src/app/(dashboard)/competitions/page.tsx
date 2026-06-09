@@ -84,7 +84,7 @@ export default function CompetitionsPage() {
   const { data, isLoading } = useSWR<{ competitions: Competition[] }>(
     '/api/competitions',
     fetcher,
-    { revalidateOnFocus: true, dedupingInterval: 30_000 }
+    { revalidateOnFocus: false, dedupingInterval: 30_000 }
   );
   const { mutate } = useSWRConfig();
   const toast = useToast();

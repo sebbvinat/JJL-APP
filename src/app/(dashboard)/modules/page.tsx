@@ -49,13 +49,15 @@ export default function ModulesPage() {
   const { data: courseData, isLoading: courseLoading } = useSWR<CourseDataResponse>(
     '/api/course-data?all=true',
     fetcher,
-    { revalidateOnFocus: true, dedupingInterval: 60_000 }
+    // revalidateOnFocus:false — el cache HTTP (60s + SWR=300s) ya cubre.
+    // Re-fetchear en cada cambio de tab era exceso.
+    { revalidateOnFocus: false, dedupingInterval: 60_000 }
   );
 
   const { data: progress, isLoading: progressLoading } = useSWR<ProgressResponse>(
     '/api/progress',
     fetcher,
-    { revalidateOnFocus: true, dedupingInterval: 30_000 }
+    { revalidateOnFocus: false, dedupingInterval: 30_000 }
   );
 
   // Render progresivo: en cuanto llega courseData mostramos las cards aunque

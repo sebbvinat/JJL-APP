@@ -169,7 +169,7 @@ function MyVideosTab() {
   const { data, isLoading } = useSWR<{ videos: VideoRow[] }>(
     '/api/videos',
     fetcher,
-    { revalidateOnFocus: true, dedupingInterval: 30_000 }
+    { revalidateOnFocus: false, dedupingInterval: 30_000 }
   );
   const videos = data?.videos || [];
 

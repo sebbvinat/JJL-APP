@@ -57,7 +57,7 @@ const STATUS_META: Record<
 export default function StudentVideos({ userId }: { userId: string }) {
   const key = `/api/videos?user=${userId}`;
   const { data, isLoading } = useSWR<{ videos: VideoRow[] }>(key, fetcher, {
-    revalidateOnFocus: true,
+    revalidateOnFocus: false,
     dedupingInterval: 30_000,
   });
   const { mutate } = useSWRConfig();

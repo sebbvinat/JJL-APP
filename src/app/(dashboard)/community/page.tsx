@@ -79,7 +79,7 @@ export default function CommunityPage() {
 
   const postsKey = `/api/community/posts?category=${activeCategory}`;
   const { data, isLoading, mutate } = useSWR<{ posts: Post[]; isAdmin?: boolean }>(postsKey, fetcher, {
-    revalidateOnFocus: true,
+    revalidateOnFocus: false,
     dedupingInterval: 30_000,
   });
   const posts = data?.posts || [];

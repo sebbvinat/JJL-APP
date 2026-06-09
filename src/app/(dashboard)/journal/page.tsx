@@ -207,7 +207,7 @@ export default function JournalPage() {
   );
 
   const { data: historyData } = useSWR<{ history: HistoryEntry[] }>(historyKey, fetcher, {
-    revalidateOnFocus: true,
+    revalidateOnFocus: false,
     dedupingInterval: 30_000,
   });
 

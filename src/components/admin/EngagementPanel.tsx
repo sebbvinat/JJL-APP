@@ -87,7 +87,7 @@ function puntajeTone(value: number | null) {
 
 export default function EngagementPanel() {
   const { data, isLoading } = useSWR<Response>('/api/admin/engagement', fetcher, {
-    revalidateOnFocus: true,
+    revalidateOnFocus: false,
     dedupingInterval: 60_000,
   });
 

@@ -65,7 +65,13 @@ export async function GET(request: NextRequest) {
     }));
 
     if (!enrich) {
-      return NextResponse.json({ students: baseStudents });
+      return NextResponse.json(
+        { students: baseStudents },
+        {
+          // Lista de alumnos cambia raro — 1min de cache + SWR 5min.
+          headers: { 'Cache-Control': 'private, max-age=60, stale-while-revalidate=300' },
+        },
+      );
     }
 
     // ENRICH: por cada alumno, compute health + month progress. Solo para
@@ -107,7 +113,13 @@ export async function GET(request: NextRequest) {
       })
     );
 
-    return NextResponse.json({ students: enrichedStudents });
+    return NextResponse.json(
+      { students: enrichedStudents },
+      {
+        // Enrich es caro — cachear más agresivo para amortizar el cómputo.
+        headers: { 'Cache-Control': 'private, max-age=60, stale-while-revalidate=300' },
+      },
+    );
   } catch (error) {
     console.error('Students list error:', error);
     return NextResponse.json({ error: 'Error interno' }, { status: 500 });
