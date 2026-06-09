@@ -122,19 +122,23 @@ async function staleWhileRevalidate(request, cache) {
   });
 }
 
-// APIs de SOLO LECTURA seguras de cachear con SWR. Endpoints sensibles
-// o que mutan estado (POST/PUT/DELETE, admin ops) NO entran acá.
-const SWR_API_PATHS = [
-  '/api/student-dashboard',
-  '/api/course-data',
-  '/api/progress',
-  '/api/auth/me',
-  '/api/announcements',
-  '/api/notifications',
-];
+// IMPORTANTE — DESHABILITADO temporariamente.
+//
+// El SW cachea responses por URL sin tener en cuenta el header Cookie de
+// la request. Cuando un usuario A se loguea y después se loguea el usuario
+// B en el mismo browser (o un admin después de un alumno), el SW devuelve
+// la respuesta vieja del usuario A → al admin le aparece todo como si
+// fuera el alumno (sin menú admin, sin permisos correctos).
+//
+// El cache HTTP nativo del browser SÍ respeta `private` Cache-Control y
+// no tiene este problema. Pero el SW lo pisa.
+//
+// Volvemos a network-only para todo /api/* hasta encontrar un esquema que
+// incluya la identidad del user en la cache key.
+const SWR_API_PATHS = [];
 
-function isSwrCacheable(url) {
-  return SWR_API_PATHS.some((p) => url.pathname === p || url.pathname.startsWith(`${p}?`));
+function isSwrCacheable() {
+  return false;
 }
 
 self.addEventListener('fetch', (event) => {
