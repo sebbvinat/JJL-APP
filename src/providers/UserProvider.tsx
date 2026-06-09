@@ -39,10 +39,13 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         if (user) {
           const { data } = await supabase
             .from('users')
-            // Columnas específicas en lugar de '*' — reduce el payload y la
-            // latencia. Incluye todo lo que se lee desde profile en cliente
-            // (rol, tags, planilla, onboarding, cinturón, lifecycle, etc.).
-            .select('id, nombre, email, avatar_url, rol, tags, program_member, planilla_id, cinturon_actual, puntos, onboarding_step, onboarding_completed_at, lifecycle_stage, started_at, setter_guide_seen_at, created_at, updated_at')
+            // REVERT: select('*') de vuelta. El select específico anterior
+            // rompía si alguna columna (lifecycle_stage, started_at,
+            // setter_guide_seen_at) no existía en una variante de la DB:
+            // el query fallaba silenciosa y profile quedaba null →
+            // /profile mostraba al admin como alumno blanco con 0 puntos.
+            // El payload extra es ~2-3 KB, no vale el riesgo de inconsistencia.
+            .select('*')
             .eq('id', user.id)
             .single();
           if (mounted) setProfile(data);
