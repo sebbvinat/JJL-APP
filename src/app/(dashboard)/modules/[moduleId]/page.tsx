@@ -10,8 +10,9 @@ import LessonList from '@/components/modules/LessonList';
 import WeeklyReflection from '@/components/modules/WeeklyReflection';
 import { createClient } from '@/lib/supabase/client';
 import { useUser } from '@/hooks/useUser';
-import { MOCK_MODULES, MOCK_LESSONS } from '@/lib/mock-data';
-import { type LessonData } from '@/lib/course-data';
+// type-only import → garantizamos que mock-data (que course-data importa al
+// tope) NUNCA termine en el bundle del cliente del alumno.
+import type { LessonData } from '@/lib/course-data';
 
 interface ModuleInfo {
   id: string;
@@ -56,27 +57,13 @@ export default function ModuleDetailPage() {
         }
       } catch { /* fall through */ }
 
-      // Fall back to mock data
-      const mockMod = MOCK_MODULES.find((m) => m.id === moduleId);
-      if (mockMod) {
-        setModuleInfo({
-          id: mockMod.id,
-          semana_numero: mockMod.semana_numero,
-          titulo: mockMod.titulo,
-          descripcion: mockMod.descripcion,
-        });
-      }
-      const mockLessons = (MOCK_LESSONS[moduleId] || []).map((l) => ({
-        id: l.id,
-        titulo: l.titulo,
-        youtube_id: l.youtube_id,
-        descripcion: l.descripcion,
-        orden: l.orden,
-        duracion: l.duracion,
-        tipo: l.tipo as 'video' | 'reflection',
-      }));
-      setLessons(mockLessons);
-      setActiveLessonId(mockLessons[0]?.id || '');
+      // Antes había fallback a mock-data si el endpoint no devolvía nada,
+      // pero eso obligaba a bundlear mock-data.ts (~15 KB) en el cliente
+      // del alumno. En la práctica el fallback nunca se hit en producción
+      // (los alumnos siempre tienen course_data) y si pasara, mejor mostrar
+      // "Módulo no encontrado" que datos legacy de Atléticos.
+      setLessons([]);
+      setActiveLessonId('');
       setLessonsLoaded(true);
     }
 

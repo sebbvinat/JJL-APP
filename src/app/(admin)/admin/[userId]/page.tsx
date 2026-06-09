@@ -3,17 +3,31 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import {
   ArrowLeft, Check, ChevronDown, ChevronRight, Play, Pencil,
   Upload, Copy, FileSpreadsheet, Flame, BookOpen, Trophy, Calendar,
   MessageSquare, TrendingUp, Dumbbell, StickyNote, Phone, History,
 } from 'lucide-react';
 import CrmHeader from '@/components/admin/profile/CrmHeader';
-import NotesTab from '@/components/admin/profile/NotesTab';
-import TimelineTab from '@/components/admin/profile/TimelineTab';
-import LlamadasTab from '@/components/admin/profile/LlamadasTab';
 import Schedule1on1Modal from '@/components/admin/profile/Schedule1on1Modal';
 import ConfirmMonthDialog from '@/components/admin/profile/ConfirmMonthDialog';
+
+// Tabs lazy-loaded. La página inicial baja primero (metricas, header, etc.)
+// y cuando el admin abre cada tab se descarga su JS por separado. Sirve
+// para perfiles de alumnos con muchas notas/timeline/llamadas/videos.
+const NotesTab = dynamic(() => import('@/components/admin/profile/NotesTab'), {
+  ssr: false,
+  loading: () => <div className="h-32 rounded-xl border border-jjl-border/40 bg-jjl-gray/30 animate-pulse" />,
+});
+const TimelineTab = dynamic(() => import('@/components/admin/profile/TimelineTab'), {
+  ssr: false,
+  loading: () => <div className="h-32 rounded-xl border border-jjl-border/40 bg-jjl-gray/30 animate-pulse" />,
+});
+const LlamadasTab = dynamic(() => import('@/components/admin/profile/LlamadasTab'), {
+  ssr: false,
+  loading: () => <div className="h-32 rounded-xl border border-jjl-border/40 bg-jjl-gray/30 animate-pulse" />,
+});
 import { format, subDays, getDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import Card from '@/components/ui/Card';
@@ -28,8 +42,12 @@ import { calculateGamification } from '@/lib/gamification';
 import { BELT_LABELS } from '@/lib/constants';
 import type { User } from '@/lib/supabase/types';
 import type { LessonData } from '@/lib/course-data';
-import StudentVideos from '@/components/admin/StudentVideos';
 import { Video as VideoIcon } from 'lucide-react';
+
+const StudentVideos = dynamic(() => import('@/components/admin/StudentVideos'), {
+  ssr: false,
+  loading: () => <div className="h-32 rounded-xl border border-jjl-border/40 bg-jjl-gray/30 animate-pulse" />,
+});
 
 interface ModuleInfo {
   id: string;

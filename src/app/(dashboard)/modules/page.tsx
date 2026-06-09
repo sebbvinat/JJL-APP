@@ -6,7 +6,6 @@ import ModuleCard from '@/components/modules/ModuleCard';
 import EmptyState from '@/components/ui/EmptyState';
 import { SkeletonCard } from '@/components/ui/Skeleton';
 import { fetcher } from '@/lib/fetcher';
-import { MOCK_MODULES, MOCK_LESSONS } from '@/lib/mock-data';
 
 interface LessonBasic {
   id: string;
@@ -29,18 +28,9 @@ interface StudentDashboardResponse {
   unlockedModuleIds: string[];
 }
 
-const FALLBACK_MODULES: ModuleInfo[] = MOCK_MODULES.map((mod) => {
-  const lessons = MOCK_LESSONS[mod.id] || [];
-  return {
-    id: mod.id,
-    semana_numero: mod.semana_numero,
-    titulo: mod.titulo,
-    descripcion: mod.descripcion,
-    lessonCount: lessons.length,
-    videoCount: lessons.filter((l) => l.tipo !== 'reflection').length,
-    lessons: lessons.map((l) => ({ id: l.id, tipo: l.tipo })),
-  };
-});
+// El fallback a MOCK_MODULES quedó eliminado — bundlear mock-data.ts
+// (~15 KB) en el alumno solo para un caso "courseData null" era inútil.
+// Si llegáramos a esa rama, el EmptyState ya lo cubre.
 
 export default function ModulesPage() {
   // Un solo endpoint combina lo que antes hacían 2 (course-data + progress).
@@ -76,10 +66,7 @@ export default function ModulesPage() {
     );
   }
 
-  const allModules =
-    courseData?.modules && courseData.modules.length > 0
-      ? courseData.modules
-      : FALLBACK_MODULES;
+  const allModules = courseData?.modules || [];
   const completedIds = new Set(progress?.completedLessonIds || []);
   const unlockedIds = new Set(progress?.unlockedModuleIds || []);
 
