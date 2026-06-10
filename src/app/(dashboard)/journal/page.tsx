@@ -23,6 +23,8 @@ import {
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import EmptyState from '@/components/ui/EmptyState';
+import Textarea from '@/components/ui/Textarea';
+import SectionHeading from '@/components/ui/SectionHeading';
 import EntryField from '@/components/journal/EntryField';
 import { fetcher } from '@/lib/fetcher';
 import { logger } from '@/lib/logger';
@@ -495,12 +497,12 @@ export default function JournalPage() {
           subtitle="Meta mas abarcadora · editable en cualquier dia"
         />
         <Card>
-          <textarea
+          <Textarea
             value={entry.meta_entreno}
             onChange={(e) => update('meta_entreno', e.target.value)}
             placeholder="Ej: Solidificar mi guardia cerrada. Escapes de 100kg. Pases de guardia contra cinturones mayores..."
             rows={3}
-            className="w-full bg-white/[0.03] border border-jjl-border rounded-lg px-3 py-2.5 text-[13px] text-white placeholder:text-jjl-muted/50 focus:outline-none focus:border-jjl-red focus:ring-2 focus:ring-jjl-red/25 resize-none"
+            className="text-[13px] px-3 py-2.5"
           />
         </Card>
       </section>
@@ -835,12 +837,12 @@ function FocoCard({
 
           {editing ? (
             <div className="space-y-2">
-              <textarea
+              <Textarea
                 value={value}
                 onChange={(e) => { setTouched(true); onChange(e.target.value); }}
                 placeholder={placeholder}
                 rows={2}
-                className="w-full bg-white/[0.03] border border-jjl-border rounded-lg px-3 py-2 text-[14px] text-white placeholder:text-jjl-muted/50 focus:outline-none focus:border-jjl-red focus:ring-2 focus:ring-jjl-red/25 resize-none"
+                className="text-[14px] px-3 py-2"
                 autoFocus={hasValue}
               />
               {hasValue && (
@@ -880,26 +882,6 @@ function SavedBlock({ value, linkify }: { value: string; linkify?: boolean }) {
         Lo que ya escribiste hoy
       </p>
       {linkify ? renderLinkified(trimmed) : trimmed}
-    </div>
-  );
-}
-
-function SectionHeading({
-  icon: Icon,
-  title,
-  subtitle,
-}: {
-  icon: typeof Target;
-  title: string;
-  subtitle?: string;
-}) {
-  return (
-    <div className="flex items-center gap-2.5 px-1">
-      <Icon className="h-4 w-4 text-jjl-red" strokeWidth={2.2} />
-      <div>
-        <h2 className="text-[15px] font-bold text-white leading-none">{title}</h2>
-        {subtitle && <p className="text-[11px] text-jjl-muted mt-1">{subtitle}</p>}
-      </div>
     </div>
   );
 }

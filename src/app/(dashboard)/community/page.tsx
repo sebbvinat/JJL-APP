@@ -12,6 +12,7 @@ import Badge from '@/components/ui/Badge';
 import Avatar from '@/components/ui/Avatar';
 import Button from '@/components/ui/Button';
 import EmptyState from '@/components/ui/EmptyState';
+import PageHero from '@/components/ui/PageHero';
 import { SkeletonCard } from '@/components/ui/Skeleton';
 import PostForm from '@/components/community/PostForm';
 import Poll from '@/components/community/Poll';
@@ -160,21 +161,17 @@ export default function CommunityPage() {
 
   return (
     <div className="space-y-6 max-w-3xl lg:max-w-5xl xl:max-w-6xl">
-      <div className="flex items-end justify-between flex-wrap gap-4">
-        <div>
-          <p className="text-[11px] uppercase tracking-[0.18em] text-jjl-muted font-semibold mb-1.5">
-            Equipo
-          </p>
-          <h1 className="text-3xl font-black tracking-tight">Comunidad</h1>
-          <p className="text-sm text-jjl-muted mt-1.5">
-            Comparti, preguntá, celebrá. Cada post fortalece al equipo.
-          </p>
-        </div>
-        <Button onClick={() => setShowForm(true)}>
-          <Plus className="h-4 w-4" />
-          Nuevo Post
-        </Button>
-      </div>
+      <PageHero
+        eyebrow="Equipo"
+        title="Comunidad"
+        subtitle="Comparti, preguntá, celebrá. Cada post fortalece al equipo."
+        right={
+          <Button onClick={() => setShowForm(true)}>
+            <Plus className="h-4 w-4" />
+            Nuevo Post
+          </Button>
+        }
+      />
 
       {/* Categories */}
       <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 snap-x">

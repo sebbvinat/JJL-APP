@@ -27,6 +27,7 @@ import {
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
+import Textarea from '@/components/ui/Textarea';
 import EmptyState from '@/components/ui/EmptyState';
 import { SkeletonCard } from '@/components/ui/Skeleton';
 import { fetcher } from '@/lib/fetcher';
@@ -617,30 +618,22 @@ function CompetitionForm({
               ))}
             </div>
           </div>
-          <label className="block">
-            <span className="block text-[11px] font-semibold uppercase tracking-[0.1em] text-jjl-muted mb-1.5">
-              Resultado
-            </span>
-            <textarea
-              value={resultado}
-              onChange={(e) => setResultado(e.target.value)}
-              rows={2}
-              placeholder="Ej: Oro, plata, bronce, 2-1, etc."
-              className="w-full bg-white/[0.03] border border-jjl-border rounded-lg px-3 py-2.5 text-[13px] text-white placeholder:text-jjl-muted/50 focus:outline-none focus:border-jjl-red focus:ring-2 focus:ring-jjl-red/25 resize-none"
-            />
-          </label>
-          <label className="block">
-            <span className="block text-[11px] font-semibold uppercase tracking-[0.1em] text-jjl-muted mb-1.5">
-              Notas
-            </span>
-            <textarea
-              value={notas}
-              onChange={(e) => setNotas(e.target.value)}
-              rows={3}
-              placeholder="Plan de peso, rivales esperados, objetivos puntuales..."
-              className="w-full bg-white/[0.03] border border-jjl-border rounded-lg px-3 py-2.5 text-[13px] text-white placeholder:text-jjl-muted/50 focus:outline-none focus:border-jjl-red focus:ring-2 focus:ring-jjl-red/25 resize-none"
-            />
-          </label>
+          <Textarea
+            label="Resultado"
+            value={resultado}
+            onChange={(e) => setResultado(e.target.value)}
+            rows={2}
+            placeholder="Ej: Oro, plata, bronce, 2-1, etc."
+            className="text-[13px] px-3 py-2.5"
+          />
+          <Textarea
+            label="Notas"
+            value={notas}
+            onChange={(e) => setNotas(e.target.value)}
+            rows={3}
+            placeholder="Plan de peso, rivales esperados, objetivos puntuales..."
+            className="text-[13px] px-3 py-2.5"
+          />
 
           <div className="flex gap-2 pt-2">
             <Button type="button" variant="secondary" onClick={onClose} fullWidth>

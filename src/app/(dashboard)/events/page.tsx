@@ -10,6 +10,8 @@ import {
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
+import Textarea from '@/components/ui/Textarea';
+import PageHero from '@/components/ui/PageHero';
 import { useToast } from '@/components/ui/Toast';
 import { useUser } from '@/hooks/useUser';
 
@@ -226,18 +228,19 @@ export default function EventsPage() {
   return (
     <div className="space-y-6 max-w-2xl lg:max-w-4xl xl:max-w-5xl mx-auto">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Eventos</h1>
-          <p className="text-jjl-muted text-sm mt-1">Proximas clases, seminarios y entrenamientos</p>
-        </div>
-        {isAdmin && (
-          <Button variant="primary" size="sm" onClick={() => setShowCreate(!showCreate)}>
-            <Plus className="h-4 w-4 mr-1.5" />
-            Crear Evento
-          </Button>
-        )}
-      </div>
+      <PageHero
+        eyebrow="Agenda"
+        title="Eventos"
+        subtitle="Proximas clases, seminarios y entrenamientos"
+        right={
+          isAdmin ? (
+            <Button variant="primary" size="sm" onClick={() => setShowCreate(!showCreate)}>
+              <Plus className="h-4 w-4 mr-1.5" />
+              Crear Evento
+            </Button>
+          ) : undefined
+        }
+      />
 
       {/* Llamadas 1 a 1 — admin only */}
       {isAdmin && (
@@ -332,24 +335,23 @@ export default function EventsPage() {
           <form onSubmit={handleCreate} className="space-y-3">
             <Input id="ev-titulo" label="Titulo" placeholder="Ej: Clase grupal de guardia" value={titulo} onChange={(e) => setTitulo(e.target.value)} required />
 
-            <textarea
+            <Textarea
               value={descripcion}
               onChange={(e) => setDescripcion(e.target.value)}
               placeholder="Descripcion (opcional)"
               rows={2}
-              className="w-full bg-jjl-gray-light border border-jjl-border rounded-lg px-3 py-3 text-base text-white placeholder:text-jjl-muted/50 focus:outline-none focus:border-jjl-red resize-none"
             />
 
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="text-[11px] text-jjl-muted uppercase tracking-wider font-semibold mb-1 block">Fecha</label>
                 <input type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} required
-                  className="w-full bg-jjl-gray-light border border-jjl-border rounded-lg px-3 py-3 text-base text-white focus:outline-none focus:border-jjl-red min-h-[48px]" />
+                  className="w-full bg-white/[0.03] border border-jjl-border hover:border-jjl-border-strong rounded-lg px-3 py-3 text-base text-white transition-colors focus:outline-none focus:border-jjl-red focus:ring-2 focus:ring-jjl-red/25 min-h-[48px]" />
               </div>
               <div>
                 <label className="text-[11px] text-jjl-muted uppercase tracking-wider font-semibold mb-1 block">Hora</label>
                 <input type="time" value={hora} onChange={(e) => setHora(e.target.value)}
-                  className="w-full bg-jjl-gray-light border border-jjl-border rounded-lg px-3 py-3 text-base text-white focus:outline-none focus:border-jjl-red min-h-[48px]" />
+                  className="w-full bg-white/[0.03] border border-jjl-border hover:border-jjl-border-strong rounded-lg px-3 py-3 text-base text-white transition-colors focus:outline-none focus:border-jjl-red focus:ring-2 focus:ring-jjl-red/25 min-h-[48px]" />
               </div>
             </div>
 
@@ -357,7 +359,7 @@ export default function EventsPage() {
               <div>
                 <label className="text-[11px] text-jjl-muted uppercase tracking-wider font-semibold mb-1 block">Duracion (min)</label>
                 <select value={duracion} onChange={(e) => setDuracion(Number(e.target.value))}
-                  className="w-full bg-jjl-gray-light border border-jjl-border rounded-lg px-3 py-3 text-base text-white focus:outline-none focus:border-jjl-red min-h-[48px]">
+                  className="w-full bg-white/[0.03] border border-jjl-border hover:border-jjl-border-strong rounded-lg px-3 py-3 text-base text-white transition-colors focus:outline-none focus:border-jjl-red focus:ring-2 focus:ring-jjl-red/25 min-h-[48px]">
                   <option value={30}>30 min</option>
                   <option value={60}>1 hora</option>
                   <option value={90}>1:30 hs</option>
@@ -367,7 +369,7 @@ export default function EventsPage() {
               <div>
                 <label className="text-[11px] text-jjl-muted uppercase tracking-wider font-semibold mb-1 block">Repetir</label>
                 <select value={recurrencia} onChange={(e) => setRecurrencia(e.target.value)}
-                  className="w-full bg-jjl-gray-light border border-jjl-border rounded-lg px-3 py-3 text-base text-white focus:outline-none focus:border-jjl-red min-h-[48px]">
+                  className="w-full bg-white/[0.03] border border-jjl-border hover:border-jjl-border-strong rounded-lg px-3 py-3 text-base text-white transition-colors focus:outline-none focus:border-jjl-red focus:ring-2 focus:ring-jjl-red/25 min-h-[48px]">
                   <option value="none">No repetir</option>
                   <option value="weekly">Semanal</option>
                   <option value="biweekly">Quincenal</option>
@@ -380,7 +382,7 @@ export default function EventsPage() {
               <div>
                 <label className="text-[11px] text-jjl-muted uppercase tracking-wider font-semibold mb-1 block">Repetir hasta</label>
                 <input type="date" value={recurrenciaFin} onChange={(e) => setRecurrenciaFin(e.target.value)}
-                  className="w-full bg-jjl-gray-light border border-jjl-border rounded-lg px-3 py-3 text-base text-white focus:outline-none focus:border-jjl-red min-h-[48px]" />
+                  className="w-full bg-white/[0.03] border border-jjl-border hover:border-jjl-border-strong rounded-lg px-3 py-3 text-base text-white transition-colors focus:outline-none focus:border-jjl-red focus:ring-2 focus:ring-jjl-red/25 min-h-[48px]" />
               </div>
             )}
 

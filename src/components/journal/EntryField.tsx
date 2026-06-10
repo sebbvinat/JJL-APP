@@ -6,6 +6,7 @@ import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Plus, Pencil, Trash2, Save, X } from 'lucide-react';
 import Button from '@/components/ui/Button';
+import Textarea from '@/components/ui/Textarea';
 import { fetcher } from '@/lib/fetcher';
 import { useToast } from '@/components/ui/Toast';
 import { logger } from '@/lib/logger';
@@ -114,12 +115,12 @@ export default function EntryField({
 
       {/* Add new entry */}
       <div className="space-y-2 pt-1">
-        <textarea
+        <Textarea
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           placeholder={placeholder}
           rows={3}
-          className="w-full bg-white/[0.03] border border-jjl-border rounded-lg px-3 py-2.5 text-[13px] text-white placeholder:text-jjl-muted/50 focus:outline-none focus:border-jjl-red focus:ring-2 focus:ring-jjl-red/25 resize-none"
+          className="text-[13px] px-3 py-2.5"
         />
         <div className="flex items-center justify-end">
           <Button
@@ -192,11 +193,11 @@ function EntryRow({
   if (editing) {
     return (
       <div className="rounded-lg border border-jjl-red/30 bg-jjl-red/[0.04] p-3 space-y-2">
-        <textarea
+        <Textarea
           value={text}
           onChange={(e) => setText(e.target.value)}
           rows={Math.max(3, text.split('\n').length + 1)}
-          className="w-full bg-white/[0.03] border border-jjl-border rounded-lg px-3 py-2 text-[13px] text-white focus:outline-none focus:border-jjl-red focus:ring-2 focus:ring-jjl-red/25 resize-none"
+          className="text-[13px] px-3 py-2"
           autoFocus
         />
         <div className="flex gap-2">

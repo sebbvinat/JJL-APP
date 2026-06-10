@@ -5,6 +5,7 @@ import { Trophy, Flame, BookOpen, Dumbbell, Crown } from 'lucide-react';
 import Card from '@/components/ui/Card';
 import Avatar from '@/components/ui/Avatar';
 import Badge from '@/components/ui/Badge';
+import PageHero from '@/components/ui/PageHero';
 import Link from 'next/link';
 
 interface RankedUser {
@@ -62,13 +63,27 @@ export default function LeaderboardPage() {
 
   const top3 = sorted.slice(0, 3);
   const rest = sorted.slice(3);
+  const me = sorted.find((u) => u.isMe);
 
   return (
     <div className="space-y-6 max-w-lg mx-auto">
-      <div>
-        <h1 className="text-2xl font-bold">Ranking</h1>
-        <p className="text-jjl-muted text-sm mt-1">Los guerreros mas dedicados</p>
-      </div>
+      <PageHero
+        eyebrow="Equipo"
+        title="Ranking"
+        subtitle="Los guerreros mas dedicados"
+        right={
+          me ? (
+            <>
+              <span className="text-4xl font-black text-white tabular-nums leading-none">
+                #{me.rank}
+              </span>
+              <p className="text-[11px] uppercase tracking-wider text-jjl-muted font-semibold mt-1">
+                Tu posicion
+              </p>
+            </>
+          ) : undefined
+        }
+      />
 
       {/* Sort tabs */}
       <div className="flex gap-1 bg-jjl-gray-light/50 rounded-xl p-1">

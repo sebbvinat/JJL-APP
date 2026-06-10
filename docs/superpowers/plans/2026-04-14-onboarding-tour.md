@@ -115,7 +115,7 @@ Then in the `Database['public']['Tables']['users']` definition (same file), ensu
 
 - [ ] **Step 4: Type-check**
 
-Run from `C:/Users/sebas/Desktop/jjl-app`:
+Run from `C:/claude-projects/jjl-app`:
 
 ```bash
 npx tsc --noEmit

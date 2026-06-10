@@ -7,7 +7,7 @@
 - **Storage**: Google Drive (videos de alumnos), Supabase Storage (avatars)
 - **Deploy**: Vercel (auto-deploy desde GitHub)
 - **Repo**: github.com/sebbvinat/JJL-APP.git
-- **Path**: C:/Users/sebas/Desktop/jjl-app
+- **Path**: C:/claude-projects/jjl-app
 
 ## Stack
 - Next.js 16.2.3, React 19.2.4, TypeScript

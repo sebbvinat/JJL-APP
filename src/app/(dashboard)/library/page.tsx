@@ -26,6 +26,8 @@ import {
 } from 'lucide-react';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
+import Textarea from '@/components/ui/Textarea';
+import PageHero from '@/components/ui/PageHero';
 import EmptyState from '@/components/ui/EmptyState';
 import { SkeletonCard } from '@/components/ui/Skeleton';
 import { useToast } from '@/components/ui/Toast';
@@ -199,16 +201,11 @@ function LibraryPageInner() {
   return (
     <div className="space-y-5 max-w-3xl lg:max-w-5xl xl:max-w-6xl mx-auto pb-12">
       {/* Header */}
-      <div className="flex items-end justify-between flex-wrap gap-4">
-        <div>
-          <p className="text-[11px] uppercase tracking-[0.18em] text-jjl-muted font-semibold mb-1.5">
-            Tu archivo
-          </p>
-          <h1 className="text-3xl font-black tracking-tight">Biblioteca</h1>
-          <p className="text-sm text-jjl-muted mt-1.5">
-            Todo lo que anotaste en {months} meses — aprendizajes, notas y links.
-          </p>
-        </div>
+      <PageHero
+        eyebrow="Tu archivo"
+        title="Biblioteca"
+        subtitle={`Todo lo que anotaste en ${months} meses — aprendizajes, notas y links.`}
+        right={
         <div className="flex items-center gap-2">
           <select
             value={months}
@@ -238,7 +235,8 @@ function LibraryPageInner() {
             Nueva nota
           </Button>
         </div>
-      </div>
+        }
+      />
 
       {quickKind && (
         <div className="rounded-xl border border-jjl-red/30 bg-jjl-red/[0.05] p-4 space-y-3 animate-slide-down">
@@ -266,13 +264,13 @@ function LibraryPageInner() {
               <X className="h-3.5 w-3.5" />
             </button>
           </div>
-          <textarea
+          <Textarea
             value={quickText}
             onChange={(e) => setQuickText(e.target.value)}
             placeholder="Escribi y guarda — no hace falta estar en el diario"
             rows={4}
             autoFocus
-            className="w-full bg-white/[0.03] border border-jjl-border rounded-lg px-3 py-2.5 text-[13px] text-white placeholder:text-jjl-muted/50 focus:outline-none focus:border-jjl-red focus:ring-2 focus:ring-jjl-red/25 resize-none"
+            className="text-[13px] px-3 py-2.5"
           />
           <div className="flex items-center justify-end gap-2">
             <Button
@@ -561,11 +559,11 @@ function EntryCard({ entry, onChanged }: { entry: Entry; onChanged: () => void }
 
           {editing ? (
             <div className="mt-2 space-y-2">
-              <textarea
+              <Textarea
                 value={text}
                 onChange={(e) => setText(e.target.value)}
                 rows={Math.max(3, text.split('\n').length + 1)}
-                className="w-full bg-white/[0.03] border border-jjl-border rounded-lg px-3 py-2 text-[13px] text-white focus:outline-none focus:border-jjl-red focus:ring-2 focus:ring-jjl-red/25 resize-none"
+                className="text-[13px] px-3 py-2"
                 autoFocus
               />
               <div className="flex gap-2">
