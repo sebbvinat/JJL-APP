@@ -10,6 +10,7 @@ import {
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
+import { useToast } from '@/components/ui/Toast';
 import { useUser } from '@/hooks/useUser';
 
 interface Event {
@@ -43,6 +44,7 @@ interface Llamada {
 
 export default function EventsPage() {
   const { profile } = useUser();
+  const toast = useToast();
   const isAdmin = profile?.rol === 'admin';
   const [events, setEvents] = useState<Event[]>([]);
   const [pastEvents, setPastEvents] = useState<Event[]>([]);
@@ -86,22 +88,33 @@ export default function EventsPage() {
   }
 
   async function handleRsvp(eventId: string, status: 'confirmed' | 'declined') {
-    // Optimistic update
+    const target = events.find((e) => e.id === eventId);
+    if (!target) return;
+    // Si ya estaba en ese estado, no hacemos nada (antes re-sumaba +1 al
+    // contador con cada click → contador inflado).
+    if (target.myRsvp === status) return;
+    const prevEvents = events;
+
+    // Delta correcto del contador de confirmados según transición.
+    const delta =
+      status === 'confirmed' ? 1 : target.myRsvp === 'confirmed' ? -1 : 0;
     setEvents((prev) => prev.map((e) =>
       e.id === eventId
-        ? {
-            ...e,
-            myRsvp: status,
-            confirmedCount: e.confirmedCount + (status === 'confirmed' ? 1 : (e.myRsvp === 'confirmed' ? -1 : 0)),
-          }
+        ? { ...e, myRsvp: status, confirmedCount: Math.max(0, e.confirmedCount + delta) }
         : e
     ));
 
-    await fetch('/api/events/rsvp', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ eventId, status }),
-    });
+    try {
+      const res = await fetch('/api/events/rsvp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ eventId, status }),
+      });
+      if (!res.ok) throw new Error('rsvp failed');
+    } catch {
+      setEvents(prevEvents); // revertir
+      toast.error('No se pudo registrar tu respuesta. Probá de nuevo.');
+    }
   }
 
   async function loadAttendees(eventId: string) {
@@ -120,38 +133,50 @@ export default function EventsPage() {
 
     const fechaHora = new Date(`${fecha}T${hora}:00`).toISOString();
 
-    await fetch('/api/events', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        titulo,
-        descripcion,
-        fecha_hora: fechaHora,
-        duracion_min: duracion,
-        meet_link: meetLink || null,
-        recurrencia,
-        recurrencia_fin: recurrenciaFin || null,
-      }),
-    });
-
-    setTitulo('');
-    setDescripcion('');
-    setFecha('');
-    setMeetLink('');
-    setRecurrencia('none');
-    setShowCreate(false);
-    setCreating(false);
-    loadEvents();
+    try {
+      const res = await fetch('/api/events', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          titulo,
+          descripcion,
+          fecha_hora: fechaHora,
+          duracion_min: duracion,
+          meet_link: meetLink || null,
+          recurrencia,
+          recurrencia_fin: recurrenciaFin || null,
+        }),
+      });
+      if (!res.ok) throw new Error('create failed');
+      setTitulo('');
+      setDescripcion('');
+      setFecha('');
+      setMeetLink('');
+      setRecurrencia('none');
+      setShowCreate(false);
+      loadEvents();
+      toast.success('Evento creado');
+    } catch {
+      // No cerramos el form ni limpiamos: el admin no pierde lo que cargó.
+      toast.error('No se pudo crear el evento. Revisá los datos y reintentá.');
+    } finally {
+      setCreating(false);
+    }
   }
 
   async function handleDelete(eventId: string) {
     if (!confirm('Eliminar este evento y todas sus repeticiones?')) return;
-    await fetch('/api/events', {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ eventId }),
-    });
-    loadEvents();
+    try {
+      const res = await fetch('/api/events', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ eventId }),
+      });
+      if (!res.ok) throw new Error('delete failed');
+      loadEvents();
+    } catch {
+      toast.error('No se pudo eliminar el evento. Probá de nuevo.');
+    }
   }
 
   function toggleExpand(eventId: string) {

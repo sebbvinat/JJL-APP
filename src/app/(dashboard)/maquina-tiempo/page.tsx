@@ -10,6 +10,7 @@ import {
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
+import { useToast } from '@/components/ui/Toast';
 
 interface Rating {
   id: string;
@@ -52,6 +53,7 @@ function getXP(nivel: number) {
 }
 
 export default function MaquinaTiempoPage() {
+  const toast = useToast();
   const [skills, setSkills] = useState<Skill[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
@@ -118,6 +120,7 @@ export default function MaquinaTiempoPage() {
 
   async function toggleTask(skill: Skill, task: Task) {
     const willComplete = !task.completada;
+    const prevSkills = skills;
 
     // Optimistic update
     setSkills((prev) => prev.map((s) => s.id === skill.id ? {
@@ -125,22 +128,24 @@ export default function MaquinaTiempoPage() {
       tasks: s.tasks.map((t) => t.id === task.id ? { ...t, completada: willComplete } : t),
     } : s));
 
-    const res = await fetch('/api/skills/tasks', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ taskId: task.id, completada: willComplete }),
-    });
-
-    if (res.ok) {
+    try {
+      const res = await fetch('/api/skills/tasks', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ taskId: task.id, completada: willComplete }),
+      });
+      if (!res.ok) throw new Error('toggle failed');
       const data = await res.json();
       if (data.leveledUp && willComplete) {
-        // Show level up toast
         setLevelUpSkill({
           skill: { ...skill, ratings: [...skill.ratings, { id: 'tmp', semana: '', nivel: data.newLevel, nota: null }] },
           newLevel: data.newLevel,
         });
       }
       load();
+    } catch {
+      setSkills(prevSkills); // revertir el check
+      toast.error('No se pudo guardar. Probá de nuevo.');
     }
   }
 

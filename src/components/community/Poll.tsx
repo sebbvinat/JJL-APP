@@ -61,14 +61,16 @@ export default function Poll({ poll, onVote, isAdmin = false }: { poll: PollData
     setLocalPoll(updated);
 
     try {
-      await fetch('/api/community/polls/vote', {
+      const res = await fetch('/api/community/polls/vote', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ pollId: poll.id, opcionId }),
       });
+      // Revertir también si el server responde error (antes solo revertía
+      // en excepción de red → el voto quedaba pintado sin existir en DB).
+      if (!res.ok) throw new Error('vote failed');
       onVote?.(updated);
     } catch {
-      // Revert on error
       setLocalPoll(localPoll);
     }
     setVoting(false);
