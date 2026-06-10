@@ -7,6 +7,7 @@ import { es } from 'date-fns/locale';
 import { ArrowLeft, Send, MessageCircle, Shield, Mic, Square, Play, Pause, LifeBuoy } from 'lucide-react';
 import Card from '@/components/ui/Card';
 import Avatar from '@/components/ui/Avatar';
+import { useToast } from '@/components/ui/Toast';
 import { useUser } from '@/hooks/useUser';
 
 interface Channel {
@@ -31,6 +32,7 @@ interface Message {
 
 export default function ChatPage() {
   const { authUser, profile } = useUser();
+  const toast = useToast();
   const isAdmin = profile?.rol === 'admin';
   const [channels, setChannels] = useState<Channel[]>([]);
   const [selectedChannel, setSelectedChannel] = useState<Channel | null>(null);
@@ -142,9 +144,10 @@ export default function ChatPage() {
     const msg = newMessage.trim();
     setNewMessage('');
 
+    const tempId = `temp-${Date.now()}`;
     // Optimistic add
     setMessages((prev) => [...prev, {
-      id: `temp-${Date.now()}`,
+      id: tempId,
       from_user_id: authUser!.id,
       contenido: msg,
       created_at: new Date().toISOString(),
@@ -154,19 +157,63 @@ export default function ChatPage() {
       isMine: true,
     }]);
 
-    await fetch('/api/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ channelId: selectedChannel.channelId, contenido: msg }),
-    });
+    try {
+      const res = await fetch('/api/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ channelId: selectedChannel.channelId, contenido: msg }),
+      });
+      if (!res.ok) throw new Error('send failed');
+    } catch {
+      // Revertir el mensaje optimista y devolver el texto al input para no
+      // perderlo (antes el fetch fallaba en silencio y el mensaje se
+      // "desaparecía" al siguiente poll).
+      setMessages((prev) => prev.filter((m) => m.id !== tempId));
+      setNewMessage(msg);
+      toast.error('No se pudo enviar el mensaje. Probá de nuevo.');
+    }
 
     setSending(false);
   }
 
+  // Safari iOS NO soporta audio/webm — el constructor de MediaRecorder
+  // tiraba NotSupportedError y caía en "no se pudo acceder al micrófono".
+  // Elegimos el primer mimeType soportado por el navegador (mp4/aac en iOS,
+  // webm/opus en Chrome) y guardamos ese tipo real, así se reproduce en
+  // todos lados.
+  function pickAudioMime(): { mime: string; ext: string } {
+    if (typeof MediaRecorder === 'undefined' || !MediaRecorder.isTypeSupported) {
+      return { mime: '', ext: 'webm' };
+    }
+    const candidates: { mime: string; ext: string }[] = [
+      { mime: 'audio/webm;codecs=opus', ext: 'webm' },
+      { mime: 'audio/webm', ext: 'webm' },
+      { mime: 'audio/mp4', ext: 'mp4' },
+      { mime: 'audio/mpeg', ext: 'mp3' },
+    ];
+    for (const c of candidates) {
+      if (MediaRecorder.isTypeSupported(c.mime)) return c;
+    }
+    return { mime: '', ext: 'webm' };
+  }
+
   async function startRecording() {
+    if (typeof MediaRecorder === 'undefined') {
+      toast.error('Tu navegador no permite grabar audio. Probá escribir el mensaje.');
+      return;
+    }
+    let stream: MediaStream;
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch {
+      toast.error('No pudimos acceder al micrófono. Revisá los permisos del navegador.');
+      return;
+    }
+
+    try {
+      const { mime, ext } = pickAudioMime();
+      const recordType = mime || undefined;
+      const mediaRecorder = new MediaRecorder(stream, recordType ? { mimeType: recordType } : undefined);
       audioChunksRef.current = [];
 
       mediaRecorder.ondataavailable = (e) => {
@@ -178,18 +225,24 @@ export default function ChatPage() {
         if (recordTimerRef.current) clearInterval(recordTimerRef.current);
         setRecordingTime(0);
 
-        const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        const blobType = mediaRecorder.mimeType || mime || 'audio/webm';
+        const blob = new Blob(audioChunksRef.current, { type: blobType });
         if (blob.size < 1000) return; // too short
 
-        // Upload
+        // Upload — con manejo de error visible (antes fallaba en silencio).
         setSending(true);
-        const formData = new FormData();
-        formData.append('audio', blob, 'audio.webm');
-        formData.append('channelId', selectedChannel!.channelId);
-
-        await fetch('/api/messages/audio', { method: 'POST', body: formData });
-        setSending(false);
-        loadMessages(selectedChannel!.channelId);
+        try {
+          const formData = new FormData();
+          formData.append('audio', blob, `audio.${ext}`);
+          formData.append('channelId', selectedChannel!.channelId);
+          const res = await fetch('/api/messages/audio', { method: 'POST', body: formData });
+          if (!res.ok) throw new Error('upload failed');
+          loadMessages(selectedChannel!.channelId);
+        } catch {
+          toast.error('No pudimos enviar el audio. Probá de nuevo.');
+        } finally {
+          setSending(false);
+        }
       };
 
       mediaRecorder.start();
@@ -198,7 +251,8 @@ export default function ChatPage() {
       setRecordingTime(0);
       recordTimerRef.current = setInterval(() => setRecordingTime((t) => t + 1), 1000);
     } catch {
-      alert('No se pudo acceder al microfono');
+      stream.getTracks().forEach((t) => t.stop());
+      toast.error('Tu dispositivo no permite grabar audio en este navegador.');
     }
   }
 

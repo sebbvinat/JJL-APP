@@ -51,13 +51,20 @@ export async function POST(request: NextRequest) {
     { auth: { autoRefreshToken: false, persistSession: false } }
   );
 
-  // Upload to storage
-  const fileName = `chat/${channelId}/${Date.now()}.webm`;
+  // Upload to storage. Guardamos con la extensión y contentType REALES del
+  // archivo (iOS Safari graba audio/mp4, Chrome audio/webm) para que el
+  // <audio> lo reproduzca en cualquier dispositivo. Antes se forzaba .webm,
+  // que iOS no puede reproducir.
+  const ext = audioType.includes('mp4') ? 'mp4'
+    : audioType.includes('mpeg') ? 'mp3'
+    : audioType.includes('ogg') ? 'ogg'
+    : 'webm';
+  const fileName = `chat/${channelId}/${Date.now()}.${ext}`;
   const buffer = Buffer.from(await audio.arrayBuffer());
 
   const { error: uploadError } = await adminClient.storage
     .from('avatars') // reuse existing bucket
-    .upload(fileName, buffer, { contentType: 'audio/webm', upsert: false });
+    .upload(fileName, buffer, { contentType: audioType, upsert: false });
 
   if (uploadError) {
     return NextResponse.json({ error: uploadError.message }, { status: 500 });
