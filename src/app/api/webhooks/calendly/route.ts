@@ -200,12 +200,26 @@ function extractPhone(payload: Record<string, unknown>): string | null {
 /**
  * Verifica la firma `Calendly-Webhook-Signature` siguiendo el formato
  * documentado por Calendly: `t=<timestamp>,v1=<hex_hmac>`.
- * Si no hay signing key configurado, devolvemos true y logueamos un warn —
- * útil para desarrollo, riesgoso para producción.
+ *
+ * Sin signing key configurada aceptamos (para no romper la captura de
+ * leads si la env var no está). PERO si además está seteada
+ * CALENDLY_WEBHOOK_STRICT=1, rechazamos cuando no hay key — así el switch
+ * a modo estricto es explícito y no rompe nada por sorpresa.
+ *
+ * SECUENCIA SEGURA para cerrar el agujero (sin downtime):
+ *   1. En Calendly → Webhooks, copiar el "Signing Key".
+ *   2. En Vercel, setear CALENDLY_WEBHOOK_SIGNING_KEY con ese valor.
+ *   3. (Opcional) setear CALENDLY_WEBHOOK_STRICT=1 para rechazar cualquier
+ *      request sin firma válida.
+ * Con la key seteada, la verificación HMAC ya corre estricta abajo.
  */
 function verifyCalendlySignature(request: NextRequest, rawBody: string): boolean {
   const signingKey = process.env.CALENDLY_WEBHOOK_SIGNING_KEY;
   if (!signingKey) {
+    if (process.env.CALENDLY_WEBHOOK_STRICT === '1') {
+      logger.error('calendly.webhook.no_signing_key.strict_reject');
+      return false;
+    }
     logger.warn('calendly.webhook.no_signing_key');
     return true;
   }

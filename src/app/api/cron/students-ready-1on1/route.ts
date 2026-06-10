@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { requireCron } from '@/lib/cron';
 import { computeMonthProgress } from '@/lib/crm';
 
 export const runtime = 'nodejs';
@@ -18,13 +19,8 @@ export const maxDuration = 60;
  * Idempotente: no re-notifica a los ya marcados eligibles.
  */
 export async function GET(request: NextRequest) {
-  const cronSecret = process.env.CRON_SECRET;
-  if (cronSecret) {
-    const authHeader = request.headers.get('authorization');
-    if (authHeader !== `Bearer ${cronSecret}`) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-  }
+  const denied = requireCron(request);
+  if (denied) return denied;
 
   const admin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

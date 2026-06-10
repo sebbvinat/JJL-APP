@@ -20,9 +20,29 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Audio y channelId requeridos' }, { status: 400 });
   }
 
+  // SEGURIDAD: el canal del chat es el user_id del alumno. Un alumno solo
+  // puede escribir en su propio canal; los admins en cualquiera. Sin este
+  // check, un alumno podía POSTear audios al hilo privado de otro pasando
+  // su channelId (el endpoint de texto ya validaba esto, el de audio no).
+  const { data: senderProfile } = await supabase
+    .from('users')
+    .select('rol, nombre')
+    .eq('id', user.id)
+    .single();
+  const senderIsAdmin = (senderProfile as { rol?: string } | null)?.rol === 'admin';
+  if (!senderIsAdmin && channelId !== user.id) {
+    return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
+  }
+
   // Max 5MB audio
   if (audio.size > 5 * 1024 * 1024) {
     return NextResponse.json({ error: 'Audio demasiado largo (max 5MB)' }, { status: 400 });
+  }
+
+  // Validar tipo: solo audio. Evita subir cualquier blob arbitrario al bucket.
+  const audioType = audio.type || '';
+  if (!audioType.startsWith('audio/')) {
+    return NextResponse.json({ error: 'Tipo de archivo inválido' }, { status: 400 });
   }
 
   const adminClient = createClient(

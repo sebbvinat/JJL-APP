@@ -1,5 +1,6 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, type NextRequest } from 'next/server';
 import { createAdminSupabaseClient } from '@/lib/supabase/server';
+import { requireCron } from '@/lib/cron';
 import { logger } from '@/lib/logger';
 import { notifySettersLeadNoBook } from '@/lib/lead-notifications';
 
@@ -22,18 +23,13 @@ export const runtime = 'nodejs';
  * El canal de notificación es panel admin in-app + push browser, vía
  * `notifySettersLeadNoBook` → `createNotification`. NO usa WhatsApp.
  *
- * Auth: header `Authorization: Bearer <CRON_SECRET>` si la env está
- * configurada (Vercel lo manda solo). Sin env: invocable desde el
- * browser para testear en dev.
+ * Auth: requireCron (Bearer CRON_SECRET timing-safe). Lo dispara
+ * cron-job.org con el header Authorization configurado. Rechaza si la
+ * env var no está.
  */
-export async function GET(request: Request) {
-  const cronSecret = process.env.CRON_SECRET;
-  if (cronSecret) {
-    const authHeader = request.headers.get('authorization');
-    if (authHeader !== `Bearer ${cronSecret}`) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-  }
+export async function GET(request: NextRequest) {
+  const denied = requireCron(request);
+  if (denied) return denied;
 
   const admin = createAdminSupabaseClient();
   const now = Date.now();

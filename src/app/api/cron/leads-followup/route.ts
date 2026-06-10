@@ -1,5 +1,6 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, type NextRequest } from 'next/server';
 import { createAdminSupabaseClient } from '@/lib/supabase/server';
+import { requireCron } from '@/lib/cron';
 import { logger } from '@/lib/logger';
 import { notifyCoachWhatsApp } from '@/lib/whatsapp';
 import {
@@ -27,18 +28,12 @@ export const runtime = 'nodejs';
  * Para cada uno manda un WhatsApp al coach con sus respuestas y el link
  * directo a IG DM, y marca followed_up_at para no notificar dos veces.
  *
- * Auth: header `Authorization: Bearer <CRON_SECRET>` (Vercel lo manda solo
- * cuando configurás la env var). Si no hay CRON_SECRET, acepta cualquier
- * request — útil para invocar a mano desde el navegador en dev.
+ * Auth: requireCron (Bearer CRON_SECRET timing-safe). Rechaza si la env
+ * var no está configurada — el cron no queda abierto.
  */
-export async function GET(request: Request) {
-  const cronSecret = process.env.CRON_SECRET;
-  if (cronSecret) {
-    const authHeader = request.headers.get('authorization');
-    if (authHeader !== `Bearer ${cronSecret}`) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-  }
+export async function GET(request: NextRequest) {
+  const denied = requireCron(request);
+  if (denied) return denied;
 
   const admin = createAdminSupabaseClient();
 

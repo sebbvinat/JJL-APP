@@ -1,17 +1,14 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, type NextRequest } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { requireCron } from '@/lib/cron';
 
 export const runtime = 'nodejs';
 
 // GET: send email reminders for events happening in the next 24 hours
-// Called via Vercel Cron or manually
-export async function GET(request: Request) {
-  // Verify cron secret or admin
-  const authHeader = request.headers.get('authorization');
-  const cronSecret = process.env.CRON_SECRET;
-  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+// Called via Vercel Cron. Auth: requireCron (rechaza si falta CRON_SECRET).
+export async function GET(request: NextRequest) {
+  const denied = requireCron(request);
+  if (denied) return denied;
 
   const resendKey = process.env.RESEND_API_KEY;
   if (!resendKey) {
