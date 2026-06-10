@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft, Lock, BookOpen } from 'lucide-react';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
+import { FullScreenSpinner } from '@/components/ui/Spinner';
 import CustomVideoPlayer from '@/components/video/CustomVideoPlayer';
 import LessonList from '@/components/modules/LessonList';
 import WeeklyReflection from '@/components/modules/WeeklyReflection';
@@ -151,11 +152,7 @@ export default function ModuleDetailPage() {
   }
 
   if (userLoading || isUnlocked === null || !lessonsLoaded || !moduleInfo) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="w-8 h-8 border-2 border-jjl-red border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
+    return <FullScreenSpinner />;
   }
 
   if (!isUnlocked) {

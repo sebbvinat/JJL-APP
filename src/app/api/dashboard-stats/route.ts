@@ -22,7 +22,7 @@ interface CourseRow {
 }
 
 async function fetchCore(supabase: SupabaseClient, userId: string, today: string) {
-  const [profileRes, trainingRes, todayRes, unlockedRes, progressRes, courseRes] =
+  const [profileRes, trainingRes, todayRes, unlockedRes, progressRes, courseRes, redoRes] =
     await Promise.all([
       supabase
         .from('users')
@@ -55,6 +55,14 @@ async function fetchCore(supabase: SupabaseClient, userId: string, today: string
         .from('course_data')
         .select('module_id, semana_numero, lessons')
         .eq('user_id', userId),
+      // Videos que el instructor pidió rehacer. La push notification se
+      // pierde si el alumno no la ve en el momento — este count alimenta
+      // un banner PERSISTENTE en el dashboard hasta que re-suba.
+      supabase
+        .from('video_uploads')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', userId)
+        .eq('status', 'para_rehacer'),
     ]);
 
   return {
@@ -66,6 +74,7 @@ async function fetchCore(supabase: SupabaseClient, userId: string, today: string
       (r) => r.lesson_id
     ),
     userCourseData: (courseRes.data as CourseRow[] | null) || [],
+    videosParaRehacer: redoRes.count ?? 0,
   };
 }
 
@@ -179,6 +188,7 @@ export async function GET(request: NextRequest) {
     unlockedModules,
     completedLessonIds,
     userCourseData,
+    videosParaRehacer,
   } = await fetchCore(supabase, user.id, today);
 
   const completedSet = new Set(completedLessonIds);
@@ -261,6 +271,7 @@ export async function GET(request: NextRequest) {
       overallProgress,
       streak,
       totalTrainingDays: trainedDates.length,
+      videosParaRehacer,
     },
     {
       headers: {

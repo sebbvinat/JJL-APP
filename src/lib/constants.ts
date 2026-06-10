@@ -24,6 +24,7 @@ export const NAV_ITEMS = [
   { label: 'Biblioteca', href: '/library', icon: Library },
   { label: 'Habilidades', href: '/maquina-tiempo', icon: Clock },
   { label: 'Ranking', href: '/leaderboard', icon: Medal },
+  { label: 'Competencias', href: '/competitions', icon: Trophy },
   { label: 'Eventos', href: '/events', icon: CalendarDays },
   { label: 'Comunidad', href: '/community', icon: Users },
   { label: 'Chat', href: '/chat', icon: MessageCircle },

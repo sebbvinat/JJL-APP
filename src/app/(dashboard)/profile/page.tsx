@@ -8,6 +8,7 @@ import Avatar from '@/components/ui/Avatar';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
+import Spinner, { FullScreenSpinner } from '@/components/ui/Spinner';
 import { useToast } from '@/components/ui/Toast';
 import { useUser } from '@/hooks/useUser';
 import { createClient } from '@/lib/supabase/client';
@@ -307,18 +308,14 @@ function ProfileContent() {
   if (isResetMode && !sessionReady) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
-        <div className="w-8 h-8 border-2 border-jjl-red border-t-transparent rounded-full animate-spin" />
+        <Spinner size="lg" />
         <p className="text-jjl-muted text-sm">Verificando sesion...</p>
       </div>
     );
   }
 
   if (loading && !isResetMode) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="w-8 h-8 border-2 border-jjl-red border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
+    return <FullScreenSpinner />;
   }
 
   // Reset mode without full profile - show password form only

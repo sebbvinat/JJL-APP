@@ -445,7 +445,7 @@ export default function JournalPage() {
                   onClick={() =>
                     update('intensidad', entry.intensidad === opt.value ? null : opt.value)
                   }
-                  className={`flex-1 h-10 rounded-lg border text-[13px] font-semibold transition-all ${
+                  className={`flex-1 min-h-[44px] rounded-lg border text-[13px] font-semibold transition-all ${
                     entry.intensidad === opt.value
                       ? opt.color + ' border-2'
                       : 'border-jjl-border text-jjl-muted bg-white/[0.02] hover:bg-white/[0.04]'

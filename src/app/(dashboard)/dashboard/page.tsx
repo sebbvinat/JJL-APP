@@ -36,6 +36,7 @@ interface DashboardData {
   overallProgress: number;
   streak: number;
   totalTrainingDays: number;
+  videosParaRehacer?: number;
 }
 
 interface ModuleWithLessons {
@@ -142,6 +143,30 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* Banner persistente: el instructor pidió rehacer video(s). La push
+          notification se pierde — esto queda visible hasta que re-suba. */}
+      {(data?.videosParaRehacer ?? 0) > 0 && (
+        <Link
+          href="/upload"
+          className="flex items-center gap-3 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3.5 hover:bg-amber-500/15 transition-colors"
+        >
+          <div className="h-10 w-10 rounded-lg bg-amber-500/20 flex items-center justify-center shrink-0">
+            <Upload className="h-5 w-5 text-amber-400" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-[14px] font-bold text-amber-200">
+              {data!.videosParaRehacer === 1
+                ? 'Tu instructor pidió que rehagas un video'
+                : `Tu instructor pidió que rehagas ${data!.videosParaRehacer} videos`}
+            </p>
+            <p className="text-[12px] text-amber-200/70">
+              Mirá el feedback y subí la nueva versión cuando puedas.
+            </p>
+          </div>
+          <ChevronRight className="h-5 w-5 text-amber-400 shrink-0" />
+        </Link>
+      )}
 
       {/* Task Dashboard — elevated as the #1 daily action */}
       <TaskDashboard todayChecked={todayChecked} />
