@@ -89,25 +89,45 @@ export default function ModulesPage() {
     0
   );
 
+  const overallPct = totalLessons > 0 ? Math.round((totalCompleted / totalLessons) * 100) : 0;
+  // El "próximo" módulo a trabajar = el primero (por semana) con lecciones
+  // pendientes. Lo resaltamos para que el alumno sepa dónde seguir.
+  const nextModuleId = [...visibleModules]
+    .sort((a, b) => a.semana_numero - b.semana_numero)
+    .find((m) => m.lessons.some((l) => l.tipo !== 'reflection' && !completedIds.has(l.id)))?.id;
+
   return (
     <div className="space-y-6 max-w-5xl xl:max-w-6xl">
-      <div className="flex items-end justify-between flex-wrap gap-4">
-        <div>
-          <p className="text-[11px] uppercase tracking-[0.18em] text-jjl-muted font-semibold mb-1.5">
-            Curriculum
-          </p>
-          <h1 className="text-3xl font-black text-white tracking-tight">Tu Programa</h1>
-          <p className="text-sm text-jjl-muted mt-1.5">
-            Construyendo tu juego ideal, entrenamiento a entrenamiento.
-          </p>
+      {/* Hero con progreso — primer golpe de vista del alumno */}
+      <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-jjl-red/15 via-jjl-gray/40 to-transparent p-6">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -top-20 -right-10 h-56 w-56 rounded-full blur-3xl opacity-30"
+          style={{ background: 'radial-gradient(circle, rgba(220,38,38,0.5), transparent 70%)' }}
+        />
+        <div className="relative flex items-end justify-between flex-wrap gap-4">
+          <div>
+            <p className="text-[11px] uppercase tracking-[0.18em] text-jjl-muted font-semibold mb-1.5">
+              Curriculum
+            </p>
+            <h1 className="text-3xl font-black text-white tracking-tight">Tu Programa</h1>
+            <p className="text-sm text-jjl-muted mt-1.5">
+              Construyendo tu juego ideal, entrenamiento a entrenamiento.
+            </p>
+          </div>
+          <div className="text-right">
+            <span className="text-4xl font-black text-white tabular-nums leading-none">{overallPct}%</span>
+            <p className="text-[11px] uppercase tracking-wider text-jjl-muted font-semibold mt-1">
+              {totalCompleted}/{totalLessons} lecciones
+            </p>
+          </div>
         </div>
-        <div className="flex items-baseline gap-2">
-          <span className="text-3xl font-black text-jjl-red tabular-nums leading-none">
-            {totalCompleted}
-          </span>
-          <span className="text-[11px] uppercase tracking-wider text-jjl-muted font-semibold">
-            / {totalLessons}<br />lecciones
-          </span>
+        {/* Barra de progreso global */}
+        <div className="relative mt-5 h-2 rounded-full bg-white/[0.06] overflow-hidden">
+          <div
+            className="h-full rounded-full bg-gradient-to-r from-jjl-red to-orange-500 transition-all duration-700"
+            style={{ width: `${overallPct}%` }}
+          />
         </div>
       </div>
 
@@ -125,6 +145,7 @@ export default function ModulesPage() {
               totalLessons={videoLessons.length}
               completedLessons={completed}
               unlocked={true}
+              isNext={mod.id === nextModuleId}
             />
           );
         })}

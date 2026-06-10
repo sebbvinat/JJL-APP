@@ -202,12 +202,17 @@ export default function WeeklyPage() {
 
   return (
     <div className="space-y-5 max-w-2xl lg:max-w-4xl xl:max-w-5xl mx-auto pb-12">
-      {/* Header */}
-      <div>
-        <p className="text-[11px] uppercase tracking-[0.18em] text-jjl-muted font-semibold mb-1.5">
+      {/* Header — hero con gradiente de marca */}
+      <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-jjl-red/15 via-jjl-gray/40 to-transparent p-5 sm:p-6">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -top-20 -right-10 h-52 w-52 rounded-full blur-3xl opacity-30"
+          style={{ background: 'radial-gradient(circle, rgba(220,38,38,0.5), transparent 70%)' }}
+        />
+        <p className="relative text-[11px] uppercase tracking-[0.18em] text-jjl-muted font-semibold mb-1.5">
           Ritual del domingo
         </p>
-        <div className="flex items-end justify-between gap-3 flex-wrap">
+        <div className="relative flex items-end justify-between gap-3 flex-wrap">
           <h1 className="text-3xl font-black tracking-tight">Tu semana</h1>
           <div className="flex items-center gap-1">
             <button

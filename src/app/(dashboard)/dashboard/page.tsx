@@ -184,6 +184,7 @@ export default function DashboardPage() {
           value={streak > 0 ? `${streak} dia${streak !== 1 ? 's' : ''}` : '0'}
           icon={Flame}
           color="text-orange-400"
+          highlight={streak >= 3}
         />
         <StatCard
           label="Modulos Activos"

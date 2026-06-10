@@ -12,7 +12,9 @@ interface EmptyStateProps {
     onClick?: () => void;
   };
   className?: string;
-  tone?: 'neutral' | 'red';
+  /** 'brand' (default) usa un tinte rojo sutil de marca; 'muted' el gris
+   *  apagado de antes. 'red' es el rojo más fuerte. */
+  tone?: 'brand' | 'muted' | 'red' | 'neutral';
 }
 
 export default function EmptyState({
@@ -21,12 +23,15 @@ export default function EmptyState({
   description,
   action,
   className,
-  tone = 'neutral',
+  tone = 'brand',
 }: EmptyStateProps) {
   const accent =
     tone === 'red'
       ? 'bg-jjl-red/10 border-jjl-red/25 text-jjl-red'
-      : 'bg-white/5 border-white/10 text-jjl-muted';
+      : tone === 'muted' || tone === 'neutral'
+        ? 'bg-white/5 border-white/10 text-jjl-muted'
+        // 'brand' (default): tinte rojo sutil — la marca presente sin gritar.
+        : 'bg-jjl-red/[0.07] border-jjl-red/20 text-jjl-red/80';
 
   return (
     <div

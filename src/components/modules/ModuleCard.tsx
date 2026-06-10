@@ -10,6 +10,8 @@ interface ModuleCardProps {
   totalLessons: number;
   completedLessons: number;
   unlocked: boolean;
+  /** Es el próximo módulo a trabajar → lo resaltamos con borde rojo + chip. */
+  isNext?: boolean;
 }
 
 export default function ModuleCard({
@@ -20,6 +22,7 @@ export default function ModuleCard({
   totalLessons,
   completedLessons,
   unlocked,
+  isNext = false,
 }: ModuleCardProps) {
   const progress = totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0;
   const isCompleted = progress === 100;
@@ -29,7 +32,7 @@ export default function ModuleCard({
       hover={unlocked}
       className={`group relative overflow-hidden h-full ${
         !unlocked ? 'opacity-60 cursor-not-allowed' : ''
-      }`}
+      } ${isNext ? 'border-jjl-red/50 bg-jjl-red/[0.04]' : ''}`}
     >
       {/* Top accent line on hover */}
       {unlocked && (
@@ -38,16 +41,20 @@ export default function ModuleCard({
 
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <span className="inline-flex items-center h-6 px-2 rounded-md bg-jjl-red/10 border border-jjl-red/20 text-jjl-red text-[11px] font-bold uppercase tracking-[0.14em]">
               {semana === -1 ? 'App' : semana === 0 ? 'Intro' : `S${semana}`}
             </span>
-            {isCompleted && unlocked && (
+            {isCompleted && unlocked ? (
               <span className="inline-flex items-center gap-1 h-6 px-2 rounded-md bg-green-500/10 border border-green-500/20 text-green-400 text-[11px] font-semibold">
                 <CheckCircle className="h-3 w-3" />
                 Completado
               </span>
-            )}
+            ) : isNext ? (
+              <span className="inline-flex items-center h-6 px-2 rounded-md bg-jjl-red/15 border border-jjl-red/30 text-jjl-red text-[11px] font-bold uppercase tracking-wider">
+                Seguí acá
+              </span>
+            ) : null}
           </div>
           <h3 className="text-[17px] font-bold text-white mt-2.5 leading-tight text-balance">
             {titulo}
