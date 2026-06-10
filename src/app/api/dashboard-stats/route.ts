@@ -18,7 +18,7 @@ interface ProfileRow {
 interface CourseRow {
   module_id: string;
   semana_numero: number;
-  lessons: Array<{ id: string }>;
+  lessons: Array<{ id: string; tipo?: string }>;
 }
 
 async function fetchCore(supabase: SupabaseClient, userId: string, today: string) {
@@ -101,11 +101,18 @@ async function fallbackWeekCompletion(
   return weeks;
 }
 
-function computeStreak(trainedDates: string[]): number {
+// Ancla la racha en el "hoy" DEL ALUMNO (llega por ?today= desde el cliente),
+// no en el reloj del server. Vercel corre en UTC: entre las ~21:00 y las
+// 23:59 hora Argentina el server ya está en "mañana", y la racha se veía
+// rota de noche aunque el alumno hubiera entrenado.
+function computeStreak(trainedDates: string[], todayStr: string): number {
   const set = new Set(trainedDates);
+  // Mediodía para esquivar saltos de DST al restar días.
+  const base = new Date(`${todayStr}T12:00:00`);
+  const anchor = Number.isNaN(base.getTime()) ? new Date() : base;
   let streak = 0;
   for (let i = 0; i < 365; i++) {
-    const date = format(subDays(new Date(), i), 'yyyy-MM-dd');
+    const date = format(subDays(anchor, i), 'yyyy-MM-dd');
     if (set.has(date)) {
       streak++;
     } else if (i > 0) {
@@ -186,10 +193,17 @@ export async function GET(request: NextRequest) {
   if (userCourseData.length > 0) {
     for (const row of userCourseData) {
       const lessons = Array.isArray(row.lessons) ? row.lessons : [];
-      totalLessonsAvailable += lessons.length;
+      // Solo lecciones de VIDEO cuentan para el progreso y para "semana
+      // completa" — misma definición que usa el admin (crm.ts), la lista
+      // de módulos del alumno y el perfil del alumno en el panel. Antes
+      // este endpoint incluía las reflexiones, y como la reflexión no se
+      // persistía nunca, NINGUNA semana podía marcarse completa: semanas
+      // en 0, cinturones que no avanzaban y % de progreso desinflado.
+      const videoLessons = lessons.filter((l) => l.tipo !== 'reflection');
+      totalLessonsAvailable += videoLessons.length;
       totalWeeks++;
-      const completedInWeek = lessons.filter((l) => completedSet.has(l.id)).length;
-      if (lessons.length > 0 && completedInWeek === lessons.length) {
+      const completedInWeek = videoLessons.filter((l) => completedSet.has(l.id)).length;
+      if (videoLessons.length > 0 && completedInWeek === videoLessons.length) {
         completedWeekNumbers.push(row.semana_numero);
         completedWeeksCount++;
       }
@@ -200,7 +214,7 @@ export async function GET(request: NextRequest) {
   }
 
   const trainedDates = trainingDays.map((t) => t.fecha);
-  const streak = computeStreak(trainedDates);
+  const streak = computeStreak(trainedDates, today);
 
   const gamification = calculateGamification({
     completedWeeks: completedWeekNumbers,

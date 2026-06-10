@@ -246,7 +246,11 @@ export default function ModuleDetailPage() {
         {/* Content area — left 2/3 */}
         <div className="lg:col-span-2 space-y-4">
           {isReflection ? (
-            <WeeklyReflection weekNumber={moduleInfo.semana_numero} />
+            <WeeklyReflection
+              weekNumber={moduleInfo.semana_numero}
+              completed={isActiveLessonCompleted}
+              onComplete={() => activeLessonId && handleComplete(activeLessonId)}
+            />
           ) : activeLesson ? (
             <>
               {activeLesson.youtube_id ? (
