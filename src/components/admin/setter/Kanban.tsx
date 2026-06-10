@@ -79,14 +79,45 @@ function priorityOf(l: LeadRowExt): Priority {
   return null;
 }
 
-function priorityLabel(prio: NonNullable<Priority>): string {
-  if (prio === 'yellow') return 'Oportunidad · low ticket 48h';
-  return 'Lead frío · solo curiosea';
+// La oferta low ticket "precio especial por haber completado el form" vale
+// 48 horas desde que el lead llenó el quiz. Pasado eso, el setter pierde el
+// gancho de urgencia — el badge lo muestra explícito para que priorice los
+// que todavía están en ventana.
+const LOW_TICKET_WINDOW_HOURS = 48;
+
+function lowTicketHoursLeft(l: LeadRowExt): number {
+  const elapsedHs = (Date.now() - new Date(l.created_at).getTime()) / 3_600_000;
+  return Math.ceil(LOW_TICKET_WINDOW_HOURS - elapsedHs);
+}
+
+/** Texto del badge según prioridad + estado de la ventana. En columnas
+ *  terminales (convertido/descartado) no tiene sentido el countdown. */
+function priorityLabel(prio: NonNullable<Priority>, l: LeadRowExt, columnKey: LeadStage): string {
+  if (prio === 'red') return 'Lead frío · solo curiosea';
+  if (columnKey === 'convertido' || columnKey === 'descartado') return 'Low ticket';
+  const left = lowTicketHoursLeft(l);
+  if (left > 1) return `Low ticket · quedan ${left}h`;
+  if (left === 1) return 'Low ticket · queda 1h';
+  return 'Low ticket · ventana vencida';
+}
+
+/** La ventana vencida baja la urgencia visual: badge gris en vez de ámbar. */
+function isWindowExpired(prio: Priority, l: LeadRowExt, columnKey: LeadStage): boolean {
+  return prio === 'yellow'
+    && columnKey !== 'convertido'
+    && columnKey !== 'descartado'
+    && lowTicketHoursLeft(l) <= 0;
 }
 
 const PRIORITY_STYLES: Record<NonNullable<Priority>, { border: string; bg: string; badge: string }> = {
   red:    { border: 'border-red-500/60',    bg: 'bg-red-500/[0.06]',    badge: 'bg-red-500/20 text-red-300 border-red-500/40' },
   yellow: { border: 'border-amber-500/60',  bg: 'bg-amber-500/[0.06]',  badge: 'bg-amber-500/20 text-amber-300 border-amber-500/40' },
+};
+
+const EXPIRED_STYLES = {
+  border: 'border-jjl-border',
+  bg: 'bg-jjl-gray',
+  badge: 'bg-white/5 text-jjl-muted border-jjl-border',
 };
 
 function formatMonto(monto: number, moneda: string | null): string {
@@ -146,8 +177,9 @@ export default function Kanban({ leads, admins, onOpenLead, salesByLead, onQuick
               ) : list.map((l) => {
                 const adm = l.assigned_to ? adminById.get(l.assigned_to) : null;
                 const prio = priorityOf(l);
-                const prioStyles = prio ? PRIORITY_STYLES[prio] : null;
-                const prioLabelText = prio ? priorityLabel(prio) : null;
+                const expired = isWindowExpired(prio, l, s.key);
+                const prioStyles = prio ? (expired ? EXPIRED_STYLES : PRIORITY_STYLES[prio]) : null;
+                const prioLabelText = prio ? priorityLabel(prio, l, s.key) : null;
                 const cardBorder = prioStyles?.border ?? 'border-jjl-border';
                 const cardBg = prioStyles?.bg ?? 'bg-jjl-gray';
                 const canQuickDiscard = !!onQuickDiscard && s.key !== 'descartado' && !isConverted;
