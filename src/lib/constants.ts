@@ -14,6 +14,7 @@ import {
   Medal,
   Clock,
   LifeBuoy,
+  Video,
 } from 'lucide-react';
 
 export const NAV_ITEMS = [
@@ -34,6 +35,7 @@ export const NAV_ITEMS = [
 
 export const ADMIN_NAV = [
   { label: 'Admin', href: '/admin', icon: Shield },
+  { label: 'Revisiones', href: '/admin/reviews', icon: Video },
   { label: 'Soporte', href: '/admin/soporte', icon: LifeBuoy },
 ] as const;
 

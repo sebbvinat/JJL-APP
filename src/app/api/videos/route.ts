@@ -16,6 +16,18 @@ export async function GET(request: NextRequest) {
   const pendingOnly = request.nextUrl.searchParams.get('pending') === '1';
   const all = request.nextUrl.searchParams.get('all') === '1';
 
+  // ?pendingCount=1 — solo el número de videos sin revisar (para el badge
+  // de la nav admin). head:true → no viaja ninguna fila, solo el count.
+  if (request.nextUrl.searchParams.get('pendingCount') === '1') {
+    const ctx = await requireAdmin(request);
+    if (!ctx) return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
+    const { count } = await ctx.admin
+      .from('video_uploads')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'pendiente');
+    return NextResponse.json({ pendingCount: count ?? 0 });
+  }
+
   if (targetUser || pendingOnly || all) {
     const ctx = await requireAdmin(request);
     if (!ctx) return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
