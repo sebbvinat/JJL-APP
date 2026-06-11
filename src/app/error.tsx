@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { RefreshCw, AlertTriangle } from 'lucide-react';
+import { logger } from '@/lib/logger';
 
 export default function GlobalError({
   error,
@@ -11,7 +12,8 @@ export default function GlobalError({
   reset: () => void;
 }) {
   useEffect(() => {
-    console.error('[error-boundary]', error);
+    // logger.error → en producción también reporta a /api/client-errors.
+    logger.error('error-boundary', { err: error, digest: error.digest });
   }, [error]);
 
   return (
