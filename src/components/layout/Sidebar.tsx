@@ -18,12 +18,28 @@ export default function Sidebar() {
   // Badge de videos sin revisar para el coach. Solo fetchea si es admin;
   // refresh cada 5 min — el push por video subido ya cubre el tiempo real,
   // esto es el recordatorio visual persistente.
-  const { data: pendingData } = useSWR<{ pendingCount: number }>(
+  const { data: pendingData } = useSWR<{
+    pendingCount: number;
+    oldestPendingHours: number | null;
+  }>(
     isAdmin ? '/api/videos?pendingCount=1' : null,
     fetcher,
     { revalidateOnFocus: false, refreshInterval: 300_000, dedupingInterval: 60_000 },
   );
   const pendingReviews = pendingData?.pendingCount ?? 0;
+  const oldestHours = pendingData?.oldestPendingHours ?? null;
+
+  // Urgencia visible: rojo si >72h (3 días), amber si entre 24 y 72,
+  // gris-rojo si menos. El coach ve de un vistazo si algo se enfrió.
+  const urgencyTone =
+    oldestHours === null || oldestHours < 24 ? 'normal'
+    : oldestHours < 72 ? 'warning'
+    : 'urgent';
+  const urgencyTitle = oldestHours === null
+    ? `${pendingReviews} pendientes`
+    : oldestHours < 24
+      ? `${pendingReviews} pendientes — el más viejo hace ${oldestHours}h`
+      : `${pendingReviews} pendientes — el más viejo hace ${Math.floor(oldestHours / 24)}d`;
 
   return (
     <aside className="hidden lg:flex flex-col w-64 bg-gradient-to-b from-jjl-gray via-jjl-gray/95 to-black border-r border-jjl-border h-screen sticky top-0">
@@ -117,7 +133,15 @@ export default function Sidebar() {
                   />
                   <span className="flex-1">{item.label}</span>
                   {item.href === '/admin/reviews' && pendingReviews > 0 && (
-                    <span className="inline-flex items-center justify-center h-5 min-w-[20px] px-1.5 rounded-full bg-jjl-red text-white text-[10px] font-bold">
+                    <span
+                      title={urgencyTitle}
+                      className={clsx(
+                        'inline-flex items-center justify-center h-5 min-w-[20px] px-1.5 rounded-full text-white text-[10px] font-bold transition-colors',
+                        urgencyTone === 'urgent' && 'bg-jjl-red ring-2 ring-jjl-red/40 animate-pulse',
+                        urgencyTone === 'warning' && 'bg-amber-500',
+                        urgencyTone === 'normal' && 'bg-jjl-red',
+                      )}
+                    >
                       {pendingReviews > 9 ? '9+' : pendingReviews}
                     </span>
                   )}

@@ -16,16 +16,33 @@ export async function GET(request: NextRequest) {
   const pendingOnly = request.nextUrl.searchParams.get('pending') === '1';
   const all = request.nextUrl.searchParams.get('all') === '1';
 
-  // ?pendingCount=1 — solo el número de videos sin revisar (para el badge
-  // de la nav admin). head:true → no viaja ninguna fila, solo el count.
+  // ?pendingCount=1 — count + edad del pendiente más viejo, para colorear
+  // el badge del sidebar por urgencia (gris <24h, amber 1-3d, rojo >3d).
   if (request.nextUrl.searchParams.get('pendingCount') === '1') {
     const ctx = await requireAdmin(request);
     if (!ctx) return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
-    const { count } = await ctx.admin
-      .from('video_uploads')
-      .select('id', { count: 'exact', head: true })
-      .eq('status', 'pendiente');
-    return NextResponse.json({ pendingCount: count ?? 0 });
+    const [{ count }, oldestRes] = await Promise.all([
+      ctx.admin
+        .from('video_uploads')
+        .select('id', { count: 'exact', head: true })
+        .eq('status', 'pendiente'),
+      ctx.admin
+        .from('video_uploads')
+        .select('created_at')
+        .eq('status', 'pendiente')
+        .order('created_at', { ascending: true })
+        .limit(1)
+        .maybeSingle<{ created_at: string }>(),
+    ]);
+    const oldest = oldestRes.data?.created_at ?? null;
+    const oldestHours = oldest
+      ? Math.floor((Date.now() - new Date(oldest).getTime()) / 3_600_000)
+      : null;
+    return NextResponse.json({
+      pendingCount: count ?? 0,
+      oldestPendingAt: oldest,
+      oldestPendingHours: oldestHours,
+    });
   }
 
   if (targetUser || pendingOnly || all) {

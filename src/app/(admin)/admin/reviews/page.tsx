@@ -209,9 +209,23 @@ export default function ReviewsPage() {
     setSaving(false);
   }
 
-  const filtered = filter === 'todos'
-    ? videos
-    : videos.filter((v) => v.status === filter);
+  // Pendientes: el más viejo primero (es el más urgente). El resto: más
+  // reciente primero, como venía. Así Guido siempre arranca por lo que se
+  // está enfriando, no por lo último que entró.
+  const filtered = (() => {
+    const base = filter === 'todos' ? videos : videos.filter((v) => v.status === filter);
+    if (filter === 'pendiente' || filter === 'todos') {
+      return [...base].sort((a, b) => {
+        if (a.status === 'pendiente' && b.status !== 'pendiente') return -1;
+        if (b.status === 'pendiente' && a.status !== 'pendiente') return 1;
+        if (a.status === 'pendiente' && b.status === 'pendiente') {
+          return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+        }
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      });
+    }
+    return base;
+  })();
 
   const pendingCount = videos.filter((v) => v.status === 'pendiente').length;
 
@@ -521,7 +535,10 @@ export default function ReviewsPage() {
                         {format(new Date(v.created_at), "d 'de' MMM · HH:mm", { locale: es })}
                       </p>
                     </div>
-                    <StatusBadge status={v.status} />
+                    <div className="flex items-center gap-2 shrink-0">
+                      {v.status === 'pendiente' && <AgeChip createdAt={v.created_at} />}
+                      <StatusBadge status={v.status} />
+                    </div>
                   </div>
 
                   {/* Video info */}
@@ -599,4 +616,27 @@ function StatusBadge({ status }: { status: string }) {
   if (status === 'revisado') return <Badge variant="success">Revisado</Badge>;
   if (status === 'para_rehacer') return <Badge variant="error">Rehacer</Badge>;
   return <Badge>{status}</Badge>;
+}
+
+/**
+ * Chip de antigüedad: muestra hace cuánto subió el alumno el video. Color
+ * por urgencia — verde <24h, amber 24-72h, rojo >72h. El coach lo ve sin
+ * tener que abrir cada card y prioriza solo.
+ */
+function AgeChip({ createdAt }: { createdAt: string }) {
+  const hours = Math.floor((Date.now() - new Date(createdAt).getTime()) / 3_600_000);
+  const label = hours < 1 ? 'recién' : hours < 24 ? `${hours}h` : `${Math.floor(hours / 24)}d`;
+  const tone =
+    hours < 24 ? 'bg-green-500/10 text-green-400 border-green-500/30' :
+    hours < 72 ? 'bg-amber-500/10 text-amber-400 border-amber-500/30' :
+                 'bg-jjl-red/15 text-jjl-red border-jjl-red/40';
+  return (
+    <span
+      title={`Subido hace ${label}`}
+      className={`inline-flex items-center gap-1 h-6 px-2 rounded-full border text-[10px] font-bold uppercase tracking-wider ${tone}`}
+    >
+      <Clock className="h-3 w-3" />
+      {label}
+    </span>
+  );
 }
