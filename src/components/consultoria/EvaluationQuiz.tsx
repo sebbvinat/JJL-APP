@@ -682,12 +682,24 @@ function QuizResult({
     'pending' | 'checking' | 'phone' | 'done'
   >('pending');
 
+  // Tracker de "casi-agendó": Calendly emite `date_and_time_selected` cuando
+  // el lead ya eligió día/hora — está a un click de confirmar. Si se va
+  // antes del `event_scheduled`, le avisamos al setter con el contexto +
+  // un link wa.me listo para escribirle a mano.
+  const nearMissRef = useRef(false);
+  const bookedRef = useRef(false);
+
   // Calendly emite postMessage cuando el lead termina de agendar.
   useEffect(() => {
     function handler(e: MessageEvent) {
       const data = e.data as { event?: unknown } | null;
       if (!data || typeof data.event !== 'string') return;
+      if (data.event === 'calendly.date_and_time_selected') {
+        nearMissRef.current = true;
+      }
       if (data.event === 'calendly.event_scheduled') {
+        bookedRef.current = true;
+        nearMissRef.current = false; // ya no es near-miss, agendó
         void fetch('/api/leads/quiz', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -698,6 +710,51 @@ function QuizResult({
     }
     window.addEventListener('message', handler);
     return () => window.removeEventListener('message', handler);
+  }, [sessionId]);
+
+  // Si el lead seleccionó día/hora y trata de cerrar antes de confirmar,
+  // mostramos confirm nativo y disparamos un beacon al backend para que
+  // el setter reciba aviso al toque.
+  useEffect(() => {
+    let beaconSent = false;
+    function maybeBeacon() {
+      if (beaconSent) return;
+      if (!nearMissRef.current || bookedRef.current) return;
+      beaconSent = true;
+      try {
+        const payload = JSON.stringify({ session_id: sessionId });
+        // sendBeacon sobrevive a la navegación/cierre de pestaña; fetch no.
+        if (navigator.sendBeacon) {
+          const blob = new Blob([payload], { type: 'text/plain' });
+          navigator.sendBeacon('/api/leads/near-miss', blob);
+        } else {
+          void fetch('/api/leads/near-miss', {
+            method: 'POST',
+            body: payload,
+            keepalive: true,
+          });
+        }
+      } catch {
+        /* no-op */
+      }
+    }
+    function onBeforeUnload(e: BeforeUnloadEvent) {
+      if (!nearMissRef.current || bookedRef.current) return;
+      maybeBeacon();
+      // Confirm nativo: en browsers modernos el texto se ignora, sale el
+      // prompt genérico igual. Suficiente para frenar el cierre por error.
+      e.preventDefault();
+      e.returnValue = '';
+    }
+    function onVisibilityChange() {
+      if (document.visibilityState === 'hidden') maybeBeacon();
+    }
+    window.addEventListener('beforeunload', onBeforeUnload);
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => {
+      window.removeEventListener('beforeunload', onBeforeUnload);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    };
   }, [sessionId]);
 
   // Mientras estamos en 'checking', poleamos /api/leads/check para ver si
