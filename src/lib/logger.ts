@@ -41,6 +41,16 @@ function reportToServer(event: string, meta?: Meta) {
     return;
   }
 
+  // Filtro "Script ... load failed" — Safari iOS tira esto como
+  // unhandledrejection cuando intenta bajar el Service Worker (/sw.js) o
+  // cualquier <script> y la conexión se corta a mitad. No es bug, es red
+  // transitoria. Mismo razonamiento que el filtro de "Load failed" del
+  // error-boundary, pero acá llega por promise rejection en lugar de
+  // boundary de React.
+  if (event === 'window.unhandledrejection' && /^Script .* load failed$/i.test(message)) {
+    return;
+  }
+
   const signature = `${event}|${message}`;
   if (reported.has(signature) || reported.size >= MAX_REPORTS_PER_SESSION) return;
   reported.add(signature);
