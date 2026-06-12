@@ -33,12 +33,36 @@ function reportToServer(event: string, meta?: Meta) {
     err ? JSON.stringify(err).slice(0, 300) : '';
   const stack = err instanceof Error ? err.stack || '' : '';
 
+  // Filtro "Script error." — cuando un script CROSS-ORIGIN tira un error, el
+  // browser oculta el mensaje real por seguridad y nos llega solo
+  // "Script error." sin stack. NO podemos hacer nada con eso — es ruido de
+  // GA/Calendly/Manychat etc., no es código nuestro. Lo descartamos.
+  if (event === 'window.onerror' && message === 'Script error.' && !stack) {
+    return;
+  }
+
   const signature = `${event}|${message}`;
   if (reported.has(signature) || reported.size >= MAX_REPORTS_PER_SESSION) return;
   reported.add(signature);
 
+  // Extra: cualquier campo del meta que no sea `err` (digest del React
+  // boundary, userId, etc.). Lo serializamos como string y lo metemos al
+  // final del stack — así llega a Supabase sin necesidad de migrar tabla.
+  let extras = '';
   try {
-    const body = JSON.stringify({ event, message, stack, url: window.location.href });
+    if (meta) {
+      const { err: _omit, ...rest } = meta;
+      if (Object.keys(rest).length > 0) extras = '\n\n[meta] ' + JSON.stringify(rest).slice(0, 800);
+    }
+  } catch {}
+
+  try {
+    const body = JSON.stringify({
+      event,
+      message,
+      stack: (stack + extras).slice(0, 5000),
+      url: window.location.href,
+    });
     // keepalive: sobrevive a navegaciones/cierres de pestaña.
     fetch('/api/client-errors', {
       method: 'POST',
