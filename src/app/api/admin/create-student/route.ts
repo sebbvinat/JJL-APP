@@ -34,6 +34,28 @@ export async function POST(request: NextRequest) {
     });
 
     if (createError) {
+      // Caso típico: el email ya existe (compró un curso suelto antes con
+      // rol=cliente_cursos y ahora se viene al high ticket). En vez de
+      // tirar "ya existe" la UI muestra un botón "Promover a alumno del
+      // programa" → /api/admin/promote-student.
+      const isDup = /already|registered|exists|duplicate/i.test(createError.message);
+      if (isDup) {
+        const { data: existing } = await adminClient
+          .from('users')
+          .select('id, nombre, rol, program_member')
+          .eq('email', email)
+          .maybeSingle<{ id: string; nombre: string | null; rol: string; program_member: boolean | null }>();
+        if (existing) {
+          return NextResponse.json({
+            exists: true,
+            userId: existing.id,
+            nombre: existing.nombre,
+            rol: existing.rol,
+            program_member: existing.program_member,
+            canPromote: existing.rol === 'cliente_cursos',
+          }, { status: 409 });
+        }
+      }
       return NextResponse.json({ error: createError.message }, { status: 400 });
     }
 

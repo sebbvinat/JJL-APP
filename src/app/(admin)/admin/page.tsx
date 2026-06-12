@@ -112,6 +112,11 @@ function StudentsManagement() {
   const [newPassword, setNewPassword] = useState('');
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState('');
+  // Estado "el email ya existe como cliente_cursos" — la UI ofrece promover.
+  const [promoteCandidate, setPromoteCandidate] = useState<null | {
+    userId: string; nombre: string | null; rol: string; canPromote: boolean;
+  }>(null);
+  const [promoting, setPromoting] = useState(false);
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
@@ -127,6 +132,7 @@ function StudentsManagement() {
     e.preventDefault();
     setCreating(true);
     setError('');
+    setPromoteCandidate(null);
     try {
       const res = await fetch('/api/admin/create-student', {
         method: 'POST',
@@ -134,7 +140,15 @@ function StudentsManagement() {
         body: JSON.stringify({ email: newEmail, password: newPassword, nombre: newName }),
       });
       const result = await res.json();
-      if (!res.ok) {
+      // 409 → el email ya existe. Si es cliente_cursos ofrecemos promover.
+      if (res.status === 409 && result?.exists) {
+        setPromoteCandidate({
+          userId: result.userId,
+          nombre: result.nombre,
+          rol: result.rol,
+          canPromote: !!result.canPromote,
+        });
+      } else if (!res.ok) {
         setError(result.error || 'Error al crear alumno');
       } else {
         setNewEmail('');
@@ -149,6 +163,34 @@ function StudentsManagement() {
       setError('Error al crear alumno');
     }
     setCreating(false);
+  }
+
+  async function handlePromote() {
+    if (!promoteCandidate) return;
+    setPromoting(true);
+    try {
+      const res = await fetch('/api/admin/promote-student', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: promoteCandidate.userId }),
+      });
+      const body = await res.json();
+      if (res.ok) {
+        toast.success(`${promoteCandidate.nombre || 'Usuario'} promovido a alumno del programa`);
+        setNewEmail('');
+        setNewName('');
+        setNewPassword('');
+        setShowAddForm(false);
+        setPromoteCandidate(null);
+        mutate('/api/admin/students');
+      } else {
+        toast.error(body.error || 'Error al promover');
+      }
+    } catch (err) {
+      logger.error('admin.promoteStudent.failed', { err });
+      toast.error('Error de conexion');
+    }
+    setPromoting(false);
   }
 
   async function toggleAdmin(studentId: string, currentRol: string) {
@@ -308,6 +350,42 @@ function StudentsManagement() {
               />
             </div>
             {error && <p className="text-red-400 text-sm">{error}</p>}
+            {promoteCandidate && (
+              <div className="rounded-lg border border-amber-500/40 bg-amber-500/[0.06] p-3 space-y-2">
+                <p className="text-[13px] text-amber-200/90">
+                  <strong className="text-amber-300">
+                    {promoteCandidate.nombre || 'Este email'}
+                  </strong>{' '}
+                  ya existe como{' '}
+                  <span className="font-mono text-[12px] bg-amber-500/15 px-1.5 py-0.5 rounded">
+                    {promoteCandidate.rol}
+                  </span>
+                  .
+                </p>
+                {promoteCandidate.canPromote ? (
+                  <>
+                    <p className="text-[12px] text-amber-100/70">
+                      Compró cursos sueltos antes. Promovelo a alumno del programa para
+                      darle acceso al high ticket — después le asignás la planilla.
+                    </p>
+                    <Button
+                      type="button"
+                      variant="primary"
+                      size="sm"
+                      onClick={handlePromote}
+                      loading={promoting}
+                    >
+                      Promover a alumno del programa
+                    </Button>
+                  </>
+                ) : (
+                  <p className="text-[12px] text-amber-100/70">
+                    Como ya es <strong>{promoteCandidate.rol}</strong>, no se puede crear
+                    de nuevo desde acá. Si necesitás resetearle algo, edítalo en la lista.
+                  </p>
+                )}
+              </div>
+            )}
             <div className="flex gap-2">
               <Button type="submit" variant="primary" size="sm" loading={creating}>
                 Crear alumno
@@ -316,7 +394,7 @@ function StudentsManagement() {
                 type="button"
                 variant="secondary"
                 size="sm"
-                onClick={() => setShowAddForm(false)}
+                onClick={() => { setShowAddForm(false); setPromoteCandidate(null); setError(''); }}
               >
                 Cancelar
               </Button>
