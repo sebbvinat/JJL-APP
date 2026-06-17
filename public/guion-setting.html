@@ -1,0 +1,318 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Flujo de Setting · JJL</title>
+<style>
+  *{box-sizing:border-box;}
+  html,body{margin:0;height:100%;background:#0f1012;color:#e9e7e1;
+    font-family:'Segoe UI',system-ui,-apple-system,Roboto,sans-serif;overflow:hidden;}
+  #stage{position:fixed;inset:0;cursor:grab;
+    background:
+      radial-gradient(circle at center, #15171b 0, #0f1012 70%),
+      linear-gradient(#16181c 1px, transparent 1px) 0 0/28px 28px,
+      linear-gradient(90deg,#16181c 1px, transparent 1px) 0 0/28px 28px;}
+  #stage.grabbing{cursor:grabbing;}
+  #stage{touch-action:none;-webkit-user-select:none;user-select:none;}
+  #canvas{position:absolute;top:0;left:0;width:710px;height:1420px;transform-origin:0 0;will-change:transform;}
+  #connectors{position:absolute;inset:0;pointer-events:none;}
+  .node{position:absolute;border-radius:10px;padding:8px 12px;border:1px solid #2a2d33;background:#191b1f;text-align:center;
+    box-shadow:0 1px 0 rgba(0,0,0,.4);transition:transform .08s, box-shadow .12s;}
+  .node.click{cursor:pointer;}
+  .node.click:hover{transform:translateY(-1px);box-shadow:0 4px 14px rgba(0,0,0,.5);}
+  .node .ttl{font-size:13px;font-weight:700;letter-spacing:.2px;}
+  .node .sub{font-size:12px;color:#b9b6ad;margin-top:2px;line-height:1.3;}
+  .lead{background:#15233a;border-color:#2f4d7a;} .lead .ttl{color:#7fb0ff;}
+  .vos{background:#161922;border-color:#39404f;} .vos .sub{color:#cfd6e6;}
+  .green{background:#12241a;border-color:#2f6e47;} .green .ttl{color:#7fe0a0;} .green .sub{color:#bfe6cf;}
+  .red{background:#2a1416;border-color:#7a2330;} .red .ttl{color:#ff7a86;} .red .sub{color:#e7b8bd;}
+  .amber{background:#26210f;border-color:#6e5a2f;} .amber .ttl{color:#e7cb83;}
+  .gray{background:#1c1e22;border-color:#3a3d44;} .gray .ttl{color:#cfcdc5;} .gray .sub{color:#a9a69d;}
+  .stage .ttl{font-size:14px;}
+  .frame{position:absolute;border:1px dashed #3a3d44;border-radius:14px;}
+  .frame .cap{position:absolute;top:-11px;left:18px;background:#0f1012;padding:0 8px;font-size:12px;color:#8f8c83;}
+  .colhead{position:absolute;font-size:12px;font-weight:700;color:#8f8c83;letter-spacing:.4px;text-transform:uppercase;}
+  .mantra{position:absolute;display:flex;gap:10px;align-items:center;justify-content:center;font-size:12px;color:#c8c5bc;}
+  .mantra b{color:#ff7a86;}
+  #bar{position:fixed;top:14px;left:14px;z-index:10;display:flex;gap:8px;align-items:center;
+    background:rgba(20,21,24,.86);backdrop-filter:blur(6px);border:1px solid #2a2d33;border-radius:12px;padding:8px 10px;}
+  #bar .title{font-weight:800;font-size:14px;margin-right:6px;}
+  #bar .title span{color:#E11C32;}
+  #bar button{all:unset;cursor:pointer;width:30px;height:30px;border-radius:8px;display:grid;place-items:center;color:#e9e7e1;background:#23262c;font-size:16px;font-weight:700;}
+  #bar button:hover{background:#2f333b;}
+  #bar .hint{font-size:11px;color:#8f8c83;margin-left:6px;}
+  #panel{position:fixed;top:0;right:0;height:100%;width:400px;max-width:92vw;z-index:20;
+    background:#141518;border-left:1px solid #2a2d33;transform:translateX(102%);transition:transform .22s ease;padding:22px 22px 40px;overflow:auto;}
+  #panel.open{transform:translateX(0);}
+  #panel .tag{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#0f1012;background:#7fb0ff;padding:3px 9px;border-radius:20px;}
+  #panel .tag.r{background:#ff7a86;} #panel .tag.g{background:#7fe0a0;} #panel .tag.a{background:#e7cb83;}
+  #panel h2{font-size:19px;margin:12px 0 2px;}
+  #panel .lead2{color:#9fbef0;font-size:13px;margin-bottom:8px;line-height:1.45;}
+  #panel .blk{margin:14px 0;}
+  #panel .bhd{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;gap:10px;}
+  #panel .bhd h3{margin:0;font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:#8f8c83;}
+  #panel .script{white-space:pre-wrap;background:#0f1012;border:1px solid #24272d;border-radius:10px;padding:12px 14px;font-size:14px;line-height:1.55;color:#e9e7e1;user-select:text;}
+  .copybtn{all:unset;cursor:pointer;font-size:11px;font-weight:700;color:#0f1012;background:#7fb0ff;padding:5px 11px;border-radius:7px;white-space:nowrap;}
+  .copybtn:hover{background:#9cc3ff;} .copybtn.ok{background:#7fe0a0;}
+  #panel .note{font-size:13px;color:#c8b27f;background:#1d1a12;border:1px solid #3a3320;border-radius:10px;padding:10px 12px;margin-top:12px;line-height:1.45;}
+  #panel .close{position:absolute;top:14px;right:16px;cursor:pointer;color:#9b988f;font-size:22px;}
+  #panel .close:hover{color:#fff;}
+</style>
+</head>
+<body>
+<div id="bar">
+  <div class="title">Flujo de <span>Setting</span></div>
+  <button id="zin" title="Acercar">+</button>
+  <button id="zout" title="Alejar">&minus;</button>
+  <button id="fit" title="Encajar todo">&#9633;</button>
+  <span class="hint">arrastrá para mover · rueda = zoom · clic en un nodo = guion + copiar</span>
+</div>
+
+<div id="stage"><div id="canvas">
+  <svg id="connectors" width="710" height="1420" viewBox="0 0 710 1420">
+    <defs><marker id="ar" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M2 1L8 5L2 9" fill="none" stroke="#6f7077" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+  </svg>
+</div></div>
+
+<div id="panel">
+  <span class="close" id="pclose">&times;</span>
+  <span class="tag" id="ptag">Caso</span>
+  <h2 id="ptitle"></h2>
+  <div class="lead2" id="plead"></div>
+  <div id="pbody"></div>
+</div>
+
+<script>
+const APERTURA = "Hola! cómo estás?\n\nte hago una consulta\n¿tu juego lo tenés armado a propósito\no lo fuiste construyendo con lo que ves en clase?";
+const Q = "che, para ubicar mejor tu caso\n¿qué cinturón sos y hace cuánto venís entrenando?";
+const PLANTILLA = "1) validar  →  “de una, tiene sentido”\n2) reencuadrar  →  “igual ojo con eso…”\n3) problema real  →  “no es eso, es falta de juego”\n4) ranteo";
+
+const CASES = [
+  {n:"Caso 1", lead:"No tengo juego", short:"¿Sabés qué buscar o improvisás?", type:"blue",
+   trigger:"“no sé” / “más o menos” / “no tengo claro”",
+   blocks:[
+     {h:"1 · Pregunta", s:"de una, te entiendo\n\ncuando estás luchando\n¿sentís que sabés qué buscar\no vas resolviendo sobre la marcha?"},
+     {h:"2 · Si dice que improvisa", s:"ahí está\n\neso que decís es clave\n\nporque cuando estás improvisando\nterminás reaccionando todo el tiempo\nen vez de imponer tu juego\n\ny eso, aunque no se note al principio\ntermina estancando mucho"},
+     {h:"3 · Calificás (esperá respuesta)", s:Q},
+     {h:"4 · Insight (ranteo)", s:"de una, tiene sentido\n\nigual ojo con esto\n\nporque más allá del cinturón o los años\nsi no tenés un juego armado\n\nterminás acumulando técnicas\npero sin saber cuándo usarlas\n\nimprovisás en la lucha\ny repetís los mismos errores\n\ny ahí es donde la mayoría se estanca\n\nporque creen que es técnico\npero en realidad es falta de estructura"},
+   ], note:"Después: caso de éxito → pitch → link."},
+
+  {n:"Caso 2", lead:"Habla de técnicas", short:"Más allá de la técnica, ¿qué buscás?", type:"blue",
+   trigger:"“me cuesta pasar guardia” / “no me sale X” / “estoy trabajando tal cosa”",
+   blocks:[
+     {h:"1 · Pregunta", s:"de una, te entiendo\n\npero más allá de esa técnica puntual\ncuando estás luchando\n¿sentís que tenés claro qué buscar\no terminás resolviendo sobre la marcha?"},
+     {h:"2 · Si improvisa / duda", s:"ahí está\n\neso pasa mucho\n\nporque uno se enfoca en la técnica\npero el problema normalmente no es ese\n\ncuando no hay un juego armado\nterminás dependiendo de lo que vaya pasando"},
+     {h:"3 · Calificás (esperá respuesta)", s:Q},
+     {h:"4 · Insight (ranteo)", s:"de una\n\nigual ojo con esto\n\nporque no es solo esa técnica\nes que no hay una estructura atrás\n\ny por eso se te termina repitiendo"},
+   ]},
+
+  {n:"Caso 3", lead:"Improviso de una", short:"Reframe + ¿qué te frustra?", type:"green",
+   trigger:"“improviso” / “sí, voy viendo” / “depende mucho” — ya compró el problema",
+   blocks:[
+     {h:"1 · Reframe + frustración", s:"ahí está\n\neso que decís es clave\n\nporque cuando estás improvisando\nterminás reaccionando todo el tiempo\nen vez de imponer tu juego\n\ny eso, aunque no se note al principio\ntermina estancando mucho\n\nte hago una\n¿qué es lo que más te frustra cuando te pasa eso?"},
+     {h:"2 · Calificás (esperá respuesta)", s:Q},
+     {h:"3 · Insight (ranteo)", s:"de una, tiene sentido\n\nigual ojo con esto\n\nporque eso que te pasa\nno es solo por esa situación puntual\n\nes porque no hay un juego armado atrás\n\nentonces acumulás técnicas\npero no sabés cuándo usarlas\n\nimprovisás en la lucha\ny terminás repitiendo lo mismo\n\ny ahí es donde la mayoría se estanca\n\nporque creen que es algo puntual\npero en realidad es falta de estructura"},
+   ], note:"El mejor caso: ya compró el problema. Directo a caso → pitch → cierre."},
+
+  {n:"Caso 4", lead:"Armando: lo ajusta", short:"¿Ya armado o lo ajustás?", type:"blue",
+   trigger:"“estoy armando un juego” → dice que todavía lo prueba / ajusta",
+   blocks:[
+     {h:"1 · Pregunta (común)", s:"de una, bien ahí\n\ny sentís que ese juego ya está bien armado para vos\no todavía lo estás probando / ajustando?"},
+     {h:"2 · Si dice “lo estoy ajustando”", s:"ahí está\n\neso que decís es más común de lo que parece\n\ncuando el juego no está bien armado\npasa exactamente eso\n\nhay días que te salen cosas\ny otros que terminás improvisando\n\nte hago una\n¿qué es lo que más te cuesta hoy con eso?"},
+     {h:"3 · Calificás (esperá respuesta)", s:Q},
+     {h:"4 · Insight", s:"de una, tiene sentido\n\nigual ojo con esto\n\nporque al final no es solo “ajustar”\n\nsi no hay un sistema claro atrás\nseguís dependiendo del momento\n\ny por eso:\nacumulás técnicas\npero no las podés aplicar bien\ny no terminás de avanzar como te gustaría"},
+   ], note:"Arranca con la misma pregunta que el Caso 5. Este es el camino “todavía lo ajusto”."},
+
+  {n:"Caso 5", lead:"Armando: lo tiene claro", short:"Dice que ya lo tiene → consistencia", type:"blue",
+   trigger:"“estoy armando un juego” → dice “ya lo tengo bastante claro”",
+   blocks:[
+     {h:"1 · Pregunta (común)", s:"de una, bien ahí\n\ny sentís que ese juego ya está bien armado para vos\no todavía lo estás probando / ajustando?"},
+     {h:"2 · Si dice “ya lo tengo claro”", s:"de una\n\ny en la lucha\n¿lo podés imponer siempre\no hay días que se te cae y terminás improvisando?"},
+     {h:"3 · Si admite inconsistencia", s:"ahí está\n\neso es clave\n\ncuando el juego no está bien estructurado\nno se sostiene en el tiempo\n\nte hago una\n¿qué es lo que más te pasa en esos momentos?"},
+     {h:"4 · Calificás + insight", s:Q + "\n\n(después de que responda)\n\nde una\n\nigual ojo con esto\n\nporque ahí el problema no es el juego en sí\nsino cómo está armado"},
+   ], note:"Cree que está bien → lo desarmás suave. Misma apertura que el Caso 4."},
+
+  {n:"Caso 6", lead:"Sí, tengo juego", short:"¿Consistente o se cae?", type:"blue",
+   trigger:"“sí, tengo juego”",
+   blocks:[
+     {h:"1 · Pregunta", s:"de una\n\ny en la lucha\n¿lográs imponerlo de forma consistente\no hay días que se te cae y terminás improvisando?"},
+     {h:"2 · Si no es consistente", s:"ahí está\n\neso es clave\n\ncuando el juego no está bien estructurado\nno se sostiene en el tiempo\n\nentonces hay días que te salen cosas\ny otros que volvés a improvisar"},
+     {h:"3 · Calificás (esperá respuesta)", s:Q},
+     {h:"4 · Insight", s:"de una\n\nigual ojo con esto\n\nporque ahí el problema no es el juego en sí\nsino cómo está armado"},
+   ]},
+
+  {n:"Caso 7", lead:"Depende / a veces", short:"Sin juego, pasa eso", type:"blue",
+   trigger:"“depende” / “a veces sí, a veces no”",
+   blocks:[
+     {h:"1 · Reframe", s:"ahí está\n\neso que decís es clave\n\ncuando no hay un juego bien armado\npasa exactamente eso\n\ndías que te salen cosas\ny otros que sentís que no te sale nada"},
+     {h:"2 · Calificás (esperá respuesta)", s:Q},
+     {h:"3 · Insight", s:"de una\n\ny eso termina pasando porque\nno hay una estructura clara atrás"},
+   ]},
+
+  {n:"Caso 8", lead:"Responde corto", short:"¿Buscás claro o reaccionás?", type:"blue",
+   trigger:"“sí” / “no” / “puede ser”",
+   blocks:[
+     {h:"1 · Pregunta directa", s:"te hago una más directa\n\ncuando estás luchando\n¿tenés claro qué buscar\no vas reaccionando a lo que hace el otro?"},
+     {h:"2 · Si dice que improvisa", s:"(seguís igual que el Caso 1, desde “ahí está”)\n\nahí está\n\neso que decís es clave\n\nporque cuando estás improvisando\nterminás reaccionando todo el tiempo\nen vez de imponer tu juego…"},
+   ], note:"Primero lo obligás a definirse, después seguís como el Caso 1."},
+
+  {n:"Caso 9", lead:"Soy nuevo", short:"Sin dirección, todo suelto", type:"blue",
+   trigger:"“soy nuevo” / “recién arranco”",
+   blocks:[
+     {h:"1 · Pregunta", s:"de una\n\njustamente por eso te pregunto\n\nporque si desde el inicio no tenés una dirección clara\nterminás aprendiendo cosas sueltas\n\ncuando estás luchando\n¿sentís que sabés qué intentar\no estás probando un poco de todo?"},
+     {h:"2 · Si prueba todo / improvisa", s:"ahí está\n\neso es súper común al principio\n\npero si no lo ordenás desde ahora\ndespués cuesta mucho más"},
+     {h:"3 · Calificás (esperá respuesta)", s:"che, para ubicar mejor tu caso\n¿hace cuánto estás entrenando?"},
+     {h:"4 · Insight", s:"de una\n\nigual esto no es por experiencia\nes por falta de dirección"},
+   ]},
+];
+
+const DOLORES = [
+  {n:"Me canso / no rindo", full:"“me canso mucho / no rindo”",
+   s:"de una, tiene sentido\n\nigual ojo con eso\n\nporque muchas veces no es solo físico\n\ncuando no tenés un juego claro\ngastás energía de más\nporque estás reaccionando todo el tiempo\n\nno elegís dónde ir\nni cómo manejar el ritmo\n\nentonces te cansás antes\ny rendís peor aunque entrenes"},
+  {n:"Me ganan los más chicos", full:"“me ganan los más chicos”",
+   s:"de una, te entiendo\n\neso pasa mucho\n\ny no es solo un tema de edad\n\nnormalmente es porque ellos tienen más claro\nqué buscar en cada situación\n\ny cuando vos no tenés un juego armado\nterminás reaccionando a lo que ellos hacen\n\ny ahí corrés siempre desde atrás"},
+  {n:"No me salen las técnicas", full:"“no me salen las técnicas”",
+   s:"de una\n\nigual ojo con eso\n\nporque muchas veces no es que no te salgan\n\nes que no sabés cuándo usarlas\nni cómo llegar a esa situación\n\ncuando no hay un juego armado\nlas técnicas quedan sueltas\n\ny en la lucha no aparecen"},
+  {n:"Siento que no avanzo", full:"“siento que no avanzo”",
+   s:"de una, tiene sentido\n\neso es de lo más común\n\ncuando entrenás sin una dirección clara\npodés meterle horas\npero no estás construyendo nada sólido\n\ny por eso sentís que estás en el mismo lugar"},
+  {n:"Hago siempre lo mismo", full:"“hago siempre lo mismo”",
+   s:"ahí está\n\neso es clave\n\ncuando no hay un juego bien armado\nterminás cayendo siempre en las mismas posiciones\n\naunque aprendas cosas nuevas\n\nporque no hay una estructura que ordene todo"},
+  {n:"Me frustro / no disfruto", full:"“me frustro / no disfruto”",
+   s:"de una, te entiendo\n\nporque cuando sentís que entrenás\npero no ves resultados\n\nse empieza a hacer pesado\n\ny eso suele pasar\ncuando no tenés claro hacia dónde estás yendo"},
+  {n:"Soy grande / la edad", full:"“soy grande / ya no estoy en mi mejor momento”",
+   s:"de una\n\neso le pasa a muchísima gente\n\npero el problema no es la edad en sí\n\nes seguir entrenando igual\nque cuando tenías otro físico o más tiempo\n\nsi no adaptás tu juego a tu realidad\nte va a costar cada vez más"},
+  {n:"No tengo tiempo", full:"“no tengo tiempo”",
+   s:"de una, te entiendo\n\njustamente por eso es clave esto\n\ncuando tenés poco tiempo\nnecesitás que cada entrenamiento tenga dirección\n\nsi no, terminás gastando energía\nsin avanzar realmente"},
+];
+
+const STAGES = [
+  {n:"Ranteo base", short:"Estás entrenando sin dirección", script:"Crack, por lo que veo, estás entrenando sin una dirección clara…\n\n(pegás tu ranteo completo)"},
+  {n:"Caso de éxito", short:"Te cuento un caso rápido", script:"te cuento rápido un caso…\n\n(pegás tu caso de éxito)"},
+  {n:"Pitch", short:"Coordinamos una auditoría", script:"mirá, hagamos algo\n\ncoordinamos una auditoría…"},
+  {n:"CTA / link", short:"Paso horarios + link → agendá", script:"te paso los horarios\n[LINK]\n\navisame cuando agendes"},
+];
+
+const canvas=document.getElementById('canvas'), conn=document.getElementById('connectors'), lines=[];
+function line(x1,y1,x2,y2){lines.push(`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#6f7077" stroke-width="1.6" marker-end="url(#ar)"/>`);}
+function mkNode(cls,x,y,w,ttl,sub,onclick){
+  const d=document.createElement('div');
+  d.className='node '+cls+(onclick?' click':'');
+  d.style.left=x+'px';d.style.top=y+'px';d.style.width=w+'px';
+  d.innerHTML=`<div class="ttl">${ttl}</div>`+(sub?`<div class="sub">${sub}</div>`:'');
+  if(onclick) d.addEventListener('click',e=>{e.stopPropagation();if(!dragged)onclick();});
+  canvas.appendChild(d);return d;
+}
+const colorOf=t=>t==='red'?'red':t==='green'?'green':'lead';
+const colorVos=t=>t==='red'?'red':t==='green'?'green':'vos';
+const tagOf=t=>t==='red'?'r':t==='green'?'g':'';
+
+// abridor + plantilla
+mkNode('gray',300,30,110,'Inicio','');
+mkNode('blue stage',175,84,360,'Mensaje 1 · Apertura','¿Tu juego es a propósito?',
+  ()=>openInfo('Abridor','',"Mensaje 1 · Apertura","Siempre igual, sin importar quién sea",[{h:"Texto",s:APERTURA}]));
+mkNode('gray',548,84,138,'Plantilla mental','validar → reencuadre → ranteo',
+  ()=>openInfo('Guía','',"Plantilla mental","El molde de toda respuesta",[{h:"Los 4 pasos",s:PLANTILLA}],"Sirve para cualquier dolor: me canso, me ganan, no avanzo, etc."));
+
+// frame 1 · casos
+const fr=document.createElement('div');fr.className='frame';fr.style.cssText='left:30px;top:180px;width:650px;height:580px';
+fr.innerHTML='<span class="cap">1 · Según qué responde, le decís otra cosa</span>';canvas.appendChild(fr);
+const h1=document.createElement('div');h1.className='colhead';h1.style.cssText='left:55px;top:196px';h1.textContent='Si responde';canvas.appendChild(h1);
+const h2=document.createElement('div');h2.className='colhead';h2.style.cssText='left:420px;top:196px';h2.textContent='Vos le decís';canvas.appendChild(h2);
+const top0=214, pitch=61;
+CASES.forEach((c,i)=>{
+  const y=top0+i*pitch, mid=y+25;
+  mkNode(colorOf(c.type),48,y,170,c.n,c.lead,()=>openCase(c));
+  mkNode(colorVos(c.type),250,y,410,c.short,'',()=>openCase(c));
+  line(218,mid,248,mid);
+});
+
+// frame 2 · dolores
+const fr2=document.createElement('div');fr2.className='frame';fr2.style.cssText='left:30px;top:794px;width:650px;height:268px';
+fr2.innerHTML='<span class="cap">2 · Si te responde con un dolor → reencuadrás y volvés al ranteo</span>';canvas.appendChild(fr2);
+const dtop=832, dpitch=58;
+DOLORES.forEach((d,i)=>{
+  const col=i%2, row=(i/2)|0;
+  const x=col?370:55, y=dtop+row*dpitch;
+  mkNode('amber',x,y,285,d.n,'',()=>openDolor(d));
+});
+
+// cierre
+const cy=[1082,1152,1222,1292];
+STAGES.forEach((s,i)=>{ mkNode('red stage',185,cy[i],340,s.n,s.short,()=>openStage(s)); });
+
+// mantra
+const m=document.createElement('div');m.className='mantra';m.style.cssText='left:105px;top:1372px;width:500px';
+m.innerHTML='Técnica = <b>síntoma</b> &nbsp;·&nbsp; Improvisación = <b>problema</b> &nbsp;·&nbsp; Juego armado = <b>solución</b>';canvas.appendChild(m);
+
+// conectores
+line(355,64,355,84);
+line(355,140,355,180);
+line(355,760,355,794);
+line(355,1062,355,1082);
+line(355,1132,355,1152);
+line(355,1202,355,1222);
+line(355,1272,355,1292);
+conn.insertAdjacentHTML('beforeend',lines.join(''));
+
+// panel
+const panel=document.getElementById('panel'), pbody=document.getElementById('pbody');
+const ptag=document.getElementById('ptag'), ptitle=document.getElementById('ptitle'), plead=document.getElementById('plead');
+function esc(t){return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+let cpid=0;
+function scriptBlock(label,text){const id='cp'+(cpid++);
+  return `<div class="blk"><div class="bhd"><h3>${esc(label)}</h3><button class="copybtn" data-t="${id}">Copiar</button></div><div class="script" id="${id}">${esc(text)}</div></div>`;}
+function fb(t,done){const ta=document.createElement('textarea');ta.value=t;ta.style.cssText='position:fixed;opacity:0';document.body.appendChild(ta);ta.focus();ta.select();try{document.execCommand('copy');}catch(e){}ta.remove();done();}
+function copyText(t,btn){const done=()=>{btn.textContent='¡Copiado!';btn.classList.add('ok');setTimeout(()=>{btn.textContent='Copiar';btn.classList.remove('ok');},1200);};
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(done).catch(()=>fb(t,done));}else fb(t,done);}
+function bindCopy(){pbody.querySelectorAll('.copybtn').forEach(b=>{b.onclick=()=>copyText(document.getElementById(b.dataset.t).textContent,b);});}
+function openInfo(tag,tcls,title,lead,blocks,note){
+  ptag.textContent=tag; ptag.className='tag'+(tcls?' '+tcls:'');
+  ptitle.textContent=title; plead.textContent=lead;
+  let html=blocks.map(b=>scriptBlock(b.h,b.s)).join('');
+  if(note) html+=`<div class="note">${esc(note)}</div>`;
+  pbody.innerHTML=html; bindCopy(); panel.classList.add('open');
+}
+function openCase(c){ openInfo(c.n,tagOf(c.type),c.lead,'Si responde: '+c.trigger,c.blocks,c.note); }
+function openDolor(d){ openInfo('Dolor','a',d.n,'Si te dice: '+d.full,[{h:"Lo que le decís",s:d.s}],"Después: volvés al ranteo base → caso → pitch."); }
+function openStage(s){ openInfo('Cierre','r',s.n,s.short,[{h:"Texto",s:s.script}]); }
+document.getElementById('pclose').onclick=()=>panel.classList.remove('open');
+
+// pan & zoom (mouse + touch con pinch)
+const stage=document.getElementById('stage');
+let tx=0,ty=0,scale=1,dragged=false;
+function apply(){canvas.style.transform=`translate(${tx}px,${ty}px) scale(${scale})`;}
+function fit(){const W=stage.clientWidth,H=stage.clientHeight,cw=710,ch=1420,pad=40;
+  scale=Math.min((W-pad*2)/cw,(H-pad*2)/ch,1.1);tx=(W-cw*scale)/2;ty=Math.max(20,(H-ch*scale)/2);apply();}
+const clampS=s=>Math.max(.2,Math.min(3,s));
+const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
+const pts=new Map(); let panStart=null, pinch=null;
+stage.addEventListener('pointerdown',e=>{
+  pts.set(e.pointerId,{x:e.clientX,y:e.clientY});dragged=false;stage.classList.add('grabbing');
+  if(pts.size===1){panStart={x:e.clientX,y:e.clientY,tx,ty};pinch=null;}
+  else if(pts.size===2){const a=[...pts.values()];pinch={d:dist(a[0],a[1]),mx:(a[0].x+a[1].x)/2,my:(a[0].y+a[1].y)/2,scale,tx,ty};panStart=null;}
+});
+window.addEventListener('pointermove',e=>{
+  if(!pts.has(e.pointerId))return;
+  pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(pinch&&pts.size>=2){const a=[...pts.values()];const ns=clampS(pinch.scale*(dist(a[0],a[1])/pinch.d));
+    const r=stage.getBoundingClientRect(),mx=pinch.mx-r.left,my=pinch.my-r.top;
+    tx=mx-(mx-pinch.tx)*(ns/pinch.scale);ty=my-(my-pinch.ty)*(ns/pinch.scale);scale=ns;dragged=true;apply();}
+  else if(panStart){const dx=e.clientX-panStart.x,dy=e.clientY-panStart.y;
+    if(Math.abs(dx)+Math.abs(dy)>5){dragged=true;tx=panStart.tx+dx;ty=panStart.ty+dy;apply();}}
+});
+function up(e){pts.delete(e.pointerId);if(pts.size<2)pinch=null;
+  if(pts.size===1){const a=[...pts.values()][0];panStart={x:a.x,y:a.y,tx,ty};}
+  if(pts.size===0){panStart=null;stage.classList.remove('grabbing');}}
+window.addEventListener('pointerup',up);
+window.addEventListener('pointercancel',up);
+stage.addEventListener('wheel',e=>{e.preventDefault();const r=stage.getBoundingClientRect(),mx=e.clientX-r.left,my=e.clientY-r.top,f=e.deltaY<0?1.12:1/1.12,ns=clampS(scale*f);tx=mx-(mx-tx)*(ns/scale);ty=my-(my-ty)*(ns/scale);scale=ns;apply();},{passive:false});
+function zoomAt(f){const W=stage.clientWidth/2,H=stage.clientHeight/2,ns=clampS(scale*f);tx=W-(W-tx)*(ns/scale);ty=H-(H-ty)*(ns/scale);scale=ns;apply();}
+document.getElementById('zin').onclick=()=>zoomAt(1.18);
+document.getElementById('zout').onclick=()=>zoomAt(1/1.18);
+document.getElementById('fit').onclick=fit;
+fit();
+</script>
+</body>
+</html>

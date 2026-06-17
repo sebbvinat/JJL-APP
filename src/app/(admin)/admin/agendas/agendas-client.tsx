@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import useSWR from 'swr';
-import { Search } from 'lucide-react';
+import { Search, BookOpen } from 'lucide-react';
 import { fetcher } from '@/lib/fetcher';
 import Kanban, { type LeadRowExt, type SaleSummary } from '@/components/admin/setter/Kanban';
 import LeadDrawer from '@/components/admin/setter/LeadDrawer';
@@ -115,11 +115,24 @@ export default function AgendasClient() {
         />
       </div>
 
-      {/* Búsqueda */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-jjl-muted pointer-events-none" />
-        <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar nombre / email / Instagram / teléfono…"
-          className="w-full h-10 pl-10 pr-4 bg-white/[0.03] border border-jjl-border rounded-lg text-[13px] text-white placeholder:text-jjl-muted/50 focus:outline-none focus:border-jjl-red focus:ring-2 focus:ring-jjl-red/25" />
+      {/* Búsqueda + guion de setting */}
+      <div className="flex items-center gap-2">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-jjl-muted pointer-events-none" />
+          <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar nombre / email / Instagram / teléfono…"
+            className="w-full h-10 pl-10 pr-4 bg-white/[0.03] border border-jjl-border rounded-lg text-[13px] text-white placeholder:text-jjl-muted/50 focus:outline-none focus:border-jjl-red focus:ring-2 focus:ring-jjl-red/25" />
+        </div>
+        <a
+          href="/guion-setting.html"
+          target="_blank"
+          rel="noopener noreferrer"
+          title="Guion de setting — mapa interactivo con los textos para copiar"
+          className="shrink-0 inline-flex items-center gap-1.5 h-10 px-3.5 rounded-lg border border-jjl-border bg-white/[0.03] text-[13px] font-medium text-white hover:border-jjl-red hover:bg-white/[0.06] transition-colors"
+        >
+          <BookOpen className="h-4 w-4 text-jjl-red" />
+          <span className="hidden sm:inline">Guion de setting</span>
+          <span className="sm:hidden">Guion</span>
+        </a>
       </div>
 
       {/* Kanban */}
