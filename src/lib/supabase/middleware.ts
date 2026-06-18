@@ -85,7 +85,7 @@ async function handleAlumno(
   }
 
   // Public routes that don't require auth
-  const publicRoutes = ['/', '/login', '/register', '/consultoria-gratuita'];
+  const publicRoutes = ['/', '/login', '/register', '/consultoria-gratuita', '/que-luchador-sos'];
   const isPublicRoute =
     publicRoutes.includes(pathname) ||
     pathname.startsWith('/auth/') ||
