@@ -9,6 +9,10 @@ import { createClient } from '@/lib/supabase/client';
 // Pagina para que un cliente migrado (o cualquier usuario que pidio
 // "olvide mi contrasenia") setea su clave nueva. Supabase se encarga
 // de validar la sesion de recuperacion via el link del mail.
+//
+// Si el link expiro o ya se uso (caso comun: prefetchers de mail como
+// Outlook/iOS Mail consumen el OTP antes del click), mostramos inline
+// el formulario para pedir uno nuevo — sin obligar a volver a /login.
 
 export default function SetPasswordPage() {
   const router = useRouter();
@@ -18,25 +22,31 @@ export default function SetPasswordPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [ready, setReady] = useState<'checking' | 'ok' | 'invalid'>('checking');
+  const [linkErrorDesc, setLinkErrorDesc] = useState('');
+
+  // Recovery del invalid-state
+  const [retryEmail, setRetryEmail] = useState('');
+  const [retryLoading, setRetryLoading] = useState(false);
+  const [retrySent, setRetrySent] = useState(false);
+  const [retryError, setRetryError] = useState('');
 
   useEffect(() => {
     let mounted = true;
-    // El link de recuperacion de Supabase llega con:
-    //  - #access_token=...  (flow implicit)  -> el SDK lo detecta solo
-    //  - ?code=XYZ  (flow PKCE legacy)  -> hay que exchange-ar a mano
-    //  - ?error=...&error_description=... -> link expirado/invalido
-    //
-    // Siempre mostramos el form salvo que haya un error explicito. Asi
-    // evitamos falsos "expirado" cuando la sesion tarda en aparecer.
-    // Si el usuario submite sin sesion, updateUser falla y mostramos el
-    // error real.
     const init = async () => {
       const url = new URL(window.location.href);
-      const err =
-        url.searchParams.get('error') ||
-        new URLSearchParams(window.location.hash.slice(1)).get('error');
+      const hashParams = new URLSearchParams(window.location.hash.slice(1));
+
+      const err = url.searchParams.get('error') || hashParams.get('error');
+      const errDesc =
+        url.searchParams.get('error_description') ||
+        hashParams.get('error_description') ||
+        '';
+
       if (err) {
-        if (mounted) setReady('invalid');
+        if (mounted) {
+          setLinkErrorDesc(errDesc.replace(/\+/g, ' '));
+          setReady('invalid');
+        }
         return;
       }
 
@@ -75,17 +85,33 @@ export default function SetPasswordPage() {
     const { error: upErr } = await supabase.auth.updateUser({ password });
     setLoading(false);
     if (upErr) {
-      // Si el link estaba realmente vencido/usado, updateUser falla con
-      // "Auth session missing" o similar. Le damos un mensaje claro y
-      // un link para pedir el reset de nuevo.
-      const msg = /session|expired|not_admin|jwt/i.test(upErr.message)
-        ? 'El link expiró o ya se usó. Pedí uno nuevo desde Login → "Olvidé mi contraseña".'
-        : upErr.message;
-      setError(msg);
+      const isSessionMissing = /session|expired|not_admin|jwt/i.test(upErr.message);
+      if (isSessionMissing) {
+        setReady('invalid');
+        setLinkErrorDesc('El link de recuperación expiró o ya se usó.');
+      } else {
+        setError(upErr.message);
+      }
       return;
     }
     router.push('/mis-cursos');
     router.refresh();
+  };
+
+  const sendNewLink = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setRetryError('');
+    if (!retryEmail) {
+      setRetryError('Ingresá tu email.');
+      return;
+    }
+    setRetryLoading(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(retryEmail, {
+      redirectTo: `${window.location.origin}/auth/set-password`,
+    });
+    setRetryLoading(false);
+    if (error) setRetryError(error.message);
+    else setRetrySent(true);
   };
 
   const inputCls =
@@ -98,10 +124,12 @@ export default function SetPasswordPage() {
           Tu plataforma
         </span>
         <h1 className="mt-2 text-2xl font-bold tracking-tight text-cursos-ink sm:text-3xl">
-          Setea tu contraseña
+          {ready === 'invalid' ? 'Pedí un link nuevo' : 'Setea tu contraseña'}
         </h1>
         <p className="mt-2 text-[14px] leading-relaxed text-cursos-ink-soft">
-          Solo es la primera vez. Después entrás como siempre desde la página de login.
+          {ready === 'invalid'
+            ? 'El link anterior ya no sirve. Ingresá tu email y te mandamos uno nuevo al toque.'
+            : 'Solo es la primera vez. Después entrás como siempre desde la página de login.'}
         </p>
 
         {ready === 'checking' && (
@@ -109,10 +137,45 @@ export default function SetPasswordPage() {
         )}
 
         {ready === 'invalid' && (
-          <div className="mt-6 rounded-lg bg-black/[0.04] p-4 text-[13.5px] text-cursos-ink-soft">
-            El link de recuperación expiró o ya se usó. Volvé a pedirlo desde la
-            pantalla de <a href="/login" className="font-semibold text-cursos-red underline">login</a> con
-            "Olvidé mi contraseña".
+          <div className="mt-6 space-y-4">
+            {!retrySent ? (
+              <form onSubmit={sendNewLink} className="space-y-3">
+                <label className="block">
+                  <span className="mb-1 block text-[12px] font-semibold uppercase tracking-wide text-cursos-muted">
+                    Tu email
+                  </span>
+                  <input
+                    type="email"
+                    value={retryEmail}
+                    onChange={(e) => setRetryEmail(e.target.value)}
+                    placeholder="tu@email.com"
+                    autoFocus
+                    className={inputCls}
+                  />
+                </label>
+                {retryError && (
+                  <p className="rounded-lg bg-red-50 px-3 py-2 text-[13px] font-medium text-red-700">
+                    {retryError}
+                  </p>
+                )}
+                <LightButton type="submit" disabled={retryLoading} fullWidth size="lg">
+                  {retryLoading ? 'Enviando…' : 'Enviarme un link nuevo'}
+                </LightButton>
+                {linkErrorDesc && (
+                  <p className="text-[12px] text-cursos-muted">
+                    Detalle técnico: {linkErrorDesc}
+                  </p>
+                )}
+                <p className="text-center text-[12.5px] text-cursos-muted">
+                  Tip: revisá tu casilla apenas te llegue y abrilo desde el celular sin esperar.
+                </p>
+              </form>
+            ) : (
+              <div className="rounded-lg bg-emerald-50 px-4 py-3 text-[13.5px] text-emerald-800">
+                Listo. Te mandamos un mail con un link nuevo. <strong>Abrilo apenas te
+                llegue</strong> — los links son de un solo uso y se vencen rápido.
+              </div>
+            )}
           </div>
         )}
 
