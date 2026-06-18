@@ -106,12 +106,22 @@ export default function SetPasswordPage() {
       return;
     }
     setRetryLoading(true);
-    const { error } = await supabase.auth.resetPasswordForEmail(retryEmail, {
-      redirectTo: `${window.location.origin}/auth/set-password`,
-    });
+    try {
+      const res = await fetch('/api/cursos/auth/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: retryEmail }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data?.ok) {
+        setRetryError(data?.error || 'No pudimos enviar el mail. Probá de nuevo.');
+      } else {
+        setRetrySent(true);
+      }
+    } catch {
+      setRetryError('Error de red. Probá de nuevo.');
+    }
     setRetryLoading(false);
-    if (error) setRetryError(error.message);
-    else setRetrySent(true);
   };
 
   const inputCls =

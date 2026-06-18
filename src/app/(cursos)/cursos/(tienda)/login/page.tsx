@@ -39,15 +39,24 @@ export default function CursosLoginPage() {
     }
     setError('');
     setResetLoading(true);
-    const supabase = createClient();
-    // Despues del link el usuario tiene que SETEAR password, no entrar a
-    // /mis-cursos directo (si no, queda con sesion de recuperacion y al
-    // siguiente login no le anda nada). Lo mandamos a /auth/set-password.
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/auth/set-password`,
-    });
-    if (error) setError(error.message);
-    else setResetSent(true);
+    // Endpoint propio de cursos: genera token_hash y manda mail brandeado
+    // por Resend. Asi cursos NO depende del template global de Supabase
+    // (que es compartido con alumno). El mail apunta a /auth/confirm.
+    try {
+      const res = await fetch('/api/cursos/auth/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data?.ok) {
+        setError(data?.error || 'No pudimos enviar el mail. Probá de nuevo.');
+      } else {
+        setResetSent(true);
+      }
+    } catch {
+      setError('Error de red. Probá de nuevo.');
+    }
     setResetLoading(false);
   };
 
