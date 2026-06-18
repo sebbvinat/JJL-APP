@@ -712,18 +712,41 @@ function QuizResult({
     return () => window.removeEventListener('message', handler);
   }, [sessionId]);
 
-  // Si el lead seleccionó día/hora y trata de cerrar antes de confirmar,
-  // mostramos confirm nativo y disparamos un beacon al backend para que
-  // el setter reciba aviso al toque.
+  // Dos disparos posibles al backend (idempotentes — solo el primero gana):
+  //   - kind='slot' : eligió día/hora y se va sin confirmar (beacon)
+  //   - kind='quiz' : pasan 60s desde que vio el QuizResult sin agendar
+  // El segundo es el que el dueño pidió: "que el WhatsApp salga al toque
+  // si terminó el quiz y no agendó". 60s de gracia para que un lead
+  // decidido alcance a elegir.
+  const dispatchedRef = useRef(false);
+
+  // Timer de 60s desde que se monta este componente (= lead acaba de
+  // terminar el quiz). Si llega al deadline sin haber agendado, fire.
   useEffect(() => {
-    let beaconSent = false;
+    if (dispatchedRef.current) return;
+    const t = setTimeout(() => {
+      if (bookedRef.current || dispatchedRef.current) return;
+      dispatchedRef.current = true;
+      void fetch('/api/leads/near-miss', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ session_id: sessionId, kind: 'quiz' }),
+      }).catch(() => undefined);
+    }, 60_000);
+    return () => clearTimeout(t);
+  }, [sessionId]);
+
+  // Beacon al cerrar la pestaña / cambiar de tab. Si el lead se va antes
+  // de los 60s y eligió slot, kind='slot' (más caliente). Si se va y NO
+  // eligió slot, kind='quiz' igual — porque también es "completó quiz
+  // sin agendar", solo que más rápido.
+  useEffect(() => {
     function maybeBeacon() {
-      if (beaconSent) return;
-      if (!nearMissRef.current || bookedRef.current) return;
-      beaconSent = true;
+      if (dispatchedRef.current || bookedRef.current) return;
+      dispatchedRef.current = true;
       try {
-        const payload = JSON.stringify({ session_id: sessionId });
-        // sendBeacon sobrevive a la navegación/cierre de pestaña; fetch no.
+        const kind = nearMissRef.current ? 'slot' : 'quiz';
+        const payload = JSON.stringify({ session_id: sessionId, kind });
         if (navigator.sendBeacon) {
           const blob = new Blob([payload], { type: 'text/plain' });
           navigator.sendBeacon('/api/leads/near-miss', blob);
@@ -739,12 +762,15 @@ function QuizResult({
       }
     }
     function onBeforeUnload(e: BeforeUnloadEvent) {
-      if (!nearMissRef.current || bookedRef.current) return;
+      if (dispatchedRef.current || bookedRef.current) return;
       maybeBeacon();
-      // Confirm nativo: en browsers modernos el texto se ignora, sale el
-      // prompt genérico igual. Suficiente para frenar el cierre por error.
-      e.preventDefault();
-      e.returnValue = '';
+      // Confirm nativo SOLO si estuvo cerca de agendar (eligió slot). Si
+      // ni miró el Calendly, no jodemos con el prompt — igual le va a
+      // llegar el WhatsApp.
+      if (nearMissRef.current) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
     }
     function onVisibilityChange() {
       if (document.visibilityState === 'hidden') maybeBeacon();

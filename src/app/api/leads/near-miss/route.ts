@@ -9,25 +9,27 @@ export const runtime = 'nodejs';
 /**
  * POST /api/leads/near-miss
  *
- * El lead seleccionó día/hora en Calendly pero cerró antes de confirmar
- * (postMessage `calendly.date_and_time_selected` sí, `event_scheduled` no).
- * Se llama desde el browser con `navigator.sendBeacon` justo antes de que
- * la pestaña muera — por eso aceptamos también text/plain (sendBeacon no
- * deja setear Content-Type=application/json).
+ * Cubre dos disparos según `kind` en el body:
+ *  - `slot`  (default): el lead seleccionó día/hora en Calendly pero cerró
+ *    antes de confirmar. Más caliente — el mensaje implica que estuvo
+ *    a un click.
+ *  - `quiz`: el lead completó el quiz y no agendó en 60s (timer del
+ *    QuizResult). Más temprano, mensaje más suave porque puede que ni
+ *    haya mirado el Calendly.
  *
- * Persistimos `near_miss_at` (una vez) y disparamos WhatsApp al setter
- * con todo el contexto + un link `wa.me/<telefono>?text=<mensaje-soft>`
- * pre-armado para reenviar al lead en un toque.
+ * En ambos casos: persistimos `near_miss_at` una sola vez (idempotente),
+ * disparamos WhatsApp al setter con contexto + link `wa.me/<telefono>`
+ * pre-armado.
  *
- * Si todavía no tenemos teléfono ni IG, igual avisamos al setter con
- * lo que tengamos para que decida qué hacer.
+ * Se llama desde el browser con `navigator.sendBeacon` (cuando el lead
+ * se va) o con fetch normal (timer del quiz). sendBeacon manda text/plain
+ * por default — parseamos a mano.
  *
- * Body: { session_id }
+ * Body: { session_id, kind?: 'slot' | 'quiz' }
  */
 export async function POST(request: NextRequest) {
-  let body: { session_id?: unknown } | null = null;
+  let body: { session_id?: unknown; kind?: unknown } | null = null;
   try {
-    // sendBeacon manda como text/plain por default; parseamos a mano.
     const raw = await request.text();
     body = raw ? JSON.parse(raw) : null;
   } catch {
@@ -38,6 +40,7 @@ export async function POST(request: NextRequest) {
   if (!sessionId) {
     return NextResponse.json({ error: 'session_id requerido' }, { status: 400 });
   }
+  const kind: 'slot' | 'quiz' = body?.kind === 'quiz' ? 'quiz' : 'slot';
 
   try {
     const admin = createAdminSupabaseClient();
@@ -70,10 +73,10 @@ export async function POST(request: NextRequest) {
 
     // Best-effort: el WhatsApp falla → loguear pero responder OK.
     try {
-      const msg = buildSetterAlert(lead);
+      const msg = buildSetterAlert(lead, kind);
       await notifyCoachWhatsApp(msg);
     } catch (err) {
-      logger.warn('leads.near-miss.notify.threw', { err });
+      logger.warn('leads.near-miss.notify.threw', { err, kind });
     }
 
     return NextResponse.json({ ok: true });
@@ -103,12 +106,12 @@ interface LeadRow {
  *
  * Si no hay teléfono, ofrecemos el link de Instagram (DM) como fallback.
  */
-function buildSetterAlert(lead: LeadRow): string {
+function buildSetterAlert(lead: LeadRow, kind: 'slot' | 'quiz'): string {
   const flag = flagFor(lead.pais);
   const persona = lead.nombre?.trim() || (lead.instagram ? `@${lead.instagram.trim()}` : 'lead sin nombre');
   const fortaleza = lead.fortaleza ? FORTALEZA_LABEL[lead.fortaleza] || lead.fortaleza : '—';
 
-  const softMessage = buildSoftMessage(lead);
+  const softMessage = buildSoftMessage(lead, kind);
   const waLink = buildWaLink(lead.telefono, softMessage);
   const igLink = lead.instagram?.trim()
     ? `https://instagram.com/${encodeURIComponent(lead.instagram.trim())}`
@@ -120,8 +123,12 @@ function buildSetterAlert(lead: LeadRow): string {
       ? `📸 No dejó teléfono. DM por IG: ${igLink}\n`
       : `⚠️ Sin teléfono ni IG — abrí el admin para ver datos del quiz.\n`;
 
+  const titulo = kind === 'quiz'
+    ? `🟡 *Lead completó quiz sin agendar*`
+    : `🔥 *Lead casi-agendó*`;
+
   return (
-    `🔥 *Lead casi-agendó*\n` +
+    `${titulo}\n` +
     `\n` +
     `${flag} *${persona}*\n` +
     (lead.email?.trim() ? `📧 ${lead.email.trim()}\n` : '') +
@@ -136,10 +143,20 @@ function buildSetterAlert(lead: LeadRow): string {
 /**
  * Mensaje soft firmando Ignacio. Abre conversación, no presiona. Si
  * conocemos el nombre lo personalizamos; si no, queda genérico pero humano.
+ *
+ * `slot` (casi-agendó): implica que estuvo a un click — "estabas a punto".
+ * `quiz` (completó quiz, no agendó): más temprano, puede que ni haya
+ * mirado el Calendly — copy más genérico.
  */
-function buildSoftMessage(lead: LeadRow): string {
+function buildSoftMessage(lead: LeadRow, kind: 'slot' | 'quiz'): string {
   const hello = lead.nombre?.trim() ? `Hola ${lead.nombre.trim().split(' ')[0]} 👋` : 'Hola 👋';
   const link = 'https://alumno.jiujitsulatino.com/consultoria-gratuita';
+  if (kind === 'quiz') {
+    return (
+      `${hello} Soy Ignacio de JJL. Vi que acabás de completar la evaluación de juego y no llegaste a agendar la consultoría. ` +
+      `Si te quedó alguna duda o querés que te ayude a elegir un horario, decime por acá. Te dejo el link igual: ${link}`
+    );
+  }
   return (
     `${hello} Soy Ignacio de JJL. Vi que estabas a punto de agendar la consultoría gratuita y te quedaste cerca. ` +
     `Si tenés alguna duda antes de elegir el horario me decís y la respondo. Si no, te dejo el link de nuevo: ${link}`
