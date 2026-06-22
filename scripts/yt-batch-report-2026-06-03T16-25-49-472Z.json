@@ -1,0 +1,98 @@
+{
+  "stamp": "2026-06-03T16-25-49-472Z",
+  "results": [
+    {
+      "num": 3,
+      "yt": "MCHEDVVgW7w",
+      "titulo": "De la Riva variante 4",
+      "updated": 15,
+      "alreadyOk": 0,
+      "modules": [
+        "mod-12"
+      ],
+      "overrideModule": "mod-12",
+      "overrideOk": true,
+      "notFound": false
+    },
+    {
+      "num": 6,
+      "yt": "tRca9K3uKhA",
+      "titulo": "Drill 2: Lower Leg Shift",
+      "updated": 1,
+      "alreadyOk": 0,
+      "modules": [
+        "mod-12"
+      ],
+      "overrideModule": "mod-12",
+      "overrideOk": true,
+      "notFound": false
+    },
+    {
+      "num": 8,
+      "yt": "qwVhIy4UXJY",
+      "titulo": "Conceptos de 100kg",
+      "updated": 16,
+      "alreadyOk": 0,
+      "modules": [
+        "mod-7",
+        "mod-5"
+      ],
+      "overrideModule": "mod-7",
+      "overrideOk": true,
+      "notFound": false
+    },
+    {
+      "num": 11,
+      "yt": "pzvQ6NvGkms",
+      "titulo": "Drill 1: Escape de 100kg",
+      "updated": 16,
+      "alreadyOk": 0,
+      "modules": [
+        "mod-7",
+        "mod-5"
+      ],
+      "overrideModule": "mod-7",
+      "overrideOk": true,
+      "notFound": false
+    },
+    {
+      "num": 14,
+      "yt": "nEX_NCNiBqE",
+      "titulo": "1/2 guardia: Lower Leg Shift",
+      "updated": 1,
+      "alreadyOk": 0,
+      "modules": [
+        "mod-12"
+      ],
+      "overrideModule": "mod-12",
+      "overrideOk": true,
+      "notFound": false
+    },
+    {
+      "num": 16,
+      "yt": "S9q2PeuzK54",
+      "titulo": "De la Riva variante 3",
+      "updated": 15,
+      "alreadyOk": 0,
+      "modules": [
+        "mod-11"
+      ],
+      "overrideModule": "mod-11",
+      "overrideOk": true,
+      "notFound": false
+    },
+    {
+      "num": 20,
+      "yt": "hR-GSqv0LMM",
+      "titulo": "De la Riva variante 2",
+      "updated": 15,
+      "alreadyOk": 0,
+      "modules": [
+        "mod-10"
+      ],
+      "overrideModule": "mod-10",
+      "overrideOk": true,
+      "notFound": false
+    }
+  ]
+}

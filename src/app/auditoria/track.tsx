@@ -3,14 +3,14 @@ import { useEffect } from 'react';
 import { trackViewContent } from '@/lib/meta-pixel';
 
 /**
- * Track de visitas a /ads. Misma estructura que /consultoria-gratuita pero
- * con source distinto para diferenciar en analytics interno + UTMs de Meta.
+ * Track de visitas a /auditoria. Misma estructura que /consultoria-gratuita
+ * pero con source distinto para diferenciar en analytics interno + UTMs de Meta.
  */
-export default function TrackAdsView() {
+export default function TrackAuditoriaView() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const source = params.get('src') ?? params.get('utm_source') ?? 'ads';
-    const body = JSON.stringify({ slug: 'ads', source });
+    const source = params.get('src') ?? params.get('utm_source') ?? 'auditoria';
+    const body = JSON.stringify({ slug: 'auditoria', source });
     try {
       const blob = new Blob([body], { type: 'application/json' });
       if (navigator.sendBeacon?.('/api/track-click', blob)) return;

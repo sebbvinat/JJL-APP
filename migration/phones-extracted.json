@@ -1,0 +1,398 @@
+{
+  "generated_at": "2026-06-11T18:07:17.864Z",
+  "source": "wp_wc_order_addresses (HPOS).phone",
+  "matched_count": 2,
+  "unmatched_count": 94,
+  "matched": [
+    {
+      "id": "daf64790-7f8e-48b0-a5ea-e520a679f4a7",
+      "email": "mateo.diaz499@live.com",
+      "nombre": "Mateo Diaz",
+      "phone": "1149904162"
+    },
+    {
+      "id": "b7667aac-9f1b-40a7-aa6a-f67b642dd300",
+      "email": "camila.garcia779@live.com",
+      "nombre": "Camila Garcia",
+      "phone": "1172687834"
+    }
+  ],
+  "unmatched": [
+    {
+      "email": "alejandrotorresmbh@gmail.com",
+      "nombre": "Alejandro Marcelo Torres"
+    },
+    {
+      "email": "martin.obligado@gmail.com",
+      "nombre": "Martin Obligado Olsen"
+    },
+    {
+      "email": "marianoperripaz@gmail.com",
+      "nombre": "Maríano Perri"
+    },
+    {
+      "email": "jorgeriosbjj@gmail.com",
+      "nombre": "JORGE ALEJANDRO RIOS ALIPAZ"
+    },
+    {
+      "email": "nachomagaldi@hotmail.com",
+      "nombre": "Ignacio Magaldi"
+    },
+    {
+      "email": "fernandocrisnejo9575@gmail.com",
+      "nombre": "Fernando Crisnejo"
+    },
+    {
+      "email": "carlos.catuch@gmail.com",
+      "nombre": "carlos"
+    },
+    {
+      "email": "rgaetet@gmail.com",
+      "nombre": "Raúl Alfonso Gaete Toledo"
+    },
+    {
+      "email": "maidanafabianernesto@gmail.com",
+      "nombre": "Fabian Maidana"
+    },
+    {
+      "email": "bruno.spina92@gmail.com",
+      "nombre": "Bruno Spina"
+    },
+    {
+      "email": "odalponteo@gmail.com",
+      "nombre": "Omar Dalponte"
+    },
+    {
+      "email": "diegoguindos@gmail.com",
+      "nombre": "Diego de Guindos"
+    },
+    {
+      "email": "elderbricenomkt@gmail.com",
+      "nombre": "elderbricenomkt@gmail.com"
+    },
+    {
+      "email": "llampa90@hotmail.com",
+      "nombre": "Jorge Luis Llampa"
+    },
+    {
+      "email": "paleoexperiencie@gmail.com",
+      "nombre": "Mauro Coronel"
+    },
+    {
+      "email": "lucasmarianoc10@gmail.com",
+      "nombre": "Lucas Castro"
+    },
+    {
+      "email": "igna@gmail.com",
+      "nombre": "Na Ma"
+    },
+    {
+      "email": "lautarofain@gmail.com",
+      "nombre": "Lautaro Fain"
+    },
+    {
+      "email": "lucasnarvaez1425@gmail.com",
+      "nombre": "Lucas Narvaez"
+    },
+    {
+      "email": "cianciofacundo@gmail.com",
+      "nombre": "Facundo Ciancio"
+    },
+    {
+      "email": "profe.leogabriel@gmail.com",
+      "nombre": "Leonardo Gabriel Garcia"
+    },
+    {
+      "email": "leandroglopez90@gmail.com",
+      "nombre": "LEANDRO GERMAN LOPEZ"
+    },
+    {
+      "email": "willyconstantesp@gmail.com",
+      "nombre": "Willy Constant"
+    },
+    {
+      "email": "mojicajavier381@gmail.com",
+      "nombre": "Javier Mojica"
+    },
+    {
+      "email": "lilianavera.arq@gmail.com",
+      "nombre": "Liliana Vera"
+    },
+    {
+      "email": "erickgaelarte@gmail.com",
+      "nombre": "Erick Gael"
+    },
+    {
+      "email": "deybylavadoizquierdo@gmail.com",
+      "nombre": "deybybjj"
+    },
+    {
+      "email": "3772589732pepo@gmail.com",
+      "nombre": "José Ignacio Flores"
+    },
+    {
+      "email": "thomaspinotv@gmail.com",
+      "nombre": "Thomas Pino"
+    },
+    {
+      "email": "facusoria443@gmail.com",
+      "nombre": "Facundo Soria"
+    },
+    {
+      "email": "augeventas@gmail.com",
+      "nombre": "Ariel Augusto Vosssler"
+    },
+    {
+      "email": "chukykickboxing@gmail.com",
+      "nombre": "Mariano leonel loiza"
+    },
+    {
+      "email": "a20175708@pucp.edu.pe",
+      "nombre": "Franklin Huarancca"
+    },
+    {
+      "email": null,
+      "nombre": "Nuevo Alumno"
+    },
+    {
+      "email": "damianburgueno2019@gmail.com",
+      "nombre": "Damián Burgueño"
+    },
+    {
+      "email": "maubjj13@gmail.com",
+      "nombre": "Mauricio Reyes"
+    },
+    {
+      "email": "maria96villarreal@gmail.com",
+      "nombre": "maria villarreal"
+    },
+    {
+      "email": "jonathanabelacostajefe@gmail.com",
+      "nombre": "Jonathan Abel Acosta"
+    },
+    {
+      "email": "tomasaguilar123@outlook.com",
+      "nombre": "Tomas Aguilar"
+    },
+    {
+      "email": "nestor.recaudaciones@gmail.com",
+      "nombre": "Nestor"
+    },
+    {
+      "email": "mauricio.aragon1983@gmail.com",
+      "nombre": "Mauricio Aragon"
+    },
+    {
+      "email": "hma.mineria@gmail.com",
+      "nombre": "Maximiliano Amaya"
+    },
+    {
+      "email": "matiasvillar73@gmail.com",
+      "nombre": "Matias Villar"
+    },
+    {
+      "email": "diegohernanperezz@gmail.com",
+      "nombre": "Diego Perez"
+    },
+    {
+      "email": "prl_84@hotmail.com",
+      "nombre": "Pablo Rebollo Lopez"
+    },
+    {
+      "email": "albaarguelles@yahoo.com.ar",
+      "nombre": "Alba"
+    },
+    {
+      "email": "jaj@hotmail.com",
+      "nombre": "Jsj Jsjz"
+    },
+    {
+      "email": "walterjosemendez666@gmail.com",
+      "nombre": "Walter Mendez"
+    },
+    {
+      "email": "lautarorolandi1@gmail.com",
+      "nombre": "Lautaro Rolandi"
+    },
+    {
+      "email": "santiago.ibarra82@gmail.com",
+      "nombre": "Santiago Ibarra"
+    },
+    {
+      "email": "gonzafbaez@gmail.com",
+      "nombre": "Gonzalo Baez"
+    },
+    {
+      "email": "lionelionel22@gmail.com",
+      "nombre": "Lionel Monzón"
+    },
+    {
+      "email": "inilian2002@gmail.com",
+      "nombre": "Ignacio Andres Nilian Alvarado"
+    },
+    {
+      "email": "martintdc@hotmail.com",
+      "nombre": "Martin cammardella"
+    },
+    {
+      "email": "lucas.lerp@gmail.coml",
+      "nombre": "Lucas Perea"
+    },
+    {
+      "email": "apbg2009@gmail.com",
+      "nombre": "ARTURO PEDRO BOCARDO"
+    },
+    {
+      "email": "mpolidori88@gmail.com",
+      "nombre": "Bulnes 1420 Polidori"
+    },
+    {
+      "email": "lologt73@gmail.com",
+      "nombre": "Rodrigo Gomez Tena"
+    },
+    {
+      "email": "ramagomeztena@gmail.com",
+      "nombre": "Rodrigo Ramón Gomez Tena"
+    },
+    {
+      "email": "octavio@sallustro.com.py",
+      "nombre": "Octavio Sallustro"
+    },
+    {
+      "email": "facudugros81@gmail.com",
+      "nombre": "Facundo Martin Dugros"
+    },
+    {
+      "email": "hugonicolasgonzalez85@gmail.com",
+      "nombre": "Hugo Nicolás Gonzalez"
+    },
+    {
+      "email": "hah@hotmail.com",
+      "nombre": "Nznz BBz"
+    },
+    {
+      "email": "pikufernandez58@gmail.com",
+      "nombre": "Luis Fernando Fernandez"
+    },
+    {
+      "email": "elias.calivar@gmail.com",
+      "nombre": "Jorge Elías CALIVAR BALMACEDA"
+    },
+    {
+      "email": "brunorc2003@hotmail.com",
+      "nombre": "Bruno D’ Uva"
+    },
+    {
+      "email": "fabiq71@gmail.com",
+      "nombre": "Fabian Maidana"
+    },
+    {
+      "email": "bruce790910@gmail.com",
+      "nombre": "Aguila Kim"
+    },
+    {
+      "email": "josephvargasvera14@gmail.com",
+      "nombre": "Joseph Vargas Vera"
+    },
+    {
+      "email": "danicb81@hotmail.com",
+      "nombre": "Daniel de la Corte Bejar"
+    },
+    {
+      "email": "adayloroli@gmail.com",
+      "nombre": "Aday LORENZO Oliva"
+    },
+    {
+      "email": "tizigarcia006@gmail.com",
+      "nombre": "Tiziano Garcia"
+    },
+    {
+      "email": "bullterrierjutsu@hotmail.com",
+      "nombre": "EDWARD OBLITAS CASTRO"
+    },
+    {
+      "email": "jorgeandresvazquez73@gmail.com",
+      "nombre": "Jorge Vázquez"
+    },
+    {
+      "email": "carlosandj24@gmail.com",
+      "nombre": "Daniel Cornejo"
+    },
+    {
+      "email": "ronel@rvpmvmt.info",
+      "nombre": "Ronel Velasquez"
+    },
+    {
+      "email": "rusocazaux@gmail.com",
+      "nombre": "Fabian cazaux"
+    },
+    {
+      "email": "automotoreswheels98@gmail.com",
+      "nombre": "Nacho Magaldi"
+    },
+    {
+      "email": "todopasa72@gmail.com",
+      "nombre": "Da Ma"
+    },
+    {
+      "email": "cryptowolvesteam@gmail.com",
+      "nombre": "crypto"
+    },
+    {
+      "email": "soyuna@prueba.com",
+      "nombre": "soy una"
+    },
+    {
+      "email": "maximilianorrobles@gmail.com",
+      "nombre": "Maximiliano Robles"
+    },
+    {
+      "email": "fabianernestomaidana@gmail.com",
+      "nombre": "Fabián ernesto Maidana"
+    },
+    {
+      "email": "marianomirabella@gmail.com",
+      "nombre": "Mariano Mirabella"
+    },
+    {
+      "email": "dirannifabio@gmail.com",
+      "nombre": "Fabio Di Ranni"
+    },
+    {
+      "email": "remiplus@gmail.com",
+      "nombre": "Pablo Alvarez"
+    },
+    {
+      "email": "demianveronacosta@gmail.com",
+      "nombre": "Demián Verón Acosta"
+    },
+    {
+      "email": "ericapalacio2002_@hotmail.com",
+      "nombre": "Erica Yamila Palacio Torrez"
+    },
+    {
+      "email": "teaker_d2@hotmail.cl",
+      "nombre": "Luciano Duran Aviles"
+    },
+    {
+      "email": "transportecastanio@gmail.com",
+      "nombre": "Ignacio Castaño"
+    },
+    {
+      "email": "lucas.lerp@gmail.com",
+      "nombre": "Lucas Perea"
+    },
+    {
+      "email": "coleabate168@gmail.com",
+      "nombre": "Seb Seb"
+    },
+    {
+      "email": "carly_zen@yahoo.com.ar",
+      "nombre": "Carlos Zeniquel"
+    },
+    {
+      "email": "mario.pasko@yahoo.com.ar",
+      "nombre": "Mario Alejandro"
+    }
+  ]
+}

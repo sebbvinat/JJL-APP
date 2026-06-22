@@ -1,0 +1,1726 @@
+[
+  {
+    "user_id": "6c333813-d1c8-4ce5-b6d6-e278aad15f6f",
+    "module_id": "mod-6",
+    "semana_numero": 8,
+    "titulo": "Armbar + Guardia Cerrada",
+    "descripcion": "",
+    "lessons": [
+      {
+        "id": "livianos-s6-0",
+        "tipo": "video",
+        "orden": 0,
+        "titulo": "Finalización Armbar",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "livianos-s6-1",
+        "tipo": "video",
+        "orden": 1,
+        "titulo": "Drill 1: Armbar",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "livianos-s6-2",
+        "tipo": "video",
+        "orden": 2,
+        "titulo": "Drill 2: Combinación toreos + armbar",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "livianos-s6-3",
+        "tipo": "video",
+        "orden": 3,
+        "titulo": "Específico de 100KG",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "livianos-s6-4",
+        "tipo": "reflection",
+        "orden": 4,
+        "titulo": "Reflexión semanal",
+        "youtube_id": "",
+        "descripcion": ""
+      }
+    ],
+    "updated_at": "2026-05-19T17:43:04.365+00:00"
+  },
+  {
+    "user_id": "b5209879-078f-4a23-9fd5-8b300e411fa8",
+    "module_id": "mod-5",
+    "semana_numero": 7,
+    "titulo": "100KG + Kimura",
+    "descripcion": "",
+    "lessons": [
+      {
+        "id": "livianos-s5-0",
+        "tipo": "video",
+        "orden": 0,
+        "titulo": "Concepto de 100 KG",
+        "youtube_id": "cGgEqwvHmYY",
+        "descripcion": ""
+      },
+      {
+        "id": "livianos-s5-1",
+        "tipo": "video",
+        "orden": 1,
+        "titulo": "Finalización Kimura",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "livianos-s5-2",
+        "tipo": "video",
+        "orden": 2,
+        "titulo": "Drill 1: Kimura",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "livianos-s5-3",
+        "tipo": "video",
+        "orden": 3,
+        "titulo": "Drill 2: Combinación toreos + Kimura",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "livianos-s5-4",
+        "tipo": "video",
+        "orden": 4,
+        "titulo": "Observaciones finales toreos",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "livianos-s5-5",
+        "tipo": "video",
+        "orden": 5,
+        "titulo": "Específico de 100KG",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "livianos-s5-6",
+        "tipo": "reflection",
+        "orden": 6,
+        "titulo": "Reflexión semanal",
+        "youtube_id": "",
+        "descripcion": ""
+      }
+    ],
+    "updated_at": "2026-05-19T17:43:00.632+00:00"
+  },
+  {
+    "user_id": "b5209879-078f-4a23-9fd5-8b300e411fa8",
+    "module_id": "mod-6",
+    "semana_numero": 8,
+    "titulo": "Armbar + Guardia Cerrada",
+    "descripcion": "",
+    "lessons": [
+      {
+        "id": "livianos-s6-0",
+        "tipo": "video",
+        "orden": 0,
+        "titulo": "Finalización Armbar",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "livianos-s6-1",
+        "tipo": "video",
+        "orden": 1,
+        "titulo": "Drill 1: Armbar",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "livianos-s6-2",
+        "tipo": "video",
+        "orden": 2,
+        "titulo": "Drill 2: Combinación toreos + armbar",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "livianos-s6-3",
+        "tipo": "video",
+        "orden": 3,
+        "titulo": "Específico de 100KG",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "livianos-s6-4",
+        "tipo": "reflection",
+        "orden": 4,
+        "titulo": "Reflexión semanal",
+        "youtube_id": "",
+        "descripcion": ""
+      }
+    ],
+    "updated_at": "2026-05-19T17:43:04.617+00:00"
+  },
+  {
+    "user_id": "513aae79-9f12-44fb-9df7-8f6ab952ed47",
+    "module_id": "mod-6",
+    "semana_numero": 8,
+    "titulo": "Armbar + Guardia Cerrada",
+    "descripcion": "",
+    "lessons": [
+      {
+        "id": "medios-s6-0",
+        "tipo": "video",
+        "orden": 0,
+        "titulo": "Finalización Armbar",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "medios-s6-1",
+        "tipo": "video",
+        "orden": 1,
+        "titulo": "Drill 1: Armbar",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "medios-s6-2",
+        "tipo": "video",
+        "orden": 2,
+        "titulo": "Drill 2: Combinación toreos + armbar",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "medios-s6-3",
+        "tipo": "video",
+        "orden": 3,
+        "titulo": "Específico de 100KG",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "medios-s6-4",
+        "tipo": "reflection",
+        "orden": 4,
+        "titulo": "Reflexión semanal",
+        "youtube_id": "",
+        "descripcion": ""
+      }
+    ],
+    "updated_at": "2026-05-19T17:43:05.123+00:00"
+  },
+  {
+    "user_id": "6c333813-d1c8-4ce5-b6d6-e278aad15f6f",
+    "module_id": "mod-5",
+    "semana_numero": 7,
+    "titulo": "100KG + Kimura",
+    "descripcion": "",
+    "lessons": [
+      {
+        "id": "livianos-s5-0",
+        "tipo": "video",
+        "orden": 0,
+        "titulo": "Concepto de 100 KG",
+        "youtube_id": "cGgEqwvHmYY",
+        "descripcion": ""
+      },
+      {
+        "id": "livianos-s5-1",
+        "tipo": "video",
+        "orden": 1,
+        "titulo": "Finalización Kimura",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "livianos-s5-2",
+        "tipo": "video",
+        "orden": 2,
+        "titulo": "Drill 1: Kimura",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "livianos-s5-3",
+        "tipo": "video",
+        "orden": 3,
+        "titulo": "Drill 2: Combinación toreos + Kimura",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "livianos-s5-4",
+        "tipo": "video",
+        "orden": 4,
+        "titulo": "Observaciones finales toreos",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "livianos-s5-5",
+        "tipo": "video",
+        "orden": 5,
+        "titulo": "Específico de 100KG",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "livianos-s5-6",
+        "tipo": "reflection",
+        "orden": 6,
+        "titulo": "Reflexión semanal",
+        "youtube_id": "",
+        "descripcion": ""
+      }
+    ],
+    "updated_at": "2026-05-19T17:43:00.93+00:00"
+  },
+  {
+    "user_id": "8698ca74-ae25-45a7-99f5-661394a05080",
+    "module_id": "mod-6",
+    "semana_numero": 8,
+    "titulo": "Armbar + Guardia Cerrada",
+    "descripcion": "",
+    "lessons": [
+      {
+        "id": "simbio-s6-0",
+        "tipo": "video",
+        "orden": 0,
+        "titulo": "Finalización Armbar",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "simbio-s6-1",
+        "tipo": "video",
+        "orden": 1,
+        "titulo": "Drill 1: Armbar",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "simbio-s6-2",
+        "tipo": "video",
+        "orden": 2,
+        "titulo": "Drill 2: Combinación toreos + armbar",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "simbio-s6-3",
+        "tipo": "video",
+        "orden": 3,
+        "titulo": "Específico de 100KG",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "simbio-s6-4",
+        "tipo": "reflection",
+        "orden": 4,
+        "titulo": "Reflexión semanal",
+        "youtube_id": "",
+        "descripcion": ""
+      }
+    ],
+    "updated_at": "2026-05-19T17:43:05.374+00:00"
+  },
+  {
+    "user_id": "515a965e-3bd0-4c70-8ad1-3c10991b97fa",
+    "module_id": "mod-6",
+    "semana_numero": 8,
+    "titulo": "Armbar + Guardia Cerrada",
+    "descripcion": "",
+    "lessons": [
+      {
+        "id": "medios-s6-0",
+        "tipo": "video",
+        "orden": 0,
+        "titulo": "Finalización Armbar",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "medios-s6-1",
+        "tipo": "video",
+        "orden": 1,
+        "titulo": "Drill 1: Armbar",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "medios-s6-2",
+        "tipo": "video",
+        "orden": 2,
+        "titulo": "Drill 2: Combinación toreos + armbar",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "medios-s6-3",
+        "tipo": "video",
+        "orden": 3,
+        "titulo": "Específico de 100KG",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "medios-s6-4",
+        "tipo": "reflection",
+        "orden": 4,
+        "titulo": "Reflexión semanal",
+        "youtube_id": "",
+        "descripcion": ""
+      }
+    ],
+    "updated_at": "2026-05-19T17:43:04.868+00:00"
+  },
+  {
+    "user_id": "513aae79-9f12-44fb-9df7-8f6ab952ed47",
+    "module_id": "mod-5",
+    "semana_numero": 7,
+    "titulo": "100KG + Kimura",
+    "descripcion": "",
+    "lessons": [
+      {
+        "id": "medios-s5-0",
+        "tipo": "video",
+        "orden": 0,
+        "titulo": "Concepto de 100 KG",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "medios-s5-1",
+        "tipo": "video",
+        "orden": 1,
+        "titulo": "Finalización Kimura",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "medios-s5-2",
+        "tipo": "video",
+        "orden": 2,
+        "titulo": "Drill 1: Kimura",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "medios-s5-3",
+        "tipo": "video",
+        "orden": 3,
+        "titulo": "Drill 2: Combinación toreos + Kimura",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "medios-s5-4",
+        "tipo": "video",
+        "orden": 4,
+        "titulo": "Observaciones finales toreos",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "medios-s5-5",
+        "tipo": "video",
+        "orden": 5,
+        "titulo": "Específico de 100KG",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "medios-s5-6",
+        "tipo": "reflection",
+        "orden": 6,
+        "titulo": "Reflexión semanal",
+        "youtube_id": "",
+        "descripcion": ""
+      }
+    ],
+    "updated_at": "2026-05-19T17:43:01.209+00:00"
+  },
+  {
+    "user_id": "67fdac99-d9ac-4ccd-9e5f-d00635c57b78",
+    "module_id": "mod-6",
+    "semana_numero": 8,
+    "titulo": "Armbar + Guardia Cerrada",
+    "descripcion": "",
+    "lessons": [
+      {
+        "id": "atleticos-s6-0",
+        "tipo": "video",
+        "orden": 0,
+        "titulo": "Finalización Armbar",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "atleticos-s6-1",
+        "tipo": "video",
+        "orden": 1,
+        "titulo": "Drill 1: Armbar",
+        "youtube_id": "",
+        "descripcion": "1x5' drillear de cada lado. (en cada entrenamiento)\n\nSi ya estas avanzado con el drill, podes pedirle resistencia al compañero de forma escalonada de 0% a max 50%"
+      },
+      {
+        "id": "atleticos-s6-2",
+        "tipo": "video",
+        "orden": 2,
+        "titulo": "Drill 2: Combinación toreos + armbar",
+        "youtube_id": "",
+        "descripcion": "1x5' drillear de cada lado. (en cada entrenamiento)\n\nSi ya estas avanzado con el drill, podes pedirle resistencia al compañero de forma escalonada de 0% a max 50%"
+      },
+      {
+        "id": "atleticos-s6-3",
+        "tipo": "video",
+        "orden": 3,
+        "titulo": "Específico de 100KG",
+        "youtube_id": "",
+        "descripcion": "1x5' (en cada entrenamiento)"
+      },
+      {
+        "id": "atleticos-s6-4",
+        "tipo": "reflection",
+        "orden": 4,
+        "titulo": "Reflexión semanal",
+        "youtube_id": "",
+        "descripcion": "Responde las preguntas de reflexion de la semana"
+      }
+    ],
+    "updated_at": "2026-05-19T17:43:05.637+00:00"
+  },
+  {
+    "user_id": "cf045af0-8f4d-4451-974c-fff1b5e1cff8",
+    "module_id": "mod-6",
+    "semana_numero": 8,
+    "titulo": "Armbar + Guardia Cerrada",
+    "descripcion": "",
+    "lessons": [
+      {
+        "id": "livianos-s6-0",
+        "tipo": "video",
+        "orden": 0,
+        "titulo": "Finalización Armbar",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "livianos-s6-1",
+        "tipo": "video",
+        "orden": 1,
+        "titulo": "Drill 1: Armbar",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "livianos-s6-2",
+        "tipo": "video",
+        "orden": 2,
+        "titulo": "Drill 2: Combinación toreos + armbar",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "livianos-s6-3",
+        "tipo": "video",
+        "orden": 3,
+        "titulo": "Específico de 100KG",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "livianos-s6-4",
+        "tipo": "reflection",
+        "orden": 4,
+        "titulo": "Reflexión semanal",
+        "youtube_id": "",
+        "descripcion": ""
+      }
+    ],
+    "updated_at": "2026-05-19T17:43:05.894+00:00"
+  },
+  {
+    "user_id": "cf045af0-8f4d-4451-974c-fff1b5e1cff8",
+    "module_id": "mod-5",
+    "semana_numero": 7,
+    "titulo": "100KG + Kimura",
+    "descripcion": "",
+    "lessons": [
+      {
+        "id": "livianos-s5-0",
+        "tipo": "video",
+        "orden": 0,
+        "titulo": "Concepto de 100 KG",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "livianos-s5-1",
+        "tipo": "video",
+        "orden": 1,
+        "titulo": "Finalización Kimura",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "livianos-s5-2",
+        "tipo": "video",
+        "orden": 2,
+        "titulo": "Drill 1: Kimura",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "livianos-s5-3",
+        "tipo": "video",
+        "orden": 3,
+        "titulo": "Drill 2: Combinación toreos + Kimura",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "livianos-s5-4",
+        "tipo": "video",
+        "orden": 4,
+        "titulo": "Observaciones finales toreos",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "livianos-s5-5",
+        "tipo": "video",
+        "orden": 5,
+        "titulo": "Específico de 100KG",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "livianos-s5-6",
+        "tipo": "reflection",
+        "orden": 6,
+        "titulo": "Reflexión semanal",
+        "youtube_id": "",
+        "descripcion": ""
+      }
+    ],
+    "updated_at": "2026-05-19T17:43:01.49+00:00"
+  },
+  {
+    "user_id": "6d369fd3-fb74-49f6-becc-a2c3d9fe2da9",
+    "module_id": "mod-5",
+    "semana_numero": 5,
+    "titulo": "Escape 100KG I",
+    "descripcion": "",
+    "lessons": [
+      {
+        "id": "medios-s5-0",
+        "tipo": "video",
+        "orden": 0,
+        "titulo": "Conceptos de 100kg",
+        "youtube_id": "cGgEqwvHmYY",
+        "descripcion": ""
+      },
+      {
+        "id": "medios-s5-1",
+        "tipo": "video",
+        "orden": 1,
+        "titulo": "Escape 100 kilos",
+        "youtube_id": "yS70P7xKuVU",
+        "descripcion": ""
+      },
+      {
+        "id": "medios-s5-2",
+        "tipo": "video",
+        "orden": 2,
+        "titulo": "Drill 1: Escape de 100kg",
+        "youtube_id": "phSyUZVGHh4",
+        "descripcion": ""
+      },
+      {
+        "id": "medios-s5-3",
+        "tipo": "video",
+        "orden": 3,
+        "titulo": "Drill 2: Escape + Combinación Guardia cerrada",
+        "youtube_id": "q8NkYdIrLXw",
+        "descripcion": ""
+      },
+      {
+        "id": "medios-s5-4",
+        "tipo": "video",
+        "orden": 4,
+        "titulo": "Específico de guardia cerrada",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "medios-s5-5",
+        "tipo": "reflection",
+        "orden": 5,
+        "titulo": "Reflexión semanal",
+        "youtube_id": "",
+        "descripcion": ""
+      }
+    ],
+    "updated_at": "2026-05-20T18:08:29.816+00:00"
+  },
+  {
+    "user_id": "6d369fd3-fb74-49f6-becc-a2c3d9fe2da9",
+    "module_id": "mod-6",
+    "semana_numero": 6,
+    "titulo": "Escape 100KG II",
+    "descripcion": "",
+    "lessons": [
+      {
+        "id": "medios-s6-0",
+        "tipo": "video",
+        "orden": 0,
+        "titulo": "Escape de 100KG variante 2",
+        "youtube_id": "kWdOZbzMDI0",
+        "descripcion": ""
+      },
+      {
+        "id": "medios-s6-1",
+        "tipo": "video",
+        "orden": 1,
+        "titulo": "Drill 1: 100 KG variante 2",
+        "youtube_id": "fgNu4Pt74hw",
+        "descripcion": ""
+      },
+      {
+        "id": "medios-s6-2",
+        "tipo": "video",
+        "orden": 2,
+        "titulo": "Drill 2: Drill combinación escape + guardia cerrada",
+        "youtube_id": "E2uO-Meey88",
+        "descripcion": ""
+      },
+      {
+        "id": "medios-s6-3",
+        "tipo": "video",
+        "orden": 3,
+        "titulo": "Específico de toreos",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "medios-s6-4",
+        "tipo": "reflection",
+        "orden": 4,
+        "titulo": "Reflexión semanal",
+        "youtube_id": "",
+        "descripcion": ""
+      }
+    ],
+    "updated_at": "2026-05-20T18:08:30.099+00:00"
+  },
+  {
+    "user_id": "1bbcbcac-43a2-440f-a88f-0f4373689edd",
+    "module_id": "mod-6",
+    "semana_numero": 8,
+    "titulo": "Armbar + Guardia Cerrada",
+    "descripcion": "",
+    "lessons": [
+      {
+        "id": "livianos-s6-0",
+        "tipo": "video",
+        "orden": 0,
+        "titulo": "Finalización Armbar",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "livianos-s6-1",
+        "tipo": "video",
+        "orden": 1,
+        "titulo": "Drill 1: Armbar",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "livianos-s6-2",
+        "tipo": "video",
+        "orden": 2,
+        "titulo": "Drill 2: Combinación toreos + armbar",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "livianos-s6-3",
+        "tipo": "video",
+        "orden": 3,
+        "titulo": "Específico de 100KG",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "livianos-s6-4",
+        "tipo": "reflection",
+        "orden": 4,
+        "titulo": "Reflexión semanal",
+        "youtube_id": "",
+        "descripcion": ""
+      }
+    ],
+    "updated_at": "2026-05-19T17:43:06.147+00:00"
+  },
+  {
+    "user_id": "8698ca74-ae25-45a7-99f5-661394a05080",
+    "module_id": "mod-5",
+    "semana_numero": 7,
+    "titulo": "100KG + Kimura",
+    "descripcion": "",
+    "lessons": [
+      {
+        "id": "simbio-s5-0",
+        "tipo": "video",
+        "orden": 0,
+        "titulo": "Concepto de 100 KG",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "simbio-s5-1",
+        "tipo": "video",
+        "orden": 1,
+        "titulo": "Finalización Kimura",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "simbio-s5-2",
+        "tipo": "video",
+        "orden": 2,
+        "titulo": "Drill 1: Kimura",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "simbio-s5-3",
+        "tipo": "video",
+        "orden": 3,
+        "titulo": "Drill 2: Combinación toreos + Kimura",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "simbio-s5-4",
+        "tipo": "video",
+        "orden": 4,
+        "titulo": "Observaciones finales toreos",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "simbio-s5-5",
+        "tipo": "video",
+        "orden": 5,
+        "titulo": "Específico de 100KG",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "simbio-s5-6",
+        "tipo": "reflection",
+        "orden": 6,
+        "titulo": "Reflexión semanal",
+        "youtube_id": "",
+        "descripcion": ""
+      }
+    ],
+    "updated_at": "2026-05-19T17:43:01.761+00:00"
+  },
+  {
+    "user_id": "749b20bf-2e46-4876-95d8-c3576d785626",
+    "module_id": "mod-5",
+    "semana_numero": 7,
+    "titulo": "100KG + Kimura",
+    "descripcion": "",
+    "lessons": [
+      {
+        "id": "atleticos-s5-0",
+        "tipo": "video",
+        "orden": 0,
+        "titulo": "Concepto de 100 KG",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "atleticos-s5-1",
+        "tipo": "video",
+        "orden": 1,
+        "titulo": "Finalización Kimura",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "atleticos-s5-2",
+        "tipo": "video",
+        "orden": 2,
+        "titulo": "Drill 1: Kimura",
+        "youtube_id": "",
+        "descripcion": "1x5' drillear de cada lado. (en cada entrenamiento)\n\nSi ya estas avanzado con el drill, podes pedirle resistencia al compañero de forma escalonada de 0% a max 50%"
+      },
+      {
+        "id": "atleticos-s5-3",
+        "tipo": "video",
+        "orden": 3,
+        "titulo": "Drill 2: Combinación toreos + Kimura",
+        "youtube_id": "",
+        "descripcion": "1x5' drillear de cada lado. (en cada entrenamiento)\n\nSi ya estas avanzado con el drill, podes pedirle resistencia al compañero de forma escalonada de 0% a max 50%"
+      },
+      {
+        "id": "atleticos-s5-4",
+        "tipo": "video",
+        "orden": 4,
+        "titulo": "Observaciones finales toreos",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "atleticos-s5-5",
+        "tipo": "video",
+        "orden": 5,
+        "titulo": "Específico de 100KG",
+        "youtube_id": "",
+        "descripcion": "1x5' (en cada entrenamiento)"
+      },
+      {
+        "id": "atleticos-s5-6",
+        "tipo": "reflection",
+        "orden": 6,
+        "titulo": "Reflexión semanal",
+        "youtube_id": "",
+        "descripcion": "Responde las preguntas de reflexion de la semana"
+      }
+    ],
+    "updated_at": "2026-05-19T17:43:02.054+00:00"
+  },
+  {
+    "user_id": "b15927b4-8095-43a9-ad7b-d09324233f81",
+    "module_id": "mod-6",
+    "semana_numero": 8,
+    "titulo": "Armbar + Guardia Cerrada",
+    "descripcion": "",
+    "lessons": [
+      {
+        "id": "medios-s6-0",
+        "tipo": "video",
+        "orden": 0,
+        "titulo": "Finalización Armbar",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "medios-s6-1",
+        "tipo": "video",
+        "orden": 1,
+        "titulo": "Drill 1: Armbar",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "medios-s6-2",
+        "tipo": "video",
+        "orden": 2,
+        "titulo": "Drill 2: Combinación toreos + armbar",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "medios-s6-3",
+        "tipo": "video",
+        "orden": 3,
+        "titulo": "Específico de 100KG",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "medios-s6-4",
+        "tipo": "reflection",
+        "orden": 4,
+        "titulo": "Reflexión semanal",
+        "youtube_id": "",
+        "descripcion": ""
+      }
+    ],
+    "updated_at": "2026-05-19T17:43:06.398+00:00"
+  },
+  {
+    "user_id": "fa3c5ea2-e5d7-4a4d-8ddf-af0286ef414c",
+    "module_id": "mod-6",
+    "semana_numero": 8,
+    "titulo": "Armbar + Guardia Cerrada",
+    "descripcion": "",
+    "lessons": [
+      {
+        "id": "medios-s6-0",
+        "tipo": "video",
+        "orden": 0,
+        "titulo": "Finalización Armbar",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "medios-s6-1",
+        "tipo": "video",
+        "orden": 1,
+        "titulo": "Drill 1: Armbar",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "medios-s6-2",
+        "tipo": "video",
+        "orden": 2,
+        "titulo": "Drill 2: Combinación toreos + armbar",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "medios-s6-3",
+        "tipo": "video",
+        "orden": 3,
+        "titulo": "Específico de 100KG",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "medios-s6-4",
+        "tipo": "reflection",
+        "orden": 4,
+        "titulo": "Reflexión semanal",
+        "youtube_id": "",
+        "descripcion": ""
+      }
+    ],
+    "updated_at": "2026-05-19T17:43:06.652+00:00"
+  },
+  {
+    "user_id": "94a4a249-852e-4d08-9de9-3e9b131f6bb6",
+    "module_id": "mod-6",
+    "semana_numero": 8,
+    "titulo": "Armbar + Guardia Cerrada",
+    "descripcion": "",
+    "lessons": [
+      {
+        "id": "livianos-s6-0",
+        "tipo": "video",
+        "orden": 0,
+        "titulo": "Finalización Armbar",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "livianos-s6-1",
+        "tipo": "video",
+        "orden": 1,
+        "titulo": "Drill 1: Armbar",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "livianos-s6-2",
+        "tipo": "video",
+        "orden": 2,
+        "titulo": "Drill 2: Combinación toreos + armbar",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "livianos-s6-3",
+        "tipo": "video",
+        "orden": 3,
+        "titulo": "Específico de 100KG",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "livianos-s6-4",
+        "tipo": "reflection",
+        "orden": 4,
+        "titulo": "Reflexión semanal",
+        "youtube_id": "",
+        "descripcion": ""
+      }
+    ],
+    "updated_at": "2026-05-19T17:43:06.905+00:00"
+  },
+  {
+    "user_id": "6c5032e3-f4a8-4647-9b78-3b3f6ef26f62",
+    "module_id": "mod-5",
+    "semana_numero": 5,
+    "titulo": "Escape 100KG I",
+    "descripcion": "",
+    "lessons": [
+      {
+        "id": "medios-s5-0",
+        "tipo": "video",
+        "orden": 0,
+        "titulo": "Conceptos de 100kg",
+        "youtube_id": "cGgEqwvHmYY",
+        "descripcion": ""
+      },
+      {
+        "id": "medios-s5-1",
+        "tipo": "video",
+        "orden": 1,
+        "titulo": "Escape 100 kilos",
+        "youtube_id": "yS70P7xKuVU",
+        "descripcion": ""
+      },
+      {
+        "id": "medios-s5-2",
+        "tipo": "video",
+        "orden": 2,
+        "titulo": "Drill 1: Escape de 100kg",
+        "youtube_id": "phSyUZVGHh4",
+        "descripcion": ""
+      },
+      {
+        "id": "medios-s5-3",
+        "tipo": "video",
+        "orden": 3,
+        "titulo": "Drill 2: Escape + Combinación Guardia cerrada",
+        "youtube_id": "q8NkYdIrLXw",
+        "descripcion": ""
+      },
+      {
+        "id": "medios-s5-4",
+        "tipo": "video",
+        "orden": 4,
+        "titulo": "Específico de guardia cerrada",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "medios-s5-5",
+        "tipo": "reflection",
+        "orden": 5,
+        "titulo": "Reflexión semanal",
+        "youtube_id": "",
+        "descripcion": ""
+      }
+    ],
+    "updated_at": "2026-05-24T19:25:43.329+00:00"
+  },
+  {
+    "user_id": "6c5032e3-f4a8-4647-9b78-3b3f6ef26f62",
+    "module_id": "mod-6",
+    "semana_numero": 6,
+    "titulo": "Escape 100KG II",
+    "descripcion": "",
+    "lessons": [
+      {
+        "id": "medios-s6-0",
+        "tipo": "video",
+        "orden": 0,
+        "titulo": "Escape de 100KG variante 2",
+        "youtube_id": "kWdOZbzMDI0",
+        "descripcion": ""
+      },
+      {
+        "id": "medios-s6-1",
+        "tipo": "video",
+        "orden": 1,
+        "titulo": "Drill 1: 100 KG variante 2",
+        "youtube_id": "fgNu4Pt74hw",
+        "descripcion": ""
+      },
+      {
+        "id": "medios-s6-2",
+        "tipo": "video",
+        "orden": 2,
+        "titulo": "Drill 2: Drill combinación escape + guardia cerrada",
+        "youtube_id": "E2uO-Meey88",
+        "descripcion": ""
+      },
+      {
+        "id": "medios-s6-3",
+        "tipo": "video",
+        "orden": 3,
+        "titulo": "Específico de toreos",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "medios-s6-4",
+        "tipo": "reflection",
+        "orden": 4,
+        "titulo": "Reflexión semanal",
+        "youtube_id": "",
+        "descripcion": ""
+      }
+    ],
+    "updated_at": "2026-05-24T19:25:43.416+00:00"
+  },
+  {
+    "user_id": "fa3c5ea2-e5d7-4a4d-8ddf-af0286ef414c",
+    "module_id": "mod-5",
+    "semana_numero": 7,
+    "titulo": "100KG + Kimura",
+    "descripcion": "",
+    "lessons": [
+      {
+        "id": "medios-s5-0",
+        "tipo": "video",
+        "orden": 0,
+        "titulo": "Concepto de 100 KG",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "medios-s5-1",
+        "tipo": "video",
+        "orden": 1,
+        "titulo": "Finalización Kimura",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "medios-s5-2",
+        "tipo": "video",
+        "orden": 2,
+        "titulo": "Drill 1: Kimura",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "medios-s5-3",
+        "tipo": "video",
+        "orden": 3,
+        "titulo": "Drill 2: Combinación toreos + Kimura",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "medios-s5-4",
+        "tipo": "video",
+        "orden": 4,
+        "titulo": "Observaciones finales toreos",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "medios-s5-5",
+        "tipo": "video",
+        "orden": 5,
+        "titulo": "Específico de 100KG",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "medios-s5-6",
+        "tipo": "reflection",
+        "orden": 6,
+        "titulo": "Reflexión semanal",
+        "youtube_id": "",
+        "descripcion": ""
+      }
+    ],
+    "updated_at": "2026-05-19T17:43:02.308+00:00"
+  },
+  {
+    "user_id": "94a4a249-852e-4d08-9de9-3e9b131f6bb6",
+    "module_id": "mod-5",
+    "semana_numero": 7,
+    "titulo": "100KG + Kimura",
+    "descripcion": "",
+    "lessons": [
+      {
+        "id": "livianos-s5-0",
+        "tipo": "video",
+        "orden": 0,
+        "titulo": "Concepto de 100 KG",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "livianos-s5-1",
+        "tipo": "video",
+        "orden": 1,
+        "titulo": "Finalización Kimura",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "livianos-s5-2",
+        "tipo": "video",
+        "orden": 2,
+        "titulo": "Drill 1: Kimura",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "livianos-s5-3",
+        "tipo": "video",
+        "orden": 3,
+        "titulo": "Drill 2: Combinación toreos + Kimura",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "livianos-s5-4",
+        "tipo": "video",
+        "orden": 4,
+        "titulo": "Observaciones finales toreos",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "livianos-s5-5",
+        "tipo": "video",
+        "orden": 5,
+        "titulo": "Específico de 100KG",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "livianos-s5-6",
+        "tipo": "reflection",
+        "orden": 6,
+        "titulo": "Reflexión semanal",
+        "youtube_id": "",
+        "descripcion": ""
+      }
+    ],
+    "updated_at": "2026-05-19T17:43:02.557+00:00"
+  },
+  {
+    "user_id": "67fdac99-d9ac-4ccd-9e5f-d00635c57b78",
+    "module_id": "mod-5",
+    "semana_numero": 7,
+    "titulo": "100KG + Kimura",
+    "descripcion": "",
+    "lessons": [
+      {
+        "id": "atleticos-s5-0",
+        "tipo": "video",
+        "orden": 0,
+        "titulo": "Concepto de 100 KG",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "atleticos-s5-1",
+        "tipo": "video",
+        "orden": 1,
+        "titulo": "Finalización Kimura",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "atleticos-s5-2",
+        "tipo": "video",
+        "orden": 2,
+        "titulo": "Drill 1: Kimura",
+        "youtube_id": "",
+        "descripcion": "1x5' drillear de cada lado. (en cada entrenamiento)\n\nSi ya estas avanzado con el drill, podes pedirle resistencia al compañero de forma escalonada de 0% a max 50%"
+      },
+      {
+        "id": "atleticos-s5-3",
+        "tipo": "video",
+        "orden": 3,
+        "titulo": "Drill 2: Combinación toreos + Kimura",
+        "youtube_id": "",
+        "descripcion": "1x5' drillear de cada lado. (en cada entrenamiento)\n\nSi ya estas avanzado con el drill, podes pedirle resistencia al compañero de forma escalonada de 0% a max 50%"
+      },
+      {
+        "id": "atleticos-s5-4",
+        "tipo": "video",
+        "orden": 4,
+        "titulo": "Observaciones finales toreos",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "atleticos-s5-5",
+        "tipo": "video",
+        "orden": 5,
+        "titulo": "Específico de 100KG",
+        "youtube_id": "",
+        "descripcion": "1x5' (en cada entrenamiento)"
+      },
+      {
+        "id": "atleticos-s5-6",
+        "tipo": "reflection",
+        "orden": 6,
+        "titulo": "Reflexión semanal",
+        "youtube_id": "",
+        "descripcion": "Responde las preguntas de reflexion de la semana"
+      }
+    ],
+    "updated_at": "2026-05-19T17:43:02.812+00:00"
+  },
+  {
+    "user_id": "515a965e-3bd0-4c70-8ad1-3c10991b97fa",
+    "module_id": "mod-5",
+    "semana_numero": 7,
+    "titulo": "100KG + Kimura",
+    "descripcion": "",
+    "lessons": [
+      {
+        "id": "medios-s5-0",
+        "tipo": "video",
+        "orden": 0,
+        "titulo": "Concepto de 100 KG",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "medios-s5-1",
+        "tipo": "video",
+        "orden": 1,
+        "titulo": "Finalización Kimura",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "medios-s5-2",
+        "tipo": "video",
+        "orden": 2,
+        "titulo": "Drill 1: Kimura",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "medios-s5-3",
+        "tipo": "video",
+        "orden": 3,
+        "titulo": "Drill 2: Combinación toreos + Kimura",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "medios-s5-4",
+        "tipo": "video",
+        "orden": 4,
+        "titulo": "Observaciones finales toreos",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "medios-s5-5",
+        "tipo": "video",
+        "orden": 5,
+        "titulo": "Específico de 100KG",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "medios-s5-6",
+        "tipo": "reflection",
+        "orden": 6,
+        "titulo": "Reflexión semanal",
+        "youtube_id": "",
+        "descripcion": ""
+      }
+    ],
+    "updated_at": "2026-05-19T17:43:03.098+00:00"
+  },
+  {
+    "user_id": "54aae061-8edc-447f-9e64-ce904c06f314",
+    "module_id": "mod-5",
+    "semana_numero": 7,
+    "titulo": "100KG + Kimura",
+    "descripcion": "",
+    "lessons": [
+      {
+        "id": "atleticos-s5-0",
+        "tipo": "video",
+        "orden": 0,
+        "titulo": "Concepto de 100 KG",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "atleticos-s5-1",
+        "tipo": "video",
+        "orden": 1,
+        "titulo": "Finalización Kimura",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "atleticos-s5-2",
+        "tipo": "video",
+        "orden": 2,
+        "titulo": "Drill 1: Kimura",
+        "youtube_id": "",
+        "descripcion": "1x5' drillear de cada lado. (en cada entrenamiento)\n\nSi ya estas avanzado con el drill, podes pedirle resistencia al compañero de forma escalonada de 0% a max 50%"
+      },
+      {
+        "id": "atleticos-s5-3",
+        "tipo": "video",
+        "orden": 3,
+        "titulo": "Drill 2: Combinación toreos + Kimura",
+        "youtube_id": "",
+        "descripcion": "1x5' drillear de cada lado. (en cada entrenamiento)\n\nSi ya estas avanzado con el drill, podes pedirle resistencia al compañero de forma escalonada de 0% a max 50%"
+      },
+      {
+        "id": "atleticos-s5-4",
+        "tipo": "video",
+        "orden": 4,
+        "titulo": "Observaciones finales toreos",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "atleticos-s5-5",
+        "tipo": "video",
+        "orden": 5,
+        "titulo": "Específico de 100KG",
+        "youtube_id": "",
+        "descripcion": "1x5' (en cada entrenamiento)"
+      },
+      {
+        "id": "atleticos-s5-6",
+        "tipo": "reflection",
+        "orden": 6,
+        "titulo": "Reflexión semanal",
+        "youtube_id": "",
+        "descripcion": "Responde las preguntas de reflexion de la semana"
+      }
+    ],
+    "updated_at": "2026-05-19T17:43:03.349+00:00"
+  },
+  {
+    "user_id": "1bbcbcac-43a2-440f-a88f-0f4373689edd",
+    "module_id": "mod-5",
+    "semana_numero": 7,
+    "titulo": "100KG + Kimura",
+    "descripcion": "",
+    "lessons": [
+      {
+        "id": "livianos-s5-0",
+        "tipo": "video",
+        "orden": 0,
+        "titulo": "Concepto de 100 KG",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "livianos-s5-1",
+        "tipo": "video",
+        "orden": 1,
+        "titulo": "Finalización Kimura",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "livianos-s5-2",
+        "tipo": "video",
+        "orden": 2,
+        "titulo": "Drill 1: Kimura",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "livianos-s5-3",
+        "tipo": "video",
+        "orden": 3,
+        "titulo": "Drill 2: Combinación toreos + Kimura",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "livianos-s5-4",
+        "tipo": "video",
+        "orden": 4,
+        "titulo": "Observaciones finales toreos",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "livianos-s5-5",
+        "tipo": "video",
+        "orden": 5,
+        "titulo": "Específico de 100KG",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "livianos-s5-6",
+        "tipo": "reflection",
+        "orden": 6,
+        "titulo": "Reflexión semanal",
+        "youtube_id": "",
+        "descripcion": ""
+      }
+    ],
+    "updated_at": "2026-05-19T17:43:03.604+00:00"
+  },
+  {
+    "user_id": "54aae061-8edc-447f-9e64-ce904c06f314",
+    "module_id": "mod-6",
+    "semana_numero": 8,
+    "titulo": "Armbar + Guardia Cerrada",
+    "descripcion": "",
+    "lessons": [
+      {
+        "id": "atleticos-s6-0",
+        "tipo": "video",
+        "orden": 0,
+        "titulo": "Finalización Armbar",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "atleticos-s6-1",
+        "tipo": "video",
+        "orden": 1,
+        "titulo": "Drill 1: Armbar",
+        "youtube_id": "",
+        "descripcion": "1x5' drillear de cada lado. (en cada entrenamiento)\n\nSi ya estas avanzado con el drill, podes pedirle resistencia al compañero de forma escalonada de 0% a max 50%"
+      },
+      {
+        "id": "atleticos-s6-2",
+        "tipo": "video",
+        "orden": 2,
+        "titulo": "Drill 2: Combinación toreos + armbar",
+        "youtube_id": "",
+        "descripcion": "1x5' drillear de cada lado. (en cada entrenamiento)\n\nSi ya estas avanzado con el drill, podes pedirle resistencia al compañero de forma escalonada de 0% a max 50%"
+      },
+      {
+        "id": "atleticos-s6-3",
+        "tipo": "video",
+        "orden": 3,
+        "titulo": "Específico de 100KG",
+        "youtube_id": "",
+        "descripcion": "1x5' (en cada entrenamiento)"
+      },
+      {
+        "id": "atleticos-s6-4",
+        "tipo": "reflection",
+        "orden": 4,
+        "titulo": "Reflexión semanal",
+        "youtube_id": "",
+        "descripcion": "Responde las preguntas de reflexion de la semana"
+      }
+    ],
+    "updated_at": "2026-05-19T17:43:07.156+00:00"
+  },
+  {
+    "user_id": "b15927b4-8095-43a9-ad7b-d09324233f81",
+    "module_id": "mod-5",
+    "semana_numero": 7,
+    "titulo": "100KG + Kimura",
+    "descripcion": "",
+    "lessons": [
+      {
+        "id": "medios-s5-0",
+        "tipo": "video",
+        "orden": 0,
+        "titulo": "Concepto de 100 KG",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "medios-s5-1",
+        "tipo": "video",
+        "orden": 1,
+        "titulo": "Finalización Kimura",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "medios-s5-2",
+        "tipo": "video",
+        "orden": 2,
+        "titulo": "Drill 1: Kimura",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "medios-s5-3",
+        "tipo": "video",
+        "orden": 3,
+        "titulo": "Drill 2: Combinación toreos + Kimura",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "medios-s5-4",
+        "tipo": "video",
+        "orden": 4,
+        "titulo": "Observaciones finales toreos",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "medios-s5-5",
+        "tipo": "video",
+        "orden": 5,
+        "titulo": "Específico de 100KG",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "medios-s5-6",
+        "tipo": "reflection",
+        "orden": 6,
+        "titulo": "Reflexión semanal",
+        "youtube_id": "",
+        "descripcion": ""
+      }
+    ],
+    "updated_at": "2026-05-19T17:43:03.855+00:00"
+  },
+  {
+    "user_id": "749b20bf-2e46-4876-95d8-c3576d785626",
+    "module_id": "mod-6",
+    "semana_numero": 8,
+    "titulo": "Armbar + Guardia Cerrada",
+    "descripcion": "",
+    "lessons": [
+      {
+        "id": "atleticos-s6-0",
+        "tipo": "video",
+        "orden": 0,
+        "titulo": "Finalización Armbar",
+        "youtube_id": "",
+        "descripcion": ""
+      },
+      {
+        "id": "atleticos-s6-1",
+        "tipo": "video",
+        "orden": 1,
+        "titulo": "Drill 1: Armbar",
+        "youtube_id": "",
+        "descripcion": "1x5' drillear de cada lado. (en cada entrenamiento)\n\nSi ya estas avanzado con el drill, podes pedirle resistencia al compañero de forma escalonada de 0% a max 50%"
+      },
+      {
+        "id": "atleticos-s6-2",
+        "tipo": "video",
+        "orden": 2,
+        "titulo": "Drill 2: Combinación toreos + armbar",
+        "youtube_id": "",
+        "descripcion": "1x5' drillear de cada lado. (en cada entrenamiento)\n\nSi ya estas avanzado con el drill, podes pedirle resistencia al compañero de forma escalonada de 0% a max 50%"
+      },
+      {
+        "id": "atleticos-s6-3",
+        "tipo": "video",
+        "orden": 3,
+        "titulo": "Específico de 100KG",
+        "youtube_id": "",
+        "descripcion": "1x5' (en cada entrenamiento)"
+      },
+      {
+        "id": "atleticos-s6-4",
+        "tipo": "reflection",
+        "orden": 4,
+        "titulo": "Reflexión semanal",
+        "youtube_id": "",
+        "descripcion": "Responde las preguntas de reflexion de la semana"
+      }
+    ],
+    "updated_at": "2026-05-19T17:43:07.408+00:00"
+  }
+]

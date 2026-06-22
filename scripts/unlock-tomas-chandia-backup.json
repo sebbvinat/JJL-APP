@@ -1,0 +1,32 @@
+[
+  {
+    "user_id": "54aae061-8edc-447f-9e64-ce904c06f314",
+    "module_id": "mod-4",
+    "is_unlocked": true,
+    "unlocked_at": null
+  },
+  {
+    "user_id": "54aae061-8edc-447f-9e64-ce904c06f314",
+    "module_id": "mod-5",
+    "is_unlocked": false,
+    "unlocked_at": null
+  },
+  {
+    "user_id": "54aae061-8edc-447f-9e64-ce904c06f314",
+    "module_id": "mod-6",
+    "is_unlocked": false,
+    "unlocked_at": null
+  },
+  {
+    "user_id": "54aae061-8edc-447f-9e64-ce904c06f314",
+    "module_id": "mod-7",
+    "is_unlocked": false,
+    "unlocked_at": null
+  },
+  {
+    "user_id": "54aae061-8edc-447f-9e64-ce904c06f314",
+    "module_id": "mod-8",
+    "is_unlocked": false,
+    "unlocked_at": null
+  }
+]

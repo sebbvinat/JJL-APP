@@ -1,0 +1,1049 @@
+[
+  {
+    "yt": {
+      "id": "-B97okiJVXM",
+      "title": "TOREOS AVANZADOS"
+    },
+    "candidates": [
+      {
+        "score": 0.5,
+        "leccion_titulo": "Toreos Variante 3",
+        "leccion_norm": "toreos variante 3",
+        "modules": [
+          "mod-3"
+        ],
+        "current": [
+          "ZOa2PEUBNWg"
+        ],
+        "rowCount": 16
+      },
+      {
+        "score": 0.5,
+        "leccion_titulo": "Drill 2: Toreos",
+        "leccion_norm": "drill 2: toreos",
+        "modules": [
+          "mod-3",
+          "mod-4",
+          "mod-1"
+        ],
+        "current": [
+          "P5FQWD9dq4k",
+          "R3mhOdD-Zck",
+          "3jHMKpAyFwA",
+          "GvqXaIXzWAM"
+        ],
+        "rowCount": 48
+      },
+      {
+        "score": 0.5,
+        "leccion_titulo": "Toreos Variante 2",
+        "leccion_norm": "toreos variante 2",
+        "modules": [
+          "mod-2"
+        ],
+        "current": [
+          "e96uxETi2dU"
+        ],
+        "rowCount": 16
+      },
+      {
+        "score": 0.5,
+        "leccion_titulo": "Drill 1: Toreos",
+        "leccion_norm": "drill 1: toreos",
+        "modules": [
+          "mod-2"
+        ],
+        "current": [
+          "GvqXaIXzWAM"
+        ],
+        "rowCount": 16
+      },
+      {
+        "score": 0.5,
+        "leccion_titulo": "Específico de toreos",
+        "leccion_norm": "especifico de toreos",
+        "modules": [
+          "mod-8",
+          "mod-6"
+        ],
+        "current": [],
+        "rowCount": 16
+      }
+    ]
+  },
+  {
+    "yt": {
+      "id": "MZyqmPmMqw0",
+      "title": "DRILL KNEE SHIELD TIJERA"
+    },
+    "candidates": [
+      {
+        "score": 0.7499999999999999,
+        "leccion_titulo": "Drill 3: Combinación de 1/2 con Knee Shield",
+        "leccion_norm": "drill 3: combinacion de 1/2 con knee shield",
+        "modules": [
+          "mod-20"
+        ],
+        "current": [],
+        "rowCount": 1
+      },
+      {
+        "score": 0.6535714285714285,
+        "leccion_titulo": "Drill 2: Defensa 1 + 2 de espalda + combinación de (1/2 guardia + 1/2 guardia con Knee Shield)",
+        "leccion_norm": "drill 2: defensa 1 + 2 de espalda + combinacion de (1/2 guardia + 1/2 guardia con knee shield)",
+        "modules": [
+          "mod-22"
+        ],
+        "current": [],
+        "rowCount": 1
+      },
+      {
+        "score": 0.6535714285714285,
+        "leccion_titulo": "Drill 2: Defensa 1 de espalda + combinación de (1/2 guardia + 1/2 guardia con Knee Shield)",
+        "leccion_norm": "drill 2: defensa 1 de espalda + combinacion de (1/2 guardia + 1/2 guardia con knee shield)",
+        "modules": [
+          "mod-21"
+        ],
+        "current": [],
+        "rowCount": 1
+      },
+      {
+        "score": 0.5,
+        "leccion_titulo": "Concepto de 1/2 guardia con Knee Shield",
+        "leccion_norm": "concepto de 1/2 guardia con knee shield",
+        "modules": [
+          "mod-17"
+        ],
+        "current": [],
+        "rowCount": 1
+      },
+      {
+        "score": 0.5,
+        "leccion_titulo": "Específico de 1/2 guardia con Knee Shield",
+        "leccion_norm": "especifico de 1/2 guardia con knee shield",
+        "modules": [
+          "mod-19"
+        ],
+        "current": [],
+        "rowCount": 1
+      }
+    ]
+  },
+  {
+    "yt": {
+      "id": "MCHEDVVgW7w",
+      "title": "DLR PUSH"
+    },
+    "candidates": [
+      {
+        "score": 0.5,
+        "leccion_titulo": "Específico de DLR",
+        "leccion_norm": "especifico de dlr",
+        "modules": [
+          "mod-11"
+        ],
+        "current": [],
+        "rowCount": 15
+      },
+      {
+        "score": 0.41,
+        "leccion_titulo": "Drill 2: Defensa 1 + 2 de espalda + combinación de (DLR + X)",
+        "leccion_norm": "drill 2: defensa 1 + 2 de espalda + combinacion de (dlr + x)",
+        "modules": [
+          "mod-22"
+        ],
+        "current": [],
+        "rowCount": 12
+      },
+      {
+        "score": 0.41,
+        "leccion_titulo": "Drill 2: Escape 1 + Escape 2 + Combinación guardia DLR",
+        "leccion_norm": "drill 2: escape 1 + escape 2 + combinacion guardia dlr",
+        "modules": [
+          "mod-16"
+        ],
+        "current": [],
+        "rowCount": 1
+      },
+      {
+        "score": 0.41,
+        "leccion_titulo": "Drill 2: Escape 1 + Combinación guardia DLR",
+        "leccion_norm": "drill 2: escape 1 + combinacion guardia dlr",
+        "modules": [
+          "mod-15"
+        ],
+        "current": [],
+        "rowCount": 1
+      },
+      {
+        "score": 0.41,
+        "leccion_titulo": "Drill 2: Defensa 1 de espalda + combinación de (DLR + X)",
+        "leccion_norm": "drill 2: defensa 1 de espalda + combinacion de (dlr + x)",
+        "modules": [
+          "mod-21"
+        ],
+        "current": [],
+        "rowCount": 7
+      }
+    ]
+  },
+  {
+    "yt": {
+      "id": "PMzOdI-sIUQ",
+      "title": "100KG VARIANTE 1"
+    },
+    "candidates": [
+      {
+        "score": 0.8999999999999999,
+        "leccion_titulo": "Escape de 100KG variante 2",
+        "leccion_norm": "escape de 100kg variante 2",
+        "modules": [
+          "mod-8",
+          "mod-6"
+        ],
+        "current": [
+          "kWdOZbzMDI0"
+        ],
+        "rowCount": 16
+      },
+      {
+        "score": 0.5,
+        "leccion_titulo": "Conceptos de 100kg",
+        "leccion_norm": "conceptos de 100kg",
+        "modules": [
+          "mod-7",
+          "mod-5"
+        ],
+        "current": [
+          "cGgEqwvHmYY"
+        ],
+        "rowCount": 16
+      },
+      {
+        "score": 0.5,
+        "leccion_titulo": "Específico de 100KG",
+        "leccion_norm": "especifico de 100kg",
+        "modules": [
+          "mod-6",
+          "mod-5",
+          "mod-8",
+          "mod-7"
+        ],
+        "current": [],
+        "rowCount": 32
+      },
+      {
+        "score": 0.5,
+        "leccion_titulo": "Toreos Variante 3",
+        "leccion_norm": "toreos variante 3",
+        "modules": [
+          "mod-3"
+        ],
+        "current": [
+          "ZOa2PEUBNWg"
+        ],
+        "rowCount": 16
+      },
+      {
+        "score": 0.5,
+        "leccion_titulo": "Toreos Variante 2",
+        "leccion_norm": "toreos variante 2",
+        "modules": [
+          "mod-2"
+        ],
+        "current": [
+          "e96uxETi2dU"
+        ],
+        "rowCount": 16
+      }
+    ]
+  },
+  {
+    "yt": {
+      "id": "mkdiCNxv9Wg",
+      "title": "KNEE SHIELD TIJERA"
+    },
+    "candidates": [
+      {
+        "score": 0.6166666666666666,
+        "leccion_titulo": "Concepto de 1/2 guardia con Knee Shield",
+        "leccion_norm": "concepto de 1/2 guardia con knee shield",
+        "modules": [
+          "mod-17"
+        ],
+        "current": [],
+        "rowCount": 1
+      },
+      {
+        "score": 0.6166666666666666,
+        "leccion_titulo": "Drill 3: Combinación de 1/2 con Knee Shield",
+        "leccion_norm": "drill 3: combinacion de 1/2 con knee shield",
+        "modules": [
+          "mod-20"
+        ],
+        "current": [],
+        "rowCount": 1
+      },
+      {
+        "score": 0.6166666666666666,
+        "leccion_titulo": "Específico de 1/2 guardia con Knee Shield",
+        "leccion_norm": "especifico de 1/2 guardia con knee shield",
+        "modules": [
+          "mod-19"
+        ],
+        "current": [],
+        "rowCount": 1
+      },
+      {
+        "score": 0.5523809523809523,
+        "leccion_titulo": "Drill 2: Defensa 1 + 2 de espalda + combinación de (1/2 guardia + 1/2 guardia con Knee Shield)",
+        "leccion_norm": "drill 2: defensa 1 + 2 de espalda + combinacion de (1/2 guardia + 1/2 guardia con knee shield)",
+        "modules": [
+          "mod-22"
+        ],
+        "current": [],
+        "rowCount": 1
+      },
+      {
+        "score": 0.5523809523809523,
+        "leccion_titulo": "Drill 2: Defensa 1 de espalda + combinación de (1/2 guardia + 1/2 guardia con Knee Shield)",
+        "leccion_norm": "drill 2: defensa 1 de espalda + combinacion de (1/2 guardia + 1/2 guardia con knee shield)",
+        "modules": [
+          "mod-21"
+        ],
+        "current": [],
+        "rowCount": 1
+      }
+    ]
+  },
+  {
+    "yt": {
+      "id": "tRca9K3uKhA",
+      "title": "DRILL LOWER LEG SHIFT MEDIA GUARDIA"
+    },
+    "candidates": [
+      {
+        "score": 0.7666666666666666,
+        "leccion_titulo": "1/2 guardia: Lower Leg Shift",
+        "leccion_norm": "1/2 guardia: lower leg shift",
+        "modules": [
+          "mod-12"
+        ],
+        "current": [],
+        "rowCount": 1
+      },
+      {
+        "score": 0.7666666666666666,
+        "leccion_titulo": "Drill 2: Lower Leg Shift",
+        "leccion_norm": "drill 2: lower leg shift",
+        "modules": [
+          "mod-12"
+        ],
+        "current": [],
+        "rowCount": 1
+      },
+      {
+        "score": 0.5333333333333333,
+        "leccion_titulo": "Drill 2: Guardia X",
+        "leccion_norm": "drill 2: guardia x",
+        "modules": [
+          "mod-19"
+        ],
+        "current": [],
+        "rowCount": 7
+      },
+      {
+        "score": 0.5333333333333333,
+        "leccion_titulo": "Drill 1: Guardia X",
+        "leccion_norm": "drill 1: guardia x",
+        "modules": [
+          "mod-20"
+        ],
+        "current": [],
+        "rowCount": 7
+      },
+      {
+        "score": 0.5333333333333333,
+        "leccion_titulo": "Drill 2: 1/2 guardia",
+        "leccion_norm": "drill 2: 1/2 guardia",
+        "modules": [
+          "mod-10"
+        ],
+        "current": [
+          "oicgssYKPBk"
+        ],
+        "rowCount": 1
+      }
+    ]
+  },
+  {
+    "yt": {
+      "id": "I3xwhKkNfMU",
+      "title": "100KG VARIANTE 2"
+    },
+    "candidates": [
+      {
+        "score": 0.8999999999999999,
+        "leccion_titulo": "Escape de 100KG variante 2",
+        "leccion_norm": "escape de 100kg variante 2",
+        "modules": [
+          "mod-8",
+          "mod-6"
+        ],
+        "current": [
+          "kWdOZbzMDI0"
+        ],
+        "rowCount": 16
+      },
+      {
+        "score": 0.5,
+        "leccion_titulo": "Conceptos de 100kg",
+        "leccion_norm": "conceptos de 100kg",
+        "modules": [
+          "mod-7",
+          "mod-5"
+        ],
+        "current": [
+          "cGgEqwvHmYY"
+        ],
+        "rowCount": 16
+      },
+      {
+        "score": 0.5,
+        "leccion_titulo": "Específico de 100KG",
+        "leccion_norm": "especifico de 100kg",
+        "modules": [
+          "mod-6",
+          "mod-5",
+          "mod-8",
+          "mod-7"
+        ],
+        "current": [],
+        "rowCount": 32
+      },
+      {
+        "score": 0.5,
+        "leccion_titulo": "Toreos Variante 3",
+        "leccion_norm": "toreos variante 3",
+        "modules": [
+          "mod-3"
+        ],
+        "current": [
+          "ZOa2PEUBNWg"
+        ],
+        "rowCount": 16
+      },
+      {
+        "score": 0.5,
+        "leccion_titulo": "Toreos Variante 2",
+        "leccion_norm": "toreos variante 2",
+        "modules": [
+          "mod-2"
+        ],
+        "current": [
+          "e96uxETi2dU"
+        ],
+        "rowCount": 16
+      }
+    ]
+  },
+  {
+    "yt": {
+      "id": "qwVhIy4UXJY",
+      "title": "CONCEPTOS DE 100KG"
+    },
+    "candidates": [
+      {
+        "score": 1,
+        "leccion_titulo": "Conceptos de 100kg",
+        "leccion_norm": "conceptos de 100kg",
+        "modules": [
+          "mod-7",
+          "mod-5"
+        ],
+        "current": [
+          "cGgEqwvHmYY"
+        ],
+        "rowCount": 16
+      },
+      {
+        "score": 0.5,
+        "leccion_titulo": "Específico de 100KG",
+        "leccion_norm": "especifico de 100kg",
+        "modules": [
+          "mod-6",
+          "mod-5",
+          "mod-8",
+          "mod-7"
+        ],
+        "current": [],
+        "rowCount": 32
+      },
+      {
+        "score": 0.5,
+        "leccion_titulo": "Conceptos De la Riva",
+        "leccion_norm": "conceptos de la riva",
+        "modules": [
+          "mod-9"
+        ],
+        "current": [
+          "R5cBhca7bvk"
+        ],
+        "rowCount": 15
+      },
+      {
+        "score": 0.5,
+        "leccion_titulo": "Conceptos de montada",
+        "leccion_norm": "conceptos de montada",
+        "modules": [
+          "mod-13"
+        ],
+        "current": [],
+        "rowCount": 16
+      },
+      {
+        "score": 0.5,
+        "leccion_titulo": "Conceptos de Guardia X",
+        "leccion_norm": "conceptos de guardia x",
+        "modules": [
+          "mod-17"
+        ],
+        "current": [],
+        "rowCount": 7
+      }
+    ]
+  },
+  {
+    "yt": {
+      "id": "lh4UFXN1ftI",
+      "title": "DLR Variante 2 del baby"
+    },
+    "candidates": [
+      {
+        "score": 0.3833333333333333,
+        "leccion_titulo": "Toreos Variante 3",
+        "leccion_norm": "toreos variante 3",
+        "modules": [
+          "mod-3"
+        ],
+        "current": [
+          "ZOa2PEUBNWg"
+        ],
+        "rowCount": 16
+      },
+      {
+        "score": 0.3833333333333333,
+        "leccion_titulo": "Toreos Variante 2",
+        "leccion_norm": "toreos variante 2",
+        "modules": [
+          "mod-2"
+        ],
+        "current": [
+          "e96uxETi2dU"
+        ],
+        "rowCount": 16
+      },
+      {
+        "score": 0.3833333333333333,
+        "leccion_titulo": "De la Riva variante 1",
+        "leccion_norm": "de la riva variante 1",
+        "modules": [
+          "mod-9"
+        ],
+        "current": [
+          "MF0E-tiAohw"
+        ],
+        "rowCount": 15
+      },
+      {
+        "score": 0.3833333333333333,
+        "leccion_titulo": "De la Riva variante 2",
+        "leccion_norm": "de la riva variante 2",
+        "modules": [
+          "mod-10"
+        ],
+        "current": [],
+        "rowCount": 15
+      },
+      {
+        "score": 0.3833333333333333,
+        "leccion_titulo": "De la Riva variante 3",
+        "leccion_norm": "de la riva variante 3",
+        "modules": [
+          "mod-11"
+        ],
+        "current": [],
+        "rowCount": 15
+      }
+    ]
+  },
+  {
+    "yt": {
+      "id": "iWMphA07aGE",
+      "title": "DRILL 100KG 1 + GUARDIA CERRADA"
+    },
+    "candidates": [
+      {
+        "score": 0.825,
+        "leccion_titulo": "Drill 1: Guardia cerrada",
+        "leccion_norm": "drill 1: guardia cerrada",
+        "modules": [
+          "mod-3",
+          "mod-4",
+          "mod-1"
+        ],
+        "current": [
+          "fJi6tP69M5c",
+          "J2Qpa2-KPKo",
+          "_5cf4LGtmWo",
+          "2zjErl0f0mQ"
+        ],
+        "rowCount": 48
+      },
+      {
+        "score": 0.825,
+        "leccion_titulo": "Drill 2: Guardia cerrada",
+        "leccion_norm": "drill 2: guardia cerrada",
+        "modules": [
+          "mod-2"
+        ],
+        "current": [
+          "c8tOU7ixu3o"
+        ],
+        "rowCount": 16
+      },
+      {
+        "score": 0.7499999999999999,
+        "leccion_titulo": "Drill de combinación: Guardia cerrada",
+        "leccion_norm": "drill de combinacion: guardia cerrada",
+        "modules": [
+          "mod-3"
+        ],
+        "current": [
+          "1tFPeXVh0bk"
+        ],
+        "rowCount": 16
+      },
+      {
+        "score": 0.7049999999999998,
+        "leccion_titulo": "Drill 2: Escape + Combinación Guardia cerrada",
+        "leccion_norm": "drill 2: escape + combinacion guardia cerrada",
+        "modules": [
+          "mod-7",
+          "mod-5"
+        ],
+        "current": [
+          "q8NkYdIrLXw"
+        ],
+        "rowCount": 16
+      },
+      {
+        "score": 0.7049999999999998,
+        "leccion_titulo": "Drill 2: Drill combinación escape + guardia cerrada",
+        "leccion_norm": "drill 2: drill combinacion escape + guardia cerrada",
+        "modules": [
+          "mod-8",
+          "mod-6"
+        ],
+        "current": [
+          "E2uO-Meey88"
+        ],
+        "rowCount": 16
+      }
+    ]
+  },
+  {
+    "yt": {
+      "id": "pzvQ6NvGkms",
+      "title": "DRILL ESCAPE 100KG 1"
+    },
+    "candidates": [
+      {
+        "score": 1,
+        "leccion_titulo": "Drill 1: Escape de 100kg",
+        "leccion_norm": "drill 1: escape de 100kg",
+        "modules": [
+          "mod-7",
+          "mod-5"
+        ],
+        "current": [
+          "phSyUZVGHh4"
+        ],
+        "rowCount": 16
+      },
+      {
+        "score": 0.6666666666666666,
+        "leccion_titulo": "Drill 1: Escape de montada",
+        "leccion_norm": "drill 1: escape de montada",
+        "modules": [
+          "mod-15"
+        ],
+        "current": [],
+        "rowCount": 16
+      },
+      {
+        "score": 0.6666666666666666,
+        "leccion_titulo": "Escape de 100KG variante 2",
+        "leccion_norm": "escape de 100kg variante 2",
+        "modules": [
+          "mod-8",
+          "mod-6"
+        ],
+        "current": [
+          "kWdOZbzMDI0"
+        ],
+        "rowCount": 16
+      },
+      {
+        "score": 0.6166666666666666,
+        "leccion_titulo": "Drill 1: Escape de montada variante 2",
+        "leccion_norm": "drill 1: escape de montada variante 2",
+        "modules": [
+          "mod-16"
+        ],
+        "current": [],
+        "rowCount": 16
+      },
+      {
+        "score": 0.5866666666666667,
+        "leccion_titulo": "Drill 2: Escape + Combinación Guardia cerrada",
+        "leccion_norm": "drill 2: escape + combinacion guardia cerrada",
+        "modules": [
+          "mod-7",
+          "mod-5"
+        ],
+        "current": [
+          "q8NkYdIrLXw"
+        ],
+        "rowCount": 16
+      }
+    ]
+  },
+  {
+    "yt": {
+      "id": "tAW7KCFqErE",
+      "title": "tripode kiss of the dragon"
+    },
+    "candidates": []
+  },
+  {
+    "yt": {
+      "id": "rqUDASE_fh0",
+      "title": "COMBINACIONES DE TOREO"
+    },
+    "candidates": []
+  },
+  {
+    "yt": {
+      "id": "nEX_NCNiBqE",
+      "title": "MEDIA GUARDIA LOWER LEG SHIFT"
+    },
+    "candidates": [
+      {
+        "score": 0.8599999999999999,
+        "leccion_titulo": "1/2 guardia: Lower Leg Shift",
+        "leccion_norm": "1/2 guardia: lower leg shift",
+        "modules": [
+          "mod-12"
+        ],
+        "current": [],
+        "rowCount": 1
+      },
+      {
+        "score": 0.645,
+        "leccion_titulo": "Drill 2: Lower Leg Shift",
+        "leccion_norm": "drill 2: lower leg shift",
+        "modules": [
+          "mod-12"
+        ],
+        "current": [],
+        "rowCount": 1
+      }
+    ]
+  },
+  {
+    "yt": {
+      "id": "q4j4P_DxJO0",
+      "title": "drill escape 100kg 2"
+    },
+    "candidates": [
+      {
+        "score": 1,
+        "leccion_titulo": "Drill 1: Escape de 100kg",
+        "leccion_norm": "drill 1: escape de 100kg",
+        "modules": [
+          "mod-7",
+          "mod-5"
+        ],
+        "current": [
+          "phSyUZVGHh4"
+        ],
+        "rowCount": 16
+      },
+      {
+        "score": 0.6666666666666666,
+        "leccion_titulo": "Drill 1: Escape de montada",
+        "leccion_norm": "drill 1: escape de montada",
+        "modules": [
+          "mod-15"
+        ],
+        "current": [],
+        "rowCount": 16
+      },
+      {
+        "score": 0.6666666666666666,
+        "leccion_titulo": "Escape de 100KG variante 2",
+        "leccion_norm": "escape de 100kg variante 2",
+        "modules": [
+          "mod-8",
+          "mod-6"
+        ],
+        "current": [
+          "kWdOZbzMDI0"
+        ],
+        "rowCount": 16
+      },
+      {
+        "score": 0.6166666666666666,
+        "leccion_titulo": "Drill 1: Escape de montada variante 2",
+        "leccion_norm": "drill 1: escape de montada variante 2",
+        "modules": [
+          "mod-16"
+        ],
+        "current": [],
+        "rowCount": 16
+      },
+      {
+        "score": 0.5866666666666667,
+        "leccion_titulo": "Drill 2: Escape + Combinación Guardia cerrada",
+        "leccion_norm": "drill 2: escape + combinacion guardia cerrada",
+        "modules": [
+          "mod-7",
+          "mod-5"
+        ],
+        "current": [
+          "q8NkYdIrLXw"
+        ],
+        "rowCount": 16
+      }
+    ]
+  },
+  {
+    "yt": {
+      "id": "S9q2PeuzK54",
+      "title": "DLR PULL"
+    },
+    "candidates": [
+      {
+        "score": 0.5,
+        "leccion_titulo": "Específico de DLR",
+        "leccion_norm": "especifico de dlr",
+        "modules": [
+          "mod-11"
+        ],
+        "current": [],
+        "rowCount": 15
+      },
+      {
+        "score": 0.41,
+        "leccion_titulo": "Drill 2: Defensa 1 + 2 de espalda + combinación de (DLR + X)",
+        "leccion_norm": "drill 2: defensa 1 + 2 de espalda + combinacion de (dlr + x)",
+        "modules": [
+          "mod-22"
+        ],
+        "current": [],
+        "rowCount": 12
+      },
+      {
+        "score": 0.41,
+        "leccion_titulo": "Drill 2: Escape 1 + Escape 2 + Combinación guardia DLR",
+        "leccion_norm": "drill 2: escape 1 + escape 2 + combinacion guardia dlr",
+        "modules": [
+          "mod-16"
+        ],
+        "current": [],
+        "rowCount": 1
+      },
+      {
+        "score": 0.41,
+        "leccion_titulo": "Drill 2: Escape 1 + Combinación guardia DLR",
+        "leccion_norm": "drill 2: escape 1 + combinacion guardia dlr",
+        "modules": [
+          "mod-15"
+        ],
+        "current": [],
+        "rowCount": 1
+      },
+      {
+        "score": 0.41,
+        "leccion_titulo": "Drill 2: Defensa 1 de espalda + combinación de (DLR + X)",
+        "leccion_norm": "drill 2: defensa 1 de espalda + combinacion de (dlr + x)",
+        "modules": [
+          "mod-21"
+        ],
+        "current": [],
+        "rowCount": 7
+      }
+    ]
+  },
+  {
+    "yt": {
+      "id": "5NwxALuzMiw",
+      "title": "KISS OF THE DRAGON REVERSE DLR"
+    },
+    "candidates": []
+  },
+  {
+    "yt": {
+      "id": "2nErg-rCgzA",
+      "title": "DRILL TOREO VARIANTE 4"
+    },
+    "candidates": [
+      {
+        "score": 0.6666666666666666,
+        "leccion_titulo": "Drill 2: Guardia X variante 1",
+        "leccion_norm": "drill 2: guardia x variante 1",
+        "modules": [
+          "mod-17"
+        ],
+        "current": [],
+        "rowCount": 7
+      },
+      {
+        "score": 0.6666666666666666,
+        "leccion_titulo": "Drill 2: Guardia X variante 2",
+        "leccion_norm": "drill 2: guardia x variante 2",
+        "modules": [
+          "mod-18"
+        ],
+        "current": [],
+        "rowCount": 7
+      },
+      {
+        "score": 0.6666666666666666,
+        "leccion_titulo": "Drill 1: Butterfly variante 2",
+        "leccion_norm": "drill 1: butterfly variante 2",
+        "modules": [
+          "mod-20"
+        ],
+        "current": [],
+        "rowCount": 1
+      },
+      {
+        "score": 0.6666666666666666,
+        "leccion_titulo": "Drill 2: 1/2 guardia variante 1",
+        "leccion_norm": "drill 2: 1/2 guardia variante 1",
+        "modules": [
+          "mod-9"
+        ],
+        "current": [
+          "ffYqmqKgwVA"
+        ],
+        "rowCount": 1
+      },
+      {
+        "score": 0.6666666666666666,
+        "leccion_titulo": "Drill 1: Butterfly variante 1",
+        "leccion_norm": "drill 1: butterfly variante 1",
+        "modules": [
+          "mod-19"
+        ],
+        "current": [],
+        "rowCount": 1
+      }
+    ]
+  },
+  {
+    "yt": {
+      "id": "inimo4uUxYE",
+      "title": "Drill 100kg 2 + guardia cerrada"
+    },
+    "candidates": [
+      {
+        "score": 0.825,
+        "leccion_titulo": "Drill 1: Guardia cerrada",
+        "leccion_norm": "drill 1: guardia cerrada",
+        "modules": [
+          "mod-3",
+          "mod-4",
+          "mod-1"
+        ],
+        "current": [
+          "fJi6tP69M5c",
+          "J2Qpa2-KPKo",
+          "_5cf4LGtmWo",
+          "2zjErl0f0mQ"
+        ],
+        "rowCount": 48
+      },
+      {
+        "score": 0.825,
+        "leccion_titulo": "Drill 2: Guardia cerrada",
+        "leccion_norm": "drill 2: guardia cerrada",
+        "modules": [
+          "mod-2"
+        ],
+        "current": [
+          "c8tOU7ixu3o"
+        ],
+        "rowCount": 16
+      },
+      {
+        "score": 0.7499999999999999,
+        "leccion_titulo": "Drill de combinación: Guardia cerrada",
+        "leccion_norm": "drill de combinacion: guardia cerrada",
+        "modules": [
+          "mod-3"
+        ],
+        "current": [
+          "1tFPeXVh0bk"
+        ],
+        "rowCount": 16
+      },
+      {
+        "score": 0.7049999999999998,
+        "leccion_titulo": "Drill 2: Escape + Combinación Guardia cerrada",
+        "leccion_norm": "drill 2: escape + combinacion guardia cerrada",
+        "modules": [
+          "mod-7",
+          "mod-5"
+        ],
+        "current": [
+          "q8NkYdIrLXw"
+        ],
+        "rowCount": 16
+      },
+      {
+        "score": 0.7049999999999998,
+        "leccion_titulo": "Drill 2: Drill combinación escape + guardia cerrada",
+        "leccion_norm": "drill 2: drill combinacion escape + guardia cerrada",
+        "modules": [
+          "mod-8",
+          "mod-6"
+        ],
+        "current": [
+          "E2uO-Meey88"
+        ],
+        "rowCount": 16
+      }
+    ]
+  },
+  {
+    "yt": {
+      "id": "hR-GSqv0LMM",
+      "title": "DLR STAND UP SWEEP"
+    },
+    "candidates": [
+      {
+        "score": 0.32499999999999996,
+        "leccion_titulo": "Específico de DLR",
+        "leccion_norm": "especifico de dlr",
+        "modules": [
+          "mod-11"
+        ],
+        "current": [],
+        "rowCount": 15
+      }
+    ]
+  }
+]

@@ -1,0 +1,194 @@
+[
+  {
+    "id": "bff48028-766a-4848-9b00-2169caadfc8b",
+    "user_id": "94a4a249-852e-4d08-9de9-3e9b131f6bb6",
+    "nombre": "Babybolo",
+    "topic": "guardia",
+    "notas": "Game",
+    "steps": [
+      {
+        "orden": 0,
+        "texto": "Llamar a guardia"
+      },
+      {
+        "orden": 1,
+        "texto": "Lasso"
+      },
+      {
+        "orden": 2,
+        "texto": "Pasar "
+      }
+    ],
+    "photos": [
+      {
+        "url": "https://ltbjqjefhteffsulmosm.supabase.co/storage/v1/object/public/technique-photos/94a4a249-852e-4d08-9de9-3e9b131f6bb6/bff48028-766a-4848-9b00-2169caadfc8b/1777604310619-1000484413.jpg"
+      }
+    ],
+    "created_at": "2026-05-01T02:58:27.923039+00:00"
+  },
+  {
+    "id": "0f689790-6c5d-4827-9f13-4dfbc53611e9",
+    "user_id": "94a4a249-852e-4d08-9de9-3e9b131f6bb6",
+    "nombre": "Worm wresstling",
+    "topic": "guardia",
+    "notas": "La idea es sacar el pie de la gola para hacer una parada técnica ",
+    "steps": [],
+    "photos": [],
+    "created_at": "2026-05-01T16:20:57.426568+00:00"
+  },
+  {
+    "id": "dd23ee5e-f61c-491b-b314-f27faf2df413",
+    "user_id": "94a4a249-852e-4d08-9de9-3e9b131f6bb6",
+    "nombre": "Worm wresstling",
+    "topic": "guardia",
+    "notas": "La idea es sacar el pie de la gola para hacer una parada técnica ",
+    "steps": [],
+    "photos": [],
+    "created_at": "2026-05-01T16:21:00.696047+00:00"
+  },
+  {
+    "id": "1ac0178d-79ad-4942-a21a-89c7ec9e40ed",
+    "user_id": "94a4a249-852e-4d08-9de9-3e9b131f6bb6",
+    "nombre": "Worm wresstling",
+    "topic": "guardia",
+    "notas": "La idea es sacar el pie de la gola para hacer una parada técnica ",
+    "steps": [],
+    "photos": [],
+    "created_at": "2026-05-01T16:21:02.597514+00:00"
+  },
+  {
+    "id": "790b93e4-d7fe-4348-ad34-1913f7b6b41d",
+    "user_id": "94a4a249-852e-4d08-9de9-3e9b131f6bb6",
+    "nombre": "Worm wresstling",
+    "topic": "guardia",
+    "notas": "La idea es sacar el pie de la gola para hacer una parada técnica ",
+    "steps": [],
+    "photos": [],
+    "created_at": "2026-05-01T16:21:05.03681+00:00"
+  },
+  {
+    "id": "42b5efb5-fa27-443f-b1c4-c6190a5ca5a9",
+    "user_id": "94a4a249-852e-4d08-9de9-3e9b131f6bb6",
+    "nombre": "Worm wresstling",
+    "topic": "guardia",
+    "notas": "La idea es sacar el pie de la gola para hacer una parada técnica ",
+    "steps": [],
+    "photos": [],
+    "created_at": "2026-05-01T16:21:06.763396+00:00"
+  },
+  {
+    "id": "f4f8c1a0-451d-4cda-9cf9-1a04294924e1",
+    "user_id": "94a4a249-852e-4d08-9de9-3e9b131f6bb6",
+    "nombre": "Worm wresstling",
+    "topic": "guardia",
+    "notas": "La idea es sacar el pie de la gola para hacer una parada técnica ",
+    "steps": [],
+    "photos": [],
+    "created_at": "2026-05-01T16:21:08.742461+00:00"
+  },
+  {
+    "id": "3260d980-88b5-41fc-a68b-b32400e7fe53",
+    "user_id": "94a4a249-852e-4d08-9de9-3e9b131f6bb6",
+    "nombre": "Worm wresstling",
+    "topic": "guardia",
+    "notas": "La idea es sacar el pie de la gola para hacer una parada técnica ",
+    "steps": [],
+    "photos": [],
+    "created_at": "2026-05-01T16:21:10.85741+00:00"
+  },
+  {
+    "id": "1dd340c3-a685-43c2-b2f3-d71833caae71",
+    "user_id": "94a4a249-852e-4d08-9de9-3e9b131f6bb6",
+    "nombre": "Worm wresstling",
+    "topic": "guardia",
+    "notas": "La idea es sacar el pie de la gola para hacer una parada técnica ",
+    "steps": [],
+    "photos": [],
+    "created_at": "2026-05-01T16:21:13.145787+00:00"
+  },
+  {
+    "id": "41ddc07d-c90a-441f-8a61-0b456d772786",
+    "user_id": "94a4a249-852e-4d08-9de9-3e9b131f6bb6",
+    "nombre": "Worm wresstling",
+    "topic": "guardia",
+    "notas": "La idea es sacar el pie de la gola para hacer una parada técnica",
+    "steps": [],
+    "photos": [
+      {
+        "url": "https://ltbjqjefhteffsulmosm.supabase.co/storage/v1/object/public/technique-photos/94a4a249-852e-4d08-9de9-3e9b131f6bb6/0f689790-6c5d-4827-9f13-4dfbc53611e9/1777652459855-1000484574.jpg"
+      },
+      {
+        "url": "https://ltbjqjefhteffsulmosm.supabase.co/storage/v1/object/public/technique-photos/94a4a249-852e-4d08-9de9-3e9b131f6bb6/dd23ee5e-f61c-491b-b314-f27faf2df413/1777652461680-1000484571.jpg"
+      },
+      {
+        "url": "https://ltbjqjefhteffsulmosm.supabase.co/storage/v1/object/public/technique-photos/94a4a249-852e-4d08-9de9-3e9b131f6bb6/1ac0178d-79ad-4942-a21a-89c7ec9e40ed/1777652463980-1000484568.jpg"
+      },
+      {
+        "url": "https://ltbjqjefhteffsulmosm.supabase.co/storage/v1/object/public/technique-photos/94a4a249-852e-4d08-9de9-3e9b131f6bb6/790b93e4-d7fe-4348-ad34-1913f7b6b41d/1777652466032-1000484565.jpg"
+      },
+      {
+        "url": "https://ltbjqjefhteffsulmosm.supabase.co/storage/v1/object/public/technique-photos/94a4a249-852e-4d08-9de9-3e9b131f6bb6/42b5efb5-fa27-443f-b1c4-c6190a5ca5a9/1777652467793-1000484562.jpg"
+      },
+      {
+        "url": "https://ltbjqjefhteffsulmosm.supabase.co/storage/v1/object/public/technique-photos/94a4a249-852e-4d08-9de9-3e9b131f6bb6/f4f8c1a0-451d-4cda-9cf9-1a04294924e1/1777652469844-1000484559.jpg"
+      },
+      {
+        "url": "https://ltbjqjefhteffsulmosm.supabase.co/storage/v1/object/public/technique-photos/94a4a249-852e-4d08-9de9-3e9b131f6bb6/3260d980-88b5-41fc-a68b-b32400e7fe53/1777652471846-1000484556.jpg"
+      },
+      {
+        "url": "https://ltbjqjefhteffsulmosm.supabase.co/storage/v1/object/public/technique-photos/94a4a249-852e-4d08-9de9-3e9b131f6bb6/1dd340c3-a685-43c2-b2f3-d71833caae71/1777652474079-1000484553.jpg"
+      },
+      {
+        "url": "https://ltbjqjefhteffsulmosm.supabase.co/storage/v1/object/public/technique-photos/94a4a249-852e-4d08-9de9-3e9b131f6bb6/41ddc07d-c90a-441f-8a61-0b456d772786/1777652475910-1000484550.jpg"
+      }
+    ],
+    "created_at": "2026-05-01T16:21:14.835433+00:00"
+  },
+  {
+    "id": "7bc8aac8-1075-4f44-a553-81e4f0a5d6fc",
+    "user_id": "94a4a249-852e-4d08-9de9-3e9b131f6bb6",
+    "nombre": "Guardia cerrada",
+    "topic": "guardia",
+    "notas": "La primera mano le abre la gola, no lo usas para traerlo. Ahí entra profunda la otra mano.\n\nEn el armlock saca cadera.",
+    "steps": [
+      {
+        "orden": 0,
+        "texto": "Para llegar a the clamp agarra manga cruzada y gola"
+      },
+      {
+        "orden": 1,
+        "texto": "Ganancin la pierna el hombro. Acá puede regrip más cerca del codo para traerlo y para ajustar hace piernas al culo "
+      },
+      {
+        "orden": 2,
+        "texto": "Levanta cadera y armlock"
+      }
+    ],
+    "photos": [
+      {
+        "url": "https://ltbjqjefhteffsulmosm.supabase.co/storage/v1/object/public/technique-photos/94a4a249-852e-4d08-9de9-3e9b131f6bb6/7bc8aac8-1075-4f44-a553-81e4f0a5d6fc/1778848573890-1000487456.jpg"
+      },
+      {
+        "url": "https://ltbjqjefhteffsulmosm.supabase.co/storage/v1/object/public/technique-photos/94a4a249-852e-4d08-9de9-3e9b131f6bb6/7bc8aac8-1075-4f44-a553-81e4f0a5d6fc/1778848575565-1000487458.jpg"
+      },
+      {
+        "url": "https://ltbjqjefhteffsulmosm.supabase.co/storage/v1/object/public/technique-photos/94a4a249-852e-4d08-9de9-3e9b131f6bb6/7bc8aac8-1075-4f44-a553-81e4f0a5d6fc/1778848968292-1000487462.jpg"
+      }
+    ],
+    "created_at": "2026-05-15T12:36:11.454908+00:00"
+  },
+  {
+    "id": "7476031d-df6c-4542-88cb-b0b3ad142fba",
+    "user_id": "94a4a249-852e-4d08-9de9-3e9b131f6bb6",
+    "nombre": "Lapel guardia cerrada",
+    "topic": "guardia",
+    "notas": "Tenés armbar si lo pokesnatras",
+    "steps": [],
+    "photos": [
+      {
+        "url": "https://ltbjqjefhteffsulmosm.supabase.co/storage/v1/object/public/technique-photos/94a4a249-852e-4d08-9de9-3e9b131f6bb6/7476031d-df6c-4542-88cb-b0b3ad142fba/1778849456416-1000487464.jpg"
+      }
+    ],
+    "created_at": "2026-05-15T12:50:53.942315+00:00"
+  }
+]

@@ -5,7 +5,7 @@ import { ArrowDown, Rocket } from 'lucide-react';
 import EvaluationQuiz from '@/components/consultoria/EvaluationQuiz';
 import FaqAccordion from '@/components/consultoria/FaqAccordion';
 import { FAQ_CONSULTORIA } from '@/lib/faq-consultoria';
-import TrackAdsView from './track';
+import TrackAuditoriaView from './track';
 
 /** Highlight inline para palabras clave dentro de la narrativa. */
 function HL({ children }: { children: ReactNode }) {
@@ -91,7 +91,7 @@ const TESTIMONIOS: Testimonio[] = [
 export default function AdsLandingPage() {
   return (
     <main className="min-h-screen bg-jjl-dark text-white">
-      <TrackAdsView />
+      <TrackAuditoriaView />
 
       {/* Header */}
       <header className="px-5 py-3.5 border-b border-white/[0.06] sticky top-0 bg-jjl-dark/95 backdrop-blur-md z-50">
@@ -142,32 +142,6 @@ export default function AdsLandingPage() {
         </p>
       </section>
 
-      {/* Propuesta de valor */}
-      <section className="px-5 py-6 lg:py-10 max-w-md lg:max-w-3xl mx-auto text-center lg:text-left">
-        <p className="text-[15px] lg:text-[17px] leading-[1.75] text-white/85">
-          Instalá un sistema de entrenamiento que te ordena semana a semana.
-          Coach 1 a 1 que adapta el plan a tu físico, tu edad y tu tiempo.
-          Sin sumar horas al tatami — optimizando las que ya entrenás.
-        </p>
-      </section>
-
-      {/* Video pre-call horizontal — calienta al lead con prueba social
-          antes de que haga la evaluación. */}
-      <section className="px-5 pb-8 lg:pb-12 max-w-md lg:max-w-3xl mx-auto">
-        <div className="rounded-2xl overflow-hidden border border-white/[0.08] bg-black aspect-video">
-          <video
-            src="/videos/precall.mp4"
-            controls
-            playsInline
-            preload="metadata"
-            className="w-full h-full object-cover"
-          />
-        </div>
-        <p className="mt-3 text-center text-[12px] lg:text-[13px] text-white/50">
-          Mirá lo que están logrando los alumnos del programa
-        </p>
-      </section>
-
       {/* Quiz embebido directo (donde otros pondrían un botón) */}
       <section
         id="agendar"
@@ -187,6 +161,15 @@ export default function AdsLandingPage() {
           </div>
           <EvaluationQuiz calendlyUrl={CALENDLY_URL} />
         </div>
+      </section>
+
+      {/* Propuesta de valor — abajo del quiz */}
+      <section className="px-5 py-8 lg:py-12 max-w-md lg:max-w-3xl mx-auto text-center lg:text-left">
+        <p className="text-[15px] lg:text-[17px] leading-[1.75] text-white/85">
+          Instalá un sistema de entrenamiento que te ordena semana a semana.
+          Coach 1 a 1 que adapta el plan a tu físico, tu edad y tu tiempo.
+          Sin sumar horas al tatami — optimizando las que ya entrenás.
+        </p>
       </section>
 
       {/* Titular de transición a casos */}
