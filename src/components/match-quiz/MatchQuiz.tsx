@@ -85,7 +85,13 @@ export default function MatchQuiz() {
           y dónde está tu próximo salto.
         </p>
         <button
-          onClick={() => setState('questions')}
+          onClick={() => {
+            // Meta Pixel: dispara StartQuiz al apretar "Empezar el test".
+            void import('@/lib/meta-pixel').then((m) =>
+              m.trackStartQuiz('Quiz luchador'),
+            );
+            setState('questions');
+          }}
           className="mt-8 inline-flex items-center justify-center gap-2 w-full h-13 px-6 bg-jjl-red hover:bg-jjl-red-hover text-white text-[15px] font-bold rounded-xl transition-colors shadow-[0_8px_24px_-8px_rgba(220,38,38,0.6)]"
           style={{ minHeight: '52px' }}
         >

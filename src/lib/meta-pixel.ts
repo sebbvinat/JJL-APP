@@ -55,3 +55,20 @@ export function trackPurchase(params: { value: number; currency: string }) {
 export function trackCompleteRegistration() {
   track('CompleteRegistration');
 }
+
+/**
+ * Schedule: el lead agendó una cita (Calendly event_scheduled). Es el
+ * evento estándar de Meta para "agendaron consulta" — sirve para optimizar
+ * campañas BOFU hacia conversiones reales sin contar dos veces el Lead.
+ */
+export function trackSchedule(params?: { content_name?: string; value?: number; currency?: string }) {
+  track('Schedule', params);
+}
+
+/**
+ * Custom event: el visitante empezó a contestar el quiz. Sirve para
+ * medir dropoff entre "ver oferta" y "completar quiz".
+ */
+export function trackStartQuiz(quizName: string) {
+  track('StartQuiz', { content_name: quizName });
+}

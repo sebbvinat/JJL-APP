@@ -351,6 +351,14 @@ export default function EvaluationQuiz({ calendlyUrl }: EvaluationQuizProps) {
   function pick(value: string) {
     if (!currentQuestion) return;
     if (advanceTimer.current) clearTimeout(advanceTimer.current);
+    // Meta Pixel: la PRIMER respuesta del quiz dispara StartQuiz (custom).
+    // Sirve para ver dropoff entre "vio la página" y "empezó el quiz".
+    // step === 0 + answers vacío = primera vez.
+    if (step === 0 && Object.keys(answers).length === 0) {
+      void import('@/lib/meta-pixel').then((m) =>
+        m.trackStartQuiz('Quiz consultoria'),
+      );
+    }
     setPickedValue(value);
     setAnswers((prev) => ({ ...prev, [currentQuestion.key]: value }));
     // Small delay so the user sees their selection animate before advancing.
@@ -682,6 +690,17 @@ function QuizResult({
     'pending' | 'checking' | 'phone' | 'done'
   >('pending');
 
+  // Meta Pixel: el lead completó el FORMULARIO/quiz y se le mostró el
+  // resultado + Calendly. Este es nuestro evento Lead — sirve para
+  // optimizar campañas hacia "completaron el quiz", que es señal fuerte
+  // de interés. Mucho más amplio que esperar a que agenden.
+  // Una sola vez al montar QuizResult (no se redispara en re-renders).
+  useEffect(() => {
+    void import('@/lib/meta-pixel').then((m) =>
+      m.trackLead({ content_name: 'Quiz consultoria completado', value: 900, currency: 'USD' }),
+    );
+  }, []);
+
   // Tracker de "casi-agendó": Calendly emite `date_and_time_selected` cuando
   // el lead ya eligió día/hora — está a un click de confirmar. Si se va
   // antes del `event_scheduled`, le avisamos al setter con el contexto +
@@ -700,11 +719,11 @@ function QuizResult({
       if (data.event === 'calendly.event_scheduled') {
         bookedRef.current = true;
         nearMissRef.current = false; // ya no es near-miss, agendó
-        // Meta Pixel: el lead agendó la llamada → es el evento más
-        // valioso del embudo (mejor que solo Lead). Para optimización
-        // de campañas BOFU usar este.
+        // Meta Pixel: el lead AGENDÓ la llamada. Disparamos `Schedule`
+        // (evento estándar Meta) — no `Lead` porque ese se disparó al
+        // completar el quiz. Schedule es el evento BOFU más calificado.
         void import('@/lib/meta-pixel').then((m) =>
-          m.trackLead({ content_name: 'Agenda llamada JJL', value: 900, currency: 'USD' }),
+          m.trackSchedule({ content_name: 'Agenda llamada JJL', value: 900, currency: 'USD' }),
         );
         void fetch('/api/leads/quiz', {
           method: 'POST',
