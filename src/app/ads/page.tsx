@@ -1,0 +1,255 @@
+import type { Metadata } from 'next';
+import Image from 'next/image';
+import { ArrowDown } from 'lucide-react';
+import EvaluationQuiz from '@/components/consultoria/EvaluationQuiz';
+import FaqAccordion from '@/components/consultoria/FaqAccordion';
+import { FAQ_CONSULTORIA } from '@/lib/faq-consultoria';
+import TrackAdsView from './track';
+
+export const metadata: Metadata = {
+  title: 'Construí tu juego ideal — Jiu Jitsu Latino',
+  description:
+    'Para practicantes +30 que quieren estar vigentes en el tatami y evolucionar sin entrenar horas de más. Hacé la evaluación gratis.',
+};
+
+const CALENDLY_URL =
+  'https://calendly.com/jiujitsulatino/45m?hide_event_type_details=1&hide_gdpr_banner=1&background_color=1a1a1a&text_color=ffffff&primary_color=dc2626';
+
+/**
+ * Testimonios en video. PLACEHOLDERS — reemplazar el `video` cuando
+ * Sebastián pase las URLs reales (YouTube unlisted, Vimeo o Wistia).
+ * El formato del componente acepta cualquier URL embebible.
+ */
+const TESTIMONIOS: Array<{
+  nombre: string;
+  meta: string;
+  quote: string;
+  video?: string; // YouTube embed URL — null = placeholder
+}> = [
+  {
+    nombre: 'Coach Bibo',
+    meta: 'Cinturón marrón · Buenos Aires',
+    quote: 'En 4 meses cerré mi juego de guardia. Tenía un sistema propio.',
+    video: undefined,
+  },
+  {
+    nombre: 'Carlos A.',
+    meta: 'Cinturón azul · 42 años',
+    quote: 'Dejé de improvisar. Sabía qué hacer en cada lucha, contra cualquier cinturón.',
+    video: undefined,
+  },
+  {
+    nombre: 'Demián V.',
+    meta: 'Cinturón blanco · Córdoba',
+    quote: 'En 3 meses estoy luchando parejo con compañeros que llevan años.',
+    video: undefined,
+  },
+];
+
+export default function AdsLandingPage() {
+  return (
+    <main className="min-h-screen bg-jjl-dark text-white">
+      <TrackAdsView />
+
+      {/* Header */}
+      <header className="px-5 py-3.5 border-b border-white/[0.06] sticky top-0 bg-jjl-dark/95 backdrop-blur-md z-50">
+        <div className="max-w-md mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="relative w-7 h-7 rounded-full bg-white p-0.5 flex items-center justify-center shrink-0 ring-1 ring-white/20">
+              <div
+                aria-hidden
+                className="absolute inset-0 rounded-full blur-md opacity-50 -z-0"
+                style={{ background: 'radial-gradient(circle, rgba(220,38,38,0.6), transparent 70%)' }}
+              />
+              <Image src="/logo-jjl.png" alt="JJL" width={22} height={22} className="relative z-10" />
+            </div>
+            <span className="text-[10px] font-bold tracking-[0.22em] uppercase">Jiu Jitsu Latino</span>
+          </div>
+          <a
+            href="#agendar"
+            className="text-[11px] font-semibold px-3 py-1.5 border border-jjl-red/50 text-jjl-red hover:bg-jjl-red/10 rounded-full transition-colors inline-flex items-center gap-1"
+          >
+            Empezar
+            <ArrowDown className="h-3 w-3" />
+          </a>
+        </div>
+      </header>
+
+      {/* Hero */}
+      <section className="relative px-5 pt-12 pb-6 max-w-md mx-auto">
+        {/* Glow radial sutil atrás del título — mismo patrón que el dashboard */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 top-0 h-96 -z-10"
+          style={{
+            background:
+              'radial-gradient(circle at 50% 30%, rgba(220,38,38,0.18), transparent 60%)',
+          }}
+        />
+        <p className="text-[11px] uppercase tracking-[0.22em] text-jjl-red font-bold mb-4">
+          Programa ADN Exclusivo
+        </p>
+        <h1 className="text-[34px] font-black tracking-tight leading-[1.05]">
+          Construí tu juego{' '}
+          <span className="text-jjl-red">ideal</span>
+          {' '}en menos de 6 meses
+        </h1>
+        <p className="mt-5 text-[15px] text-white/75 leading-relaxed">
+          Para practicantes +30 que quieren estar vigentes en el tatami
+          y evolucionar sin entrenar horas de más.
+        </p>
+      </section>
+
+      {/* Propuesta de valor */}
+      <section className="px-5 py-6 max-w-md mx-auto">
+        <p className="text-[15px] leading-[1.75] text-white/85">
+          Instalá un sistema de entrenamiento que te ordena semana a semana.
+          Coach 1 a 1 que adapta el plan a tu físico, tu edad y tu tiempo.
+          Sin sumar horas al tatami — optimizando las que ya entrenás.
+        </p>
+      </section>
+
+      {/* Quiz embebido directo (donde otros pondrían un botón) */}
+      <section
+        id="agendar"
+        className="px-4 py-8 bg-gradient-to-b from-transparent to-jjl-red/[0.04] border-y border-white/[0.06]"
+      >
+        <div className="max-w-md mx-auto">
+          <div className="text-center mb-5">
+            <p className="text-[11px] uppercase tracking-[0.22em] text-jjl-red font-bold">
+              El siguiente paso
+            </p>
+            <h2 className="mt-2 text-[22px] font-bold leading-tight">
+              Hacé tu evaluación de juego
+            </h2>
+            <p className="mt-2 text-[12px] text-white/60 leading-relaxed">
+              60 segundos · 6 preguntas · sin email para empezar
+            </p>
+          </div>
+          <EvaluationQuiz calendlyUrl={CALENDLY_URL} />
+        </div>
+      </section>
+
+      {/* Titular de transición a casos */}
+      <section className="px-5 py-12 max-w-md mx-auto text-center">
+        <h2 className="text-[22px] font-bold leading-snug">
+          Más de 350 alumnos que volvieron a ser{' '}
+          <span className="text-jjl-red">competitivos</span> diseñando
+          un juego enfocado en sus fortalezas, su edad y sus habilidades.
+        </h2>
+      </section>
+
+      {/* Casos de éxito */}
+      <section className="px-5 pb-10">
+        <div className="max-w-md mx-auto space-y-3">
+          {TESTIMONIOS.map((t) => (
+            <TestimonialCard key={t.nombre} {...t} />
+          ))}
+          <p className="text-center text-[11px] text-white/40 pt-2">
+            Más casos: Instagram @jjl.oficial
+          </p>
+        </div>
+      </section>
+
+      {/* FAQ */}
+      <section id="faq" className="px-5 py-12 bg-white/[0.02] border-t border-white/[0.04]">
+        <div className="max-w-md mx-auto">
+          <p className="text-[11px] uppercase tracking-[0.22em] text-jjl-red font-bold mb-4 text-center">
+            Preguntas frecuentes
+          </p>
+          <FaqAccordion items={FAQ_CONSULTORIA} />
+        </div>
+      </section>
+
+      {/* CTA final */}
+      <section className="px-5 py-14 text-center border-t border-jjl-red/20 bg-gradient-to-b from-transparent to-jjl-red/[0.08]">
+        <div className="max-w-md mx-auto">
+          <h3 className="text-[22px] font-black leading-tight">
+            ¿Y si tu próximo salto está a{' '}
+            <span className="text-jjl-red">una evaluación</span>?
+          </h3>
+          <a
+            href="#agendar"
+            className="mt-6 inline-flex items-center justify-center gap-2 w-full h-14 px-6 bg-jjl-red hover:bg-jjl-red-hover text-white text-[15px] font-bold rounded-xl transition-colors shadow-[0_10px_30px_-8px_rgba(220,38,38,0.55)]"
+          >
+            Hacer mi evaluación
+            <ArrowDown className="h-4 w-4" />
+          </a>
+          <p className="mt-5 text-[11px] text-white/50 leading-relaxed">
+            Valoramos tu tiempo y el nuestro. Si vas a agendar para no
+            asistir, por favor no agendes.
+          </p>
+        </div>
+      </section>
+
+      <footer className="px-5 py-6 text-center text-[10px] text-white/30 border-t border-white/[0.04]">
+        © Jiu Jitsu Latino
+      </footer>
+    </main>
+  );
+}
+
+/**
+ * Card de testimonio con video embebible. Cuando `video` es undefined
+ * muestra un placeholder (foto + play icon) — Sebastián pasa las URLs
+ * reales después y se reemplazan acá.
+ */
+function TestimonialCard({
+  nombre,
+  meta,
+  quote,
+  video,
+}: {
+  nombre: string;
+  meta: string;
+  quote: string;
+  video?: string;
+}) {
+  return (
+    <article className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-4">
+      <header className="flex items-center gap-3 mb-3">
+        <div
+          className="w-10 h-10 rounded-full shrink-0"
+          style={{
+            background:
+              'linear-gradient(135deg, rgba(220,38,38,0.4), rgba(60,60,60,0.6))',
+          }}
+        />
+        <div>
+          <p className="text-[13px] font-bold">{nombre}</p>
+          <p className="text-[11px] text-white/55">{meta}</p>
+        </div>
+      </header>
+      {video ? (
+        <div className="rounded-xl overflow-hidden border border-white/[0.06] aspect-video bg-black mb-3">
+          <iframe
+            src={video}
+            className="w-full h-full"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+            title={`Testimonio de ${nombre}`}
+          />
+        </div>
+      ) : (
+        <div className="rounded-xl border border-white/[0.06] aspect-video bg-black/40 flex items-center justify-center mb-3 relative">
+          <div className="w-12 h-12 rounded-full bg-jjl-red/90 flex items-center justify-center">
+            <svg
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              className="w-5 h-5 text-white"
+              style={{ marginLeft: 2 }}
+            >
+              <path d="M8 5v14l11-7z" />
+            </svg>
+          </div>
+          <span className="absolute bottom-2 right-2.5 text-[9px] text-white/40">
+            video próximamente
+          </span>
+        </div>
+      )}
+      <p className="text-[13px] leading-relaxed text-white/85">
+        &ldquo;{quote}&rdquo;
+      </p>
+    </article>
+  );
+}
