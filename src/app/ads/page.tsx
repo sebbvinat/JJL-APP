@@ -16,33 +16,58 @@ const CALENDLY_URL =
   'https://calendly.com/jiujitsulatino/45m?hide_event_type_details=1&hide_gdpr_banner=1&background_color=1a1a1a&text_color=ffffff&primary_color=dc2626';
 
 /**
- * Testimonios en video. PLACEHOLDERS — reemplazar el `video` cuando
- * Sebastián pase las URLs reales (YouTube unlisted, Vimeo o Wistia).
- * El formato del componente acepta cualquier URL embebible.
+ * Testimonios en video. Estructura tipo SYK: header con foto + meta, video
+ * vertical 9:16 (formato reel), narrativa de 2-3 párrafos con la
+ * estructura "antes → implementó → ahora → lo que se estaría perdiendo".
+ *
+ * `video` acepta:
+ *   - URL de Wistia / YouTube unlisted / Vimeo (mejor para performance)
+ *   - Ruta local /videos/xxx.mp4 (servido desde public/)
+ * Si es undefined → muestra placeholder visual con texto "video próximamente".
  */
-const TESTIMONIOS: Array<{
+interface Testimonio {
   nombre: string;
   meta: string;
-  quote: string;
-  video?: string; // YouTube embed URL — null = placeholder
-}> = [
+  /** URL embebible (iframe) o /videos/xxx.mp4 (servir desde public). */
+  video?: string;
+  /** true si `video` es archivo local mp4 (usa <video> nativo); false = iframe. */
+  videoIsLocal?: boolean;
+  /** Narrativa larga estilo Juanma de SYK. Cada string = un párrafo. */
+  narrativa: string[];
+}
+
+const TESTIMONIOS: Testimonio[] = [
   {
-    nombre: 'Coach Bibo',
-    meta: 'Cinturón marrón · Buenos Aires',
-    quote: 'En 4 meses cerré mi juego de guardia. Tenía un sistema propio.',
+    nombre: 'Koldo',
+    meta: 'Programa JJL · Primera historia de éxito',
+    // TODO: reemplazar con URL final del video subido (YouTube unlisted o
+    // /public/videos/koldo-reel.mp4). Hoy está en escritorio de Sebastián.
     video: undefined,
+    narrativa: [
+      'Koldo entrenaba hace años pero veía cómo otros avanzaban y él se quedaba. No se sentía al nivel de su faixa y empezó a creer que la edad era el problema.',
+      'Empezó el programa JJL y diseñó un juego enfocado en sus fortalezas, su edad y sus habilidades — sin sumar una sola hora de entrenamiento.',
+      'Hoy se siente vigente de nuevo, motivado para el siguiente día y sin la sensación de quedarse atrás. Más allá del tatami, recuperó la sensación de estar en su prime.',
+    ],
   },
   {
     nombre: 'Carlos A.',
     meta: 'Cinturón azul · 42 años',
-    quote: 'Dejé de improvisar. Sabía qué hacer en cada lucha, contra cualquier cinturón.',
     video: undefined,
+    narrativa: [
+      'Carlos llevaba 3 años entrenando 4 veces por semana pero seguía improvisando en cada lucha. Sentía que progresaba mucho más lento de lo que invertía.',
+      'Implementó el sistema JJL y, en menos de 6 meses, tenía un plan claro semana a semana adaptado a su físico y tiempo.',
+      'Hoy lucha con compañeros más jóvenes sin quedarse sin aire y sabe qué hacer en cada posición. Dejó de improvisar.',
+    ],
   },
   {
     nombre: 'Demián V.',
     meta: 'Cinturón blanco · Córdoba',
-    quote: 'En 3 meses estoy luchando parejo con compañeros que llevan años.',
     video: undefined,
+    narrativa: [
+      'Demián empezó hace meses y se sentía perdido entre tantas técnicas. No tenía idea de por dónde arrancar y cada clase era una pelea distinta.',
+      'Con el programa JJL armó las bases primero — guardia, escapes, pasaje — antes de tirar técnicas sueltas.',
+      'En 3 meses está luchando parejo con compañeros que llevan años. Tiene la base que casi nadie construye al principio.',
+    ],
   },
 ];
 
@@ -192,23 +217,17 @@ export default function AdsLandingPage() {
 }
 
 /**
- * Card de testimonio con video embebible. Cuando `video` es undefined
- * muestra un placeholder (foto + play icon) — Sebastián pasa las URLs
- * reales después y se reemplazan acá.
+ * Card de testimonio estilo SYK: header (foto + meta), video VERTICAL 9:16
+ * (formato reel/story — los testimonios reales fueron grabados en celular),
+ * narrativa de 2-3 párrafos abajo.
+ *
+ * Cuando `video` es undefined muestra un placeholder vertical con play icon.
+ * Cuando `videoIsLocal` es true usa <video> nativo HTML5 (mp4 servido desde
+ * /public). Sino, embed iframe (Wistia, YouTube, Vimeo).
  */
-function TestimonialCard({
-  nombre,
-  meta,
-  quote,
-  video,
-}: {
-  nombre: string;
-  meta: string;
-  quote: string;
-  video?: string;
-}) {
+function TestimonialCard({ nombre, meta, narrativa, video, videoIsLocal }: Testimonio) {
   return (
-    <article className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-4">
+    <article className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-4 flex flex-col">
       <header className="flex items-center gap-3 mb-3">
         <div
           className="w-10 h-10 rounded-full shrink-0"
@@ -222,36 +241,57 @@ function TestimonialCard({
           <p className="text-[11px] text-white/55">{meta}</p>
         </div>
       </header>
-      {video ? (
-        <div className="rounded-xl overflow-hidden border border-white/[0.06] aspect-video bg-black mb-3">
-          <iframe
-            src={video}
-            className="w-full h-full"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-            title={`Testimonio de ${nombre}`}
-          />
-        </div>
-      ) : (
-        <div className="rounded-xl border border-white/[0.06] aspect-video bg-black/40 flex items-center justify-center mb-3 relative">
-          <div className="w-12 h-12 rounded-full bg-jjl-red/90 flex items-center justify-center">
-            <svg
-              viewBox="0 0 24 24"
-              fill="currentColor"
-              className="w-5 h-5 text-white"
-              style={{ marginLeft: 2 }}
-            >
-              <path d="M8 5v14l11-7z" />
-            </svg>
+
+      {/* Video vertical 9:16 — mismo aspect en mobile y desktop como SYK.
+          Centramos con max-w para que en desktop no quede gigantesco. */}
+      <div className="mx-auto w-full max-w-[280px] mb-4">
+        {video ? (
+          videoIsLocal ? (
+            <video
+              src={video}
+              controls
+              playsInline
+              preload="metadata"
+              className="w-full aspect-[9/16] rounded-xl bg-black border border-white/[0.06] object-cover"
+            />
+          ) : (
+            <div className="rounded-xl overflow-hidden border border-white/[0.06] aspect-[9/16] bg-black">
+              <iframe
+                src={video}
+                className="w-full h-full"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+                title={`Testimonio de ${nombre}`}
+              />
+            </div>
+          )
+        ) : (
+          <div className="rounded-xl border border-white/[0.06] aspect-[9/16] bg-black/40 flex items-center justify-center relative">
+            <div className="w-14 h-14 rounded-full bg-jjl-red/90 flex items-center justify-center">
+              <svg
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                className="w-6 h-6 text-white"
+                style={{ marginLeft: 2 }}
+              >
+                <path d="M8 5v14l11-7z" />
+              </svg>
+            </div>
+            <span className="absolute bottom-2 left-1/2 -translate-x-1/2 text-[9px] text-white/40 whitespace-nowrap">
+              video próximamente
+            </span>
           </div>
-          <span className="absolute bottom-2 right-2.5 text-[9px] text-white/40">
-            video próximamente
-          </span>
-        </div>
-      )}
-      <p className="text-[13px] leading-relaxed text-white/85">
-        &ldquo;{quote}&rdquo;
-      </p>
+        )}
+      </div>
+
+      {/* Narrativa estilo SYK */}
+      <div className="space-y-3">
+        {narrativa.map((p, i) => (
+          <p key={i} className="text-[13px] leading-relaxed text-white/85">
+            {p}
+          </p>
+        ))}
+      </div>
     </article>
   );
 }
