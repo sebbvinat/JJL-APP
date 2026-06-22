@@ -53,7 +53,7 @@ export default function AdsLandingPage() {
 
       {/* Header */}
       <header className="px-5 py-3.5 border-b border-white/[0.06] sticky top-0 bg-jjl-dark/95 backdrop-blur-md z-50">
-        <div className="max-w-md mx-auto flex items-center justify-between">
+        <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="relative w-7 h-7 rounded-full bg-white p-0.5 flex items-center justify-center shrink-0 ring-1 ring-white/20">
               <div
@@ -76,11 +76,11 @@ export default function AdsLandingPage() {
       </header>
 
       {/* Hero */}
-      <section className="relative px-5 pt-12 pb-6 max-w-md mx-auto">
+      <section className="relative px-5 pt-12 lg:pt-20 pb-6 lg:pb-10 max-w-md lg:max-w-3xl mx-auto text-center lg:text-left">
         {/* Glow radial sutil atrás del título — mismo patrón que el dashboard */}
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-x-0 top-0 h-96 -z-10"
+          className="pointer-events-none absolute inset-x-0 top-0 h-96 lg:h-[480px] -z-10"
           style={{
             background:
               'radial-gradient(circle at 50% 30%, rgba(220,38,38,0.18), transparent 60%)',
@@ -89,20 +89,20 @@ export default function AdsLandingPage() {
         <p className="text-[11px] uppercase tracking-[0.22em] text-jjl-red font-bold mb-4">
           Programa ADN Exclusivo
         </p>
-        <h1 className="text-[34px] font-black tracking-tight leading-[1.05]">
+        <h1 className="text-[34px] lg:text-[56px] xl:text-[64px] font-black tracking-tight leading-[1.05] mx-auto lg:mx-0">
           Construí tu juego{' '}
           <span className="text-jjl-red">ideal</span>
           {' '}en menos de 6 meses
         </h1>
-        <p className="mt-5 text-[15px] text-white/75 leading-relaxed">
+        <p className="mt-5 lg:mt-7 text-[15px] lg:text-[19px] text-white/75 leading-relaxed mx-auto lg:mx-0 lg:max-w-2xl">
           Para practicantes +30 que quieren estar vigentes en el tatami
           y evolucionar sin entrenar horas de más.
         </p>
       </section>
 
       {/* Propuesta de valor */}
-      <section className="px-5 py-6 max-w-md mx-auto">
-        <p className="text-[15px] leading-[1.75] text-white/85">
+      <section className="px-5 py-6 lg:py-10 max-w-md lg:max-w-3xl mx-auto text-center lg:text-left">
+        <p className="text-[15px] lg:text-[17px] leading-[1.75] text-white/85">
           Instalá un sistema de entrenamiento que te ordena semana a semana.
           Coach 1 a 1 que adapta el plan a tu físico, tu edad y tu tiempo.
           Sin sumar horas al tatami — optimizando las que ya entrenás.
@@ -112,17 +112,17 @@ export default function AdsLandingPage() {
       {/* Quiz embebido directo (donde otros pondrían un botón) */}
       <section
         id="agendar"
-        className="px-4 py-8 bg-gradient-to-b from-transparent to-jjl-red/[0.04] border-y border-white/[0.06]"
+        className="px-4 py-8 lg:py-16 bg-gradient-to-b from-transparent to-jjl-red/[0.04] border-y border-white/[0.06]"
       >
-        <div className="max-w-md mx-auto">
-          <div className="text-center mb-5">
+        <div className="max-w-md lg:max-w-2xl mx-auto">
+          <div className="text-center mb-5 lg:mb-8">
             <p className="text-[11px] uppercase tracking-[0.22em] text-jjl-red font-bold">
               El siguiente paso
             </p>
-            <h2 className="mt-2 text-[22px] font-bold leading-tight">
+            <h2 className="mt-2 text-[22px] lg:text-[32px] font-bold leading-tight">
               Hacé tu evaluación de juego
             </h2>
-            <p className="mt-2 text-[12px] text-white/60 leading-relaxed">
+            <p className="mt-2 text-[12px] lg:text-[14px] text-white/60 leading-relaxed">
               60 segundos · 6 preguntas · sin email para empezar
             </p>
           </div>
@@ -131,8 +131,8 @@ export default function AdsLandingPage() {
       </section>
 
       {/* Titular de transición a casos */}
-      <section className="px-5 py-12 max-w-md mx-auto text-center">
-        <h2 className="text-[22px] font-bold leading-snug">
+      <section className="px-5 py-12 lg:py-20 max-w-md lg:max-w-4xl mx-auto text-center">
+        <h2 className="text-[22px] lg:text-[34px] font-bold leading-snug">
           Más de 350 alumnos que volvieron a ser{' '}
           <span className="text-jjl-red">competitivos</span> diseñando
           un juego enfocado en sus fortalezas, su edad y sus habilidades.
@@ -140,21 +140,23 @@ export default function AdsLandingPage() {
       </section>
 
       {/* Casos de éxito */}
-      <section className="px-5 pb-10">
-        <div className="max-w-md mx-auto space-y-3">
-          {TESTIMONIOS.map((t) => (
-            <TestimonialCard key={t.nombre} {...t} />
-          ))}
-          <p className="text-center text-[11px] text-white/40 pt-2">
+      <section className="px-5 pb-10 lg:pb-20">
+        <div className="max-w-md lg:max-w-6xl mx-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 lg:gap-5">
+            {TESTIMONIOS.map((t) => (
+              <TestimonialCard key={t.nombre} {...t} />
+            ))}
+          </div>
+          <p className="text-center text-[11px] lg:text-[13px] text-white/40 pt-6">
             Más casos: Instagram @jjl.oficial
           </p>
         </div>
       </section>
 
       {/* FAQ */}
-      <section id="faq" className="px-5 py-12 bg-white/[0.02] border-t border-white/[0.04]">
-        <div className="max-w-md mx-auto">
-          <p className="text-[11px] uppercase tracking-[0.22em] text-jjl-red font-bold mb-4 text-center">
+      <section id="faq" className="px-5 py-12 lg:py-20 bg-white/[0.02] border-t border-white/[0.04]">
+        <div className="max-w-md lg:max-w-3xl mx-auto">
+          <p className="text-[11px] uppercase tracking-[0.22em] text-jjl-red font-bold mb-4 lg:mb-8 text-center">
             Preguntas frecuentes
           </p>
           <FaqAccordion items={FAQ_CONSULTORIA} />
@@ -162,20 +164,20 @@ export default function AdsLandingPage() {
       </section>
 
       {/* CTA final */}
-      <section className="px-5 py-14 text-center border-t border-jjl-red/20 bg-gradient-to-b from-transparent to-jjl-red/[0.08]">
-        <div className="max-w-md mx-auto">
-          <h3 className="text-[22px] font-black leading-tight">
+      <section className="px-5 py-14 lg:py-24 text-center border-t border-jjl-red/20 bg-gradient-to-b from-transparent to-jjl-red/[0.08]">
+        <div className="max-w-md lg:max-w-2xl mx-auto">
+          <h3 className="text-[22px] lg:text-[32px] font-black leading-tight">
             ¿Y si tu próximo salto está a{' '}
             <span className="text-jjl-red">una evaluación</span>?
           </h3>
           <a
             href="#agendar"
-            className="mt-6 inline-flex items-center justify-center gap-2 w-full h-14 px-6 bg-jjl-red hover:bg-jjl-red-hover text-white text-[15px] font-bold rounded-xl transition-colors shadow-[0_10px_30px_-8px_rgba(220,38,38,0.55)]"
+            className="mt-6 lg:mt-8 inline-flex items-center justify-center gap-2 w-full lg:w-auto lg:px-10 h-14 px-6 bg-jjl-red hover:bg-jjl-red-hover text-white text-[15px] lg:text-[16px] font-bold rounded-xl transition-colors shadow-[0_10px_30px_-8px_rgba(220,38,38,0.55)]"
           >
             Hacer mi evaluación
             <ArrowDown className="h-4 w-4" />
           </a>
-          <p className="mt-5 text-[11px] text-white/50 leading-relaxed">
+          <p className="mt-5 lg:mt-6 text-[11px] lg:text-[12px] text-white/50 leading-relaxed">
             Valoramos tu tiempo y el nuestro. Si vas a agendar para no
             asistir, por favor no agendes.
           </p>
