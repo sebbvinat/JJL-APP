@@ -151,6 +151,23 @@ export default function AdsLandingPage() {
         </p>
       </section>
 
+      {/* Video pre-call horizontal — calienta al lead con prueba social
+          antes de que haga la evaluación. */}
+      <section className="px-5 pb-8 lg:pb-12 max-w-md lg:max-w-3xl mx-auto">
+        <div className="rounded-2xl overflow-hidden border border-white/[0.08] bg-black aspect-video">
+          <video
+            src="/videos/precall.mp4"
+            controls
+            playsInline
+            preload="metadata"
+            className="w-full h-full object-cover"
+          />
+        </div>
+        <p className="mt-3 text-center text-[12px] lg:text-[13px] text-white/50">
+          Mirá lo que están logrando los alumnos del programa
+        </p>
+      </section>
+
       {/* Quiz embebido directo (donde otros pondrían un botón) */}
       <section
         id="agendar"
