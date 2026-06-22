@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Zap, Shield, Target, MessageCircle, Share2 } from 'lucide-react';
 import type { Arquetipo } from '@/lib/match-arquetipos';
+import { trackLead } from '@/lib/meta-pixel';
 
 interface Props {
   sessionId: string;
@@ -12,6 +13,13 @@ interface Props {
 
 export default function MatchResult({ sessionId, arquetipo, matchPct }: Props) {
   const [copied, setCopied] = useState(false);
+
+  // Meta Pixel: el lead completó el quiz viral — Lead event para campañas
+  // top-of-funnel. Distinto del Lead de Calendly (que vale +$): este es
+  // más tibio pero sirve para lookalikes y retargeting.
+  useEffect(() => {
+    trackLead({ content_name: `Match quiz: ${arquetipo.nombre}` });
+  }, [arquetipo.nombre]);
 
   // Mensaje pre-armado para el DM. El lead llega al chat de @jjl.oficial
   // ya con contexto, sin tener que pensar qué escribir.

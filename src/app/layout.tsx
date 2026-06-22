@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import AuthCallback from "@/components/auth/AuthCallback";
 import ErrorReporter from "@/components/ErrorReporter";
+import MetaPixel from "@/components/MetaPixel";
 import { ToastProvider } from "@/components/ui/Toast";
 import GoogleAnalytics from "@/components/analytics/GoogleAnalytics";
 
@@ -41,6 +42,7 @@ export default function RootLayout({
       </head>
       <body className="min-h-full bg-jjl-dark text-white font-sans antialiased">
         <GoogleAnalytics />
+        <MetaPixel />
         <ErrorReporter />
         <ToastProvider>
           <AuthCallback />

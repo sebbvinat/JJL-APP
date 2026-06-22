@@ -1,5 +1,6 @@
 "use client"
 import { useEffect } from "react"
+import { trackViewContent } from "@/lib/meta-pixel"
 
 export default function TrackConsultoriaView() {
   useEffect(() => {
@@ -17,5 +18,17 @@ export default function TrackConsultoriaView() {
       keepalive: true,
     }).catch(() => {})
   }, [])
+
+  // Meta Pixel: ViewContent del programa de $900 — sirve para retargeting
+  // de "casi-leads" (vieron la landing pero no completaron el quiz).
+  useEffect(() => {
+    trackViewContent({
+      content_name: 'Programa JJL Completo',
+      content_category: 'curso',
+      value: 900,
+      currency: 'USD',
+    })
+  }, [])
+
   return null
 }

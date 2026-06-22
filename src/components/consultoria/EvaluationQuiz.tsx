@@ -700,6 +700,12 @@ function QuizResult({
       if (data.event === 'calendly.event_scheduled') {
         bookedRef.current = true;
         nearMissRef.current = false; // ya no es near-miss, agendó
+        // Meta Pixel: el lead agendó la llamada → es el evento más
+        // valioso del embudo (mejor que solo Lead). Para optimización
+        // de campañas BOFU usar este.
+        void import('@/lib/meta-pixel').then((m) =>
+          m.trackLead({ content_name: 'Agenda llamada JJL', value: 900, currency: 'USD' }),
+        );
         void fetch('/api/leads/quiz', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
