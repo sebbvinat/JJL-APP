@@ -40,9 +40,8 @@ const TESTIMONIOS: Testimonio[] = [
   {
     nombre: 'Koldo',
     meta: 'Programa JJL · Primera historia de éxito',
-    // TODO: reemplazar con URL final del video subido (YouTube unlisted o
-    // /public/videos/koldo-reel.mp4). Hoy está en escritorio de Sebastián.
-    video: undefined,
+    video: '/videos/koldo.mp4',
+    videoIsLocal: true,
     narrativa: [
       'Koldo entrenaba hace años pero veía cómo otros avanzaban y él se quedaba. No se sentía al nivel de su faixa y empezó a creer que la edad era el problema.',
       'Empezó el programa JJL y diseñó un juego enfocado en sus fortalezas, su edad y sus habilidades — sin sumar una sola hora de entrenamiento.',
