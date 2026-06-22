@@ -1,10 +1,16 @@
 import type { Metadata } from 'next';
+import type { ReactNode } from 'react';
 import Image from 'next/image';
-import { ArrowDown } from 'lucide-react';
+import { ArrowDown, Rocket } from 'lucide-react';
 import EvaluationQuiz from '@/components/consultoria/EvaluationQuiz';
 import FaqAccordion from '@/components/consultoria/FaqAccordion';
 import { FAQ_CONSULTORIA } from '@/lib/faq-consultoria';
 import TrackAdsView from './track';
+
+/** Highlight inline para palabras clave dentro de la narrativa. */
+function HL({ children }: { children: ReactNode }) {
+  return <strong className="text-jjl-red font-semibold">{children}</strong>;
+}
 
 export const metadata: Metadata = {
   title: 'Construí tu juego ideal — Jiu Jitsu Latino',
@@ -26,46 +32,56 @@ const CALENDLY_URL =
  * Si es undefined → muestra placeholder visual con texto "video próximamente".
  */
 interface Testimonio {
+  /** Métrica destacada del badge superior (ej "Volvió a competir a los 42"). */
+  badge: string;
+  /** Título grande del caso (ej "Recuperó su prime"). */
+  titulo: string;
   nombre: string;
   meta: string;
   /** URL embebible (iframe) o /videos/xxx.mp4 (servir desde public). */
   video?: string;
   /** true si `video` es archivo local mp4 (usa <video> nativo); false = iframe. */
   videoIsLocal?: boolean;
-  /** Narrativa larga estilo Juanma de SYK. Cada string = un párrafo. */
-  narrativa: string[];
+  /** Narrativa estilo SYK. Cada elemento = un párrafo (ReactNode para highlights). */
+  narrativa: ReactNode[];
 }
 
 const TESTIMONIOS: Testimonio[] = [
   {
+    badge: 'Volvió a sentirse en su prime',
+    titulo: 'De estancado a vigente',
     nombre: 'Koldo',
     meta: 'Programa JJL · Primera historia de éxito',
     video: '/videos/koldo.mp4',
     videoIsLocal: true,
     narrativa: [
-      'Koldo entrenaba hace años pero veía cómo otros avanzaban y él se quedaba. No se sentía al nivel de su faixa y empezó a creer que la edad era el problema.',
-      'Empezó el programa JJL y diseñó un juego enfocado en sus fortalezas, su edad y sus habilidades — sin sumar una sola hora de entrenamiento.',
-      'Hoy se siente vigente de nuevo, motivado para el siguiente día y sin la sensación de quedarse atrás. Más allá del tatami, recuperó la sensación de estar en su prime.',
+      <>Koldo entrenaba hace años pero veía cómo <HL>otros avanzaban y él se quedaba</HL>. No se sentía al nivel de su faixa y empezó a creer que la edad era el problema.</>,
+      <>Empezó el programa JJL y diseñó un juego enfocado en <HL>sus fortalezas, su edad y sus habilidades</HL> — sin sumar una sola hora de entrenamiento.</>,
+      <>Hoy se siente <HL>vigente de nuevo</HL>, motivado para el siguiente día y sin la sensación de quedarse atrás. Más allá del tatami, recuperó la sensación de estar en su prime.</>,
     ],
   },
   {
+    badge: 'Dejó de improvisar',
+    titulo: 'Un juego propio a los 42',
     nombre: 'Carlos A.',
     meta: 'Cinturón azul · 42 años',
     video: undefined,
     narrativa: [
-      'Carlos llevaba 3 años entrenando 4 veces por semana pero seguía improvisando en cada lucha. Sentía que progresaba mucho más lento de lo que invertía.',
-      'Implementó el sistema JJL y, en menos de 6 meses, tenía un plan claro semana a semana adaptado a su físico y tiempo.',
-      'Hoy lucha con compañeros más jóvenes sin quedarse sin aire y sabe qué hacer en cada posición. Dejó de improvisar.',
+      <>Carlos llevaba 3 años entrenando 4 veces por semana pero seguía <HL>improvisando en cada lucha</HL>. Sentía que progresaba mucho más lento de lo que invertía.</>,
+      <>Implementó el sistema JJL y, en <HL>menos de 6 meses</HL>, tenía un plan claro semana a semana adaptado a su físico y tiempo.</>,
+      <>Hoy lucha con compañeros más jóvenes <HL>sin quedarse sin aire</HL> y sabe qué hacer en cada posición.</>,
     ],
   },
   {
+    badge: 'Bases sólidas en 3 meses',
+    titulo: 'De perdido a encaminado',
     nombre: 'Demián V.',
     meta: 'Cinturón blanco · Córdoba',
     video: undefined,
     narrativa: [
-      'Demián empezó hace meses y se sentía perdido entre tantas técnicas. No tenía idea de por dónde arrancar y cada clase era una pelea distinta.',
-      'Con el programa JJL armó las bases primero — guardia, escapes, pasaje — antes de tirar técnicas sueltas.',
-      'En 3 meses está luchando parejo con compañeros que llevan años. Tiene la base que casi nadie construye al principio.',
+      <>Demián empezó hace meses y se sentía <HL>perdido entre tantas técnicas</HL>. No tenía idea de por dónde arrancar y cada clase era una pelea distinta.</>,
+      <>Con el programa JJL armó <HL>las bases primero</HL> — guardia, escapes, pasaje — antes de tirar técnicas sueltas.</>,
+      <>En 3 meses está <HL>luchando parejo con compañeros que llevan años</HL>. Tiene la base que casi nadie construye al principio.</>,
     ],
   },
 ];
@@ -163,15 +179,13 @@ export default function AdsLandingPage() {
         </h2>
       </section>
 
-      {/* Casos de éxito */}
+      {/* Casos de éxito — 1 por fila, layout horizontal (texto + video) */}
       <section className="px-5 pb-10 lg:pb-20">
-        <div className="max-w-md lg:max-w-6xl mx-auto">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 lg:gap-5">
-            {TESTIMONIOS.map((t) => (
-              <TestimonialCard key={t.nombre} {...t} />
-            ))}
-          </div>
-          <p className="text-center text-[11px] lg:text-[13px] text-white/40 pt-6">
+        <div className="max-w-md lg:max-w-5xl mx-auto space-y-5 lg:space-y-7">
+          {TESTIMONIOS.map((t) => (
+            <TestimonialCard key={t.nombre} {...t} />
+          ))}
+          <p className="text-center text-[11px] lg:text-[13px] text-white/40 pt-2">
             Más casos: Instagram @jjl.oficial
           </p>
         </div>
@@ -216,34 +230,72 @@ export default function AdsLandingPage() {
 }
 
 /**
- * Card de testimonio estilo SYK: header (foto + meta), video VERTICAL 9:16
- * (formato reel/story — los testimonios reales fueron grabados en celular),
- * narrativa de 2-3 párrafos abajo.
+ * Card de testimonio estilo SYK: card con tinte de marca, layout HORIZONTAL
+ * en desktop (texto a la izquierda ~55%, video vertical a la derecha ~45%)
+ * y apilado en mobile (texto arriba, video abajo).
  *
- * Cuando `video` es undefined muestra un placeholder vertical con play icon.
- * Cuando `videoIsLocal` es true usa <video> nativo HTML5 (mp4 servido desde
- * /public). Sino, embed iframe (Wistia, YouTube, Vimeo).
+ * Estructura del texto: badge (métrica) → título → narrativa con highlights
+ * → foto + nombre abajo.
+ *
+ * Video vertical 9:16. `videoIsLocal` → <video> nativo; sino iframe embed.
  */
-function TestimonialCard({ nombre, meta, narrativa, video, videoIsLocal }: Testimonio) {
+function TestimonialCard({
+  badge,
+  titulo,
+  nombre,
+  meta,
+  narrativa,
+  video,
+  videoIsLocal,
+}: Testimonio) {
   return (
-    <article className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-4 flex flex-col">
-      <header className="flex items-center gap-3 mb-3">
-        <div
-          className="w-10 h-10 rounded-full shrink-0"
-          style={{
-            background:
-              'linear-gradient(135deg, rgba(220,38,38,0.4), rgba(60,60,60,0.6))',
-          }}
-        />
-        <div>
-          <p className="text-[13px] font-bold">{nombre}</p>
-          <p className="text-[11px] text-white/55">{meta}</p>
-        </div>
-      </header>
+    <article
+      className="rounded-3xl border border-jjl-red/20 overflow-hidden p-6 lg:p-8 flex flex-col lg:flex-row lg:items-center gap-6 lg:gap-8"
+      style={{
+        background:
+          'linear-gradient(135deg, rgba(220,38,38,0.10) 0%, rgba(20,8,8,0.4) 55%, rgba(10,10,10,0.2) 100%)',
+      }}
+    >
+      {/* Columna texto */}
+      <div className="lg:flex-1 lg:order-1 order-2">
+        {/* Badge métrica */}
+        <span className="inline-flex items-center gap-1.5 h-7 px-3 rounded-full bg-jjl-red/15 border border-jjl-red/30 text-jjl-red text-[12px] font-bold mb-4">
+          <Rocket className="h-3.5 w-3.5" />
+          {badge}
+        </span>
 
-      {/* Video vertical 9:16 — mismo aspect en mobile y desktop como SYK.
-          Centramos con max-w para que en desktop no quede gigantesco. */}
-      <div className="mx-auto w-full max-w-[280px] mb-4">
+        {/* Título del caso */}
+        <h3 className="text-[26px] lg:text-[30px] font-black tracking-tight leading-none mb-4">
+          {titulo}
+        </h3>
+
+        {/* Narrativa */}
+        <div className="space-y-3">
+          {narrativa.map((p, i) => (
+            <p key={i} className="text-[14px] lg:text-[15px] leading-relaxed text-white/85">
+              {p}
+            </p>
+          ))}
+        </div>
+
+        {/* Foto + nombre abajo */}
+        <div className="flex items-center gap-3 mt-6 pt-5 border-t border-white/[0.08]">
+          <div
+            className="w-9 h-9 rounded-full shrink-0"
+            style={{
+              background:
+                'linear-gradient(135deg, rgba(220,38,38,0.5), rgba(60,60,60,0.6))',
+            }}
+          />
+          <div>
+            <p className="text-[13px] font-bold">{nombre}</p>
+            <p className="text-[11px] text-white/55">{meta}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Columna video vertical 9:16 */}
+      <div className="lg:order-2 order-1 mx-auto lg:mx-0 w-full max-w-[260px] lg:max-w-[300px] shrink-0">
         {video ? (
           videoIsLocal ? (
             <video
@@ -251,10 +303,10 @@ function TestimonialCard({ nombre, meta, narrativa, video, videoIsLocal }: Testi
               controls
               playsInline
               preload="metadata"
-              className="w-full aspect-[9/16] rounded-xl bg-black border border-white/[0.06] object-cover"
+              className="w-full aspect-[9/16] rounded-2xl bg-black border border-white/[0.08] object-cover"
             />
           ) : (
-            <div className="rounded-xl overflow-hidden border border-white/[0.06] aspect-[9/16] bg-black">
+            <div className="rounded-2xl overflow-hidden border border-white/[0.08] aspect-[9/16] bg-black">
               <iframe
                 src={video}
                 className="w-full h-full"
@@ -265,7 +317,7 @@ function TestimonialCard({ nombre, meta, narrativa, video, videoIsLocal }: Testi
             </div>
           )
         ) : (
-          <div className="rounded-xl border border-white/[0.06] aspect-[9/16] bg-black/40 flex items-center justify-center relative">
+          <div className="rounded-2xl border border-white/[0.08] aspect-[9/16] bg-black/40 flex items-center justify-center relative">
             <div className="w-14 h-14 rounded-full bg-jjl-red/90 flex items-center justify-center">
               <svg
                 viewBox="0 0 24 24"
@@ -276,20 +328,11 @@ function TestimonialCard({ nombre, meta, narrativa, video, videoIsLocal }: Testi
                 <path d="M8 5v14l11-7z" />
               </svg>
             </div>
-            <span className="absolute bottom-2 left-1/2 -translate-x-1/2 text-[9px] text-white/40 whitespace-nowrap">
+            <span className="absolute bottom-3 left-1/2 -translate-x-1/2 text-[10px] text-white/40 whitespace-nowrap">
               video próximamente
             </span>
           </div>
         )}
-      </div>
-
-      {/* Narrativa estilo SYK */}
-      <div className="space-y-3">
-        {narrativa.map((p, i) => (
-          <p key={i} className="text-[13px] leading-relaxed text-white/85">
-            {p}
-          </p>
-        ))}
       </div>
     </article>
   );
