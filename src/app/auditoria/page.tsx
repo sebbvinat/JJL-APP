@@ -163,13 +163,12 @@ export default function AdsLandingPage() {
         </div>
       </section>
 
-      {/* Propuesta de valor — abajo del quiz */}
-      <section className="px-5 py-8 lg:py-12 max-w-md lg:max-w-3xl mx-auto text-center lg:text-left">
-        <p className="text-[15px] lg:text-[17px] leading-[1.75] text-white/85">
-          Instalá un sistema de entrenamiento que te ordena semana a semana.
-          Coach 1 a 1 que adapta el plan a tu físico, tu edad y tu tiempo.
-          Sin sumar horas al tatami — optimizando las que ya entrenás.
-        </p>
+      {/* Propuesta de valor — abajo del quiz, titular corto estilo SYK */}
+      <section className="px-5 py-10 lg:py-16 max-w-md lg:max-w-3xl mx-auto text-center">
+        <h2 className="text-[24px] lg:text-[36px] font-black tracking-tight leading-[1.15]">
+          Un sistema que te ordena el juego,{' '}
+          <span className="text-jjl-red">sin sumar horas</span>
+        </h2>
       </section>
 
       {/* Titular de transición a casos */}
@@ -280,19 +279,10 @@ function TestimonialCard({
           ))}
         </div>
 
-        {/* Foto + nombre abajo */}
-        <div className="flex items-center gap-3 mt-6 pt-5 border-t border-white/[0.08]">
-          <div
-            className="w-9 h-9 rounded-full shrink-0"
-            style={{
-              background:
-                'linear-gradient(135deg, rgba(220,38,38,0.5), rgba(60,60,60,0.6))',
-            }}
-          />
-          <div>
-            <p className="text-[13px] font-bold">{nombre}</p>
-            <p className="text-[11px] text-white/55">{meta}</p>
-          </div>
+        {/* Nombre abajo (sin foto) */}
+        <div className="mt-6 pt-5 border-t border-white/[0.08]">
+          <p className="text-[14px] font-bold">{nombre}</p>
+          <p className="text-[11px] text-white/55 mt-0.5">{meta}</p>
         </div>
       </div>
 
