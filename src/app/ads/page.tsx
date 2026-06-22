@@ -48,28 +48,29 @@ interface Testimonio {
 
 const TESTIMONIOS: Testimonio[] = [
   {
+    badge: 'Campeón Mercosur · Faixa preta',
+    titulo: 'De estancado a campeón',
+    nombre: 'Sebastián Viñat',
+    meta: 'Cinturón negro · Campeón Mercosur',
+    video: '/videos/seba-vinat.mp4',
+    videoIsLocal: true,
+    narrativa: [
+      <>Sebastián venía <HL>estancado</HL>: pesadez, desgaste físico y mental, lesiones, y la sensación de no rendir. Le dedicaba horas y no avanzaba — <HL>ya no sentía la magia del principio</HL>.</>,
+      <>Reordenó su juego con el sistema JJL, enfocado en su físico, su tiempo y sus fortalezas. Bajó las lesiones y <HL>volvió a disfrutar cada entrenamiento</HL>.</>,
+      <>Hoy es <HL>Campeón Mercosur</HL> y acaba de recibir su <HL>faixa preta</HL> — el cinturón negro.</>,
+    ],
+  },
+  {
     badge: 'Volvió a sentirse en su prime',
     titulo: 'De estancado a vigente',
     nombre: 'Koldo',
-    meta: 'Programa JJL · Primera historia de éxito',
+    meta: 'Programa JJL · Alumno',
     video: '/videos/koldo.mp4',
     videoIsLocal: true,
     narrativa: [
       <>Koldo entrenaba hace años pero veía cómo <HL>otros avanzaban y él se quedaba</HL>. No se sentía al nivel de su faixa y empezó a creer que la edad era el problema.</>,
       <>Empezó el programa JJL y diseñó un juego enfocado en <HL>sus fortalezas, su edad y sus habilidades</HL> — sin sumar una sola hora de entrenamiento.</>,
-      <>Hoy se siente <HL>vigente de nuevo</HL>, motivado para el siguiente día y sin la sensación de quedarse atrás. Más allá del tatami, recuperó la sensación de estar en su prime.</>,
-    ],
-  },
-  {
-    badge: 'Dejó de improvisar',
-    titulo: 'Un juego propio a los 42',
-    nombre: 'Carlos A.',
-    meta: 'Cinturón azul · 42 años',
-    video: undefined,
-    narrativa: [
-      <>Carlos llevaba 3 años entrenando 4 veces por semana pero seguía <HL>improvisando en cada lucha</HL>. Sentía que progresaba mucho más lento de lo que invertía.</>,
-      <>Implementó el sistema JJL y, en <HL>menos de 6 meses</HL>, tenía un plan claro semana a semana adaptado a su físico y tiempo.</>,
-      <>Hoy lucha con compañeros más jóvenes <HL>sin quedarse sin aire</HL> y sabe qué hacer en cada posición.</>,
+      <>Hoy se siente <HL>vigente de nuevo</HL>, motivado para el siguiente día y sin la sensación de quedarse atrás. Recuperó la sensación de estar en su prime.</>,
     ],
   },
   {
