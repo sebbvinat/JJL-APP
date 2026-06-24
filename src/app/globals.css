@@ -188,6 +188,21 @@ input, textarea, select {
   font-size: 16px !important;
 }
 
+/* El app es oscuro: forzar que el popup nativo de los <select> y los date
+   pickers se rendericen en modo oscuro. Sin esto, en Windows el dropdown
+   abre con fondo blanco y las opciones heredan text-white → texto blanco
+   sobre blanco = ilegible (el bug de "Asignado a" en el Kanban). El tema
+   claro de cursos lo revierte abajo. */
+select, input[type="date"], input[type="time"], input[type="datetime-local"] {
+  color-scheme: dark;
+}
+[data-theme="cursos-light"] select,
+[data-theme="cursos-light"] input[type="date"],
+[data-theme="cursos-light"] input[type="time"],
+[data-theme="cursos-light"] input[type="datetime-local"] {
+  color-scheme: light;
+}
+
 @media (min-width: 1024px) {
   input, textarea, select {
     font-size: inherit !important;
