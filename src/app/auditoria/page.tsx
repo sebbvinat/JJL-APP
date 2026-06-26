@@ -18,12 +18,12 @@ export const metadata: Metadata = {
     'Para practicantes +30 que quieren estar vigentes en el tatami y evolucionar sin entrenar horas de más. Hacé la evaluación gratis.',
 };
 
-// a3=bofu etiqueta el agendamiento en Calendly como proveniente de esta
-// landing de ads (BOFU). Así se distinguen los bookings del ad de los
-// orgánicos (/consultoria-gratuita no lleva el tag). El resto de params
+// a4=no-completar pre-rellena la 4ta pregunta custom de Calendly para
+// etiquetar el agendamiento como proveniente de esta landing de ads. Así
+// se distinguen los bookings del ad de los orgánicos. El resto de params
 // son de estilo (tema oscuro JJL).
 const CALENDLY_URL =
-  'https://calendly.com/jiujitsulatino/45m?a3=bofu&hide_event_type_details=1&hide_gdpr_banner=1&background_color=1a1a1a&text_color=ffffff&primary_color=dc2626';
+  'https://calendly.com/jiujitsulatino/45m?a4=no-completar&hide_event_type_details=1&hide_gdpr_banner=1&background_color=1a1a1a&text_color=ffffff&primary_color=dc2626';
 
 /**
  * Testimonios en video. Estructura tipo SYK: header con foto + meta, video
