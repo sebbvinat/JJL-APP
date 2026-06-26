@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import Image from 'next/image';
-import { ArrowDown, Rocket } from 'lucide-react';
+import { ArrowDown, Rocket, MessageCircle } from 'lucide-react';
 import EvaluationQuiz from '@/components/consultoria/EvaluationQuiz';
 import FaqAccordion from '@/components/consultoria/FaqAccordion';
 import { FAQ_CONSULTORIA } from '@/lib/faq-consultoria';
@@ -227,8 +227,24 @@ export default function AdsLandingPage() {
         </div>
       </section>
 
-      <footer className="px-5 py-6 text-center text-[10px] text-white/30 border-t border-white/[0.04]">
-        © Jiu Jitsu Latino
+      {/* Contacto — estilo SYK: estático en el footer (no flotante para no
+          robarle protagonismo al CTA). El mensaje pre-armado incluye el
+          origen (landing de evaluación) para que el setter sepa de dónde
+          viene el lead apenas escribe. */}
+      <footer className="px-5 py-10 border-t border-white/[0.06]">
+        <div className="max-w-md lg:max-w-3xl mx-auto flex flex-col items-center gap-4">
+          <p className="text-[12px] text-white/50">¿Preferís escribirnos directo?</p>
+          <a
+            href={`https://wa.me/5491166518801?text=${encodeURIComponent('Hola! Vengo de la página de evaluación de Jiu Jitsu Latino y quiero hacer una consulta antes de agendar.')}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 h-11 px-5 rounded-xl border border-jjl-red/40 bg-jjl-red/[0.08] hover:bg-jjl-red/15 text-white text-[14px] font-semibold transition-colors"
+          >
+            <MessageCircle className="h-4 w-4 text-jjl-red" />
+            Hablemos por WhatsApp
+          </a>
+          <p className="mt-2 text-[10px] text-white/30">© Jiu Jitsu Latino</p>
+        </div>
       </footer>
     </main>
   );
