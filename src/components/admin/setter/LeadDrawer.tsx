@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { X, MessageSquare, ExternalLink, UserPlus, Send, ChevronDown, Phone as PhoneIcon } from 'lucide-react';
+import { X, MessageSquare, ExternalLink, UserPlus, Send, ChevronDown, Phone as PhoneIcon, DollarSign } from 'lucide-react';
 import {
   COMPROMISO_LABEL, ESTADO_LABEL, FORTALEZA_LABEL, LIMITACION_LABEL, VISION_LABEL,
   flagFor, phoneToWaMe,
@@ -33,6 +33,15 @@ export default function LeadDrawer({ lead, admins, onClose, onChanged, onConvert
   const [newDir, setNewDir] = useState<Contact['direccion']>('saliente');
   const [newNota, setNewNota] = useState('');
   const [savingContact, setSavingContact] = useState(false);
+
+  // Marcar venta
+  const [showSaleForm, setShowSaleForm] = useState(false);
+  const [saleMonto, setSaleMonto] = useState('');
+  const [saleMoneda, setSaleMoneda] = useState('ARS');
+  const [saleIsFee, setSaleIsFee] = useState(false);
+  const [saleConcepto, setSaleConcepto] = useState('');
+  const [savingSale, setSavingSale] = useState(false);
+  const [saleMsg, setSaleMsg] = useState<string | null>(null);
 
   const loadContacts = useCallback(async () => {
     try {
@@ -80,6 +89,43 @@ export default function LeadDrawer({ lead, admins, onClose, onChanged, onConvert
         onChanged();
       }
     } finally { setSavingContact(false); }
+  }
+
+  async function markSale() {
+    if (savingSale) return;
+    const monto = parseFloat(saleMonto.replace(/[^\d.,]/g, '').replace(/\./g, '').replace(',', '.'));
+    if (!saleIsFee && (!monto || monto <= 0)) {
+      setSaleMsg('Ingresá un monto válido.');
+      return;
+    }
+    setSavingSale(true);
+    setSaleMsg(null);
+    try {
+      const res = await fetch(`/api/admin/leads/${lead.id}/mark-sale`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          monto: saleIsFee ? null : monto,
+          moneda: saleMoneda,
+          is_fee: saleIsFee,
+          concepto: saleConcepto.trim() || null,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'No se pudo marcar la venta');
+      setSaleMsg(
+        `✓ ${saleIsFee ? 'Fee' : 'Venta'} registrada${data.comision ? ` · comisión $${Number(data.comision).toLocaleString('es-AR')}` : ''}`,
+      );
+      setSaleMonto('');
+      setSaleConcepto('');
+      setSaleIsFee(false);
+      setShowSaleForm(false);
+      onChanged();
+    } catch (e) {
+      setSaleMsg(e instanceof Error ? e.message : 'Error al marcar la venta.');
+    } finally {
+      setSavingSale(false);
+    }
   }
 
   const setters = admins.filter((a) => (a.tags || []).includes('setter'));
@@ -156,13 +202,67 @@ export default function LeadDrawer({ lead, admins, onClose, onChanged, onConvert
                 <ExternalLink className="h-3 w-3" /> Calendly
               </a>
             )}
+            <button
+              onClick={() => { setShowSaleForm((v) => !v); setSaleMsg(null); }}
+              className="ml-auto inline-flex items-center gap-1 h-8 px-3 rounded bg-green-500/15 border border-green-500/40 text-green-300 text-[11px] font-bold uppercase tracking-wider hover:bg-green-500/25">
+              <DollarSign className="h-3 w-3" /> Marcar venta
+            </button>
             {lead.stage !== 'convertido' && (
               <button onClick={onConvertClick}
-                className="ml-auto inline-flex items-center gap-1 h-8 px-3 rounded bg-green-500 text-white text-[11px] font-bold uppercase tracking-wider hover:bg-green-600">
+                className="inline-flex items-center gap-1 h-8 px-3 rounded bg-green-500 text-white text-[11px] font-bold uppercase tracking-wider hover:bg-green-600">
                 <UserPlus className="h-3 w-3" /> Convertir a alumno
               </button>
             )}
           </div>
+
+          {/* Form: marcar venta / cuota */}
+          {showSaleForm && (
+            <div className="rounded-lg border border-green-500/30 bg-green-500/[0.04] p-3 space-y-2.5">
+              <p className="text-[10px] uppercase tracking-wide text-green-300 font-semibold flex items-center gap-1">
+                <DollarSign className="h-3 w-3" /> Registrar venta o cuota
+              </p>
+              <label className="flex items-center gap-2 text-[12px] text-jjl-muted cursor-pointer">
+                <input type="checkbox" checked={saleIsFee} onChange={(e) => setSaleIsFee(e.target.checked)}
+                  className="accent-green-500 h-3.5 w-3.5" />
+                Es fee / reserva (no suma comisión)
+              </label>
+              {!saleIsFee && (
+                <div className="flex gap-1.5">
+                  <input
+                    type="text" inputMode="numeric" value={saleMonto}
+                    onChange={(e) => setSaleMonto(e.target.value)}
+                    placeholder="Monto cobrado"
+                    className="flex-1 bg-black/30 border border-jjl-border rounded px-2 py-1.5 text-[13px] text-white placeholder:text-jjl-muted/50 focus:outline-none focus:border-green-500"
+                  />
+                  <select value={saleMoneda} onChange={(e) => setSaleMoneda(e.target.value)}
+                    className="bg-black/30 border border-jjl-border rounded px-2 text-[12px] text-white focus:outline-none focus:border-green-500">
+                    <option value="ARS">ARS</option>
+                    <option value="USD">USD</option>
+                  </select>
+                </div>
+              )}
+              <input
+                type="text" value={saleConcepto}
+                onChange={(e) => setSaleConcepto(e.target.value)}
+                placeholder="Concepto (opcional) — ej: Cuota 1/3, Reserva…"
+                className="w-full bg-black/30 border border-jjl-border rounded px-2 py-1.5 text-[12px] text-white placeholder:text-jjl-muted/50 focus:outline-none focus:border-green-500"
+              />
+              {saleMsg && <p className="text-[11px] text-amber-300">{saleMsg}</p>}
+              <div className="flex gap-1.5">
+                <button onClick={markSale} disabled={savingSale}
+                  className="flex-1 h-8 inline-flex items-center justify-center gap-1 rounded bg-green-500 text-white text-[12px] font-bold hover:bg-green-600 disabled:opacity-40">
+                  {savingSale ? 'Guardando…' : 'Guardar venta'}
+                </button>
+                <button onClick={() => { setShowSaleForm(false); setSaleMsg(null); }}
+                  className="h-8 px-3 rounded border border-jjl-border text-[12px] text-jjl-muted hover:text-white">
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          )}
+          {saleMsg && !showSaleForm && (
+            <p className="text-[12px] text-green-300 px-1">{saleMsg}</p>
+          )}
 
           {/* Datos del lead */}
           <div className="rounded-lg border border-jjl-border bg-white/[0.02] p-3">

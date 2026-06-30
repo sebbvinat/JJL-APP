@@ -281,7 +281,7 @@ function SaleSummaryBlock({ sale, hideAmount }: { sale: SaleSummary; hideAmount:
           <p className="text-[13px] font-extrabold text-white tabular-nums">
             {formatMonto(sale.total_monto, sale.moneda)}
           </p>
-          <span className="text-[11px] font-bold text-green-300 tabular-nums" title="Comisión 5%">
+          <span className="text-[11px] font-bold text-green-300 tabular-nums" title="Comisión del setter">
             +${sale.total_comision.toLocaleString('es-AR')}
           </span>
         </div>

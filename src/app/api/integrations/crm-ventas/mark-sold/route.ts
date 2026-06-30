@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { createAdminSupabaseClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/logger';
+import { commissionFor, ratePct } from '@/lib/commission';
 
 export const runtime = 'nodejs';
 
@@ -67,7 +68,7 @@ export async function POST(request: NextRequest) {
   // con el filtro 'email' bajo). Tomamos el más reciente si hay varios.
   const { data: leads, error: selErr } = await admin
     .from('lead_quiz_responses')
-    .select('id, session_id, email, stage, converted_user_id, nombre')
+    .select('id, session_id, email, stage, converted_user_id, nombre, assigned_to')
     .ilike('email', email)
     .order('created_at', { ascending: false })
     .limit(1);
@@ -125,11 +126,12 @@ export async function POST(request: NextRequest) {
   // Anotar también en lead_contacts para que quede en el historial del Drawer.
   try {
     const montoText = monto != null ? `${monto.toLocaleString('es-AR')}${moneda ? ' ' + moneda : ''}` : null;
-    const comision = !isFee && monto != null ? Math.round(monto * 0.05) : null;
+    const assignedSetter = (lead as { assigned_to?: string | null }).assigned_to ?? null;
+    const comision = !isFee && monto != null ? commissionFor(monto, assignedSetter) : null;
     const nota = [
       `💰 ${isFee ? 'Fee/reserva' : 'Venta'} registrada en CRM`,
       montoText && `Monto: ${montoText}`,
-      comision != null && `Comisión setter (5%): $${comision.toLocaleString('es-AR')}`,
+      comision != null && `Comisión setter (${ratePct(assignedSetter)}%): $${comision.toLocaleString('es-AR')}`,
       situacion && `Situación: ${situacion}`,
       fecha && `Fecha: ${new Date(fecha).toLocaleString('es-AR')}`,
       notas && `Notas: ${notas}`,

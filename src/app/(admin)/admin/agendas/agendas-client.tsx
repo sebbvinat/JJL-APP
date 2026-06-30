@@ -8,6 +8,7 @@ import Kanban, { type LeadRowExt, type SaleSummary } from '@/components/admin/se
 import LeadDrawer from '@/components/admin/setter/LeadDrawer';
 import ConvertToAlumnoModal from '@/components/admin/setter/ConvertToAlumnoModal';
 import SetterGuide from '@/components/admin/setter/SetterGuide';
+import CommissionPanel from '@/components/admin/setter/CommissionPanel';
 
 type AdminRow = { id: string; nombre: string; avatar_url: string | null; tags: string[] };
 
@@ -107,13 +108,16 @@ export default function AgendasClient() {
         <StatCard label="Sin agendar +24h" value={stats.sinAgendar24} tone={stats.sinAgendar24 > 0 ? 'amber' : 'default'} />
         <StatCard label="Conversion últ. 30d" value={`${stats.convRate}%`} sub={`${stats.conv}/${stats.totalUltMes}`} tone={stats.convRate >= 20 ? 'green' : 'default'} />
         <StatCard
-          label={isSetter ? 'Tu comisión total' : 'Comisión total (5%)'}
+          label={isSetter ? 'Tu comisión total' : 'Comisión total'}
           value={`$${salesTotals.total_comision.toLocaleString('es-AR')}`}
           // Al setter no le mostramos el monto bruto cobrado — solo cuánto gana él.
           sub={isSetter ? `${salesTotals.leads_convertidos} cliente${salesTotals.leads_convertidos === 1 ? '' : 's'}` : `sobre $${salesTotals.total_monto.toLocaleString('es-AR')} cobrado`}
           tone="green"
         />
       </div>
+
+      {/* Comisión por mes — cuánto va ganando el setter cada mes */}
+      <CommissionPanel isSetter={isSetter} />
 
       {/* Búsqueda + guion de setting */}
       <div className="flex items-center gap-2">
