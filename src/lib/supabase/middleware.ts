@@ -61,7 +61,16 @@ async function handleAlumno(
   // autentica por su cuenta como hasta ahora.
   // ============================================================
   if (pathname.startsWith('/api/')) {
-    if (user) {
+    // Endpoints PÚBLICOS de captación de leads + tracking. Los usan las
+    // landings de marketing (/auditoria, /que-luchador-sos,
+    // /consultoria-gratuita), que cualquiera puede visitar — incluido un
+    // cliente_cursos logueado que venga de un anuncio. Se autentican por su
+    // cuenta (service-role + session_id), así que NO deben pasar por el gate
+    // cross-producto: si no, se rompe la conversión (el lead recibe "No
+    // autorizado" al agendar).
+    const isPublicLeadApi =
+      pathname.startsWith('/api/leads/') || pathname === '/api/track-click';
+    if (!isPublicLeadApi && user) {
       const { data: prof } = await supabase
         .from('users')
         .select('rol, program_member, onboarding_completed_at')
