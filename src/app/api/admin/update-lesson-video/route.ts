@@ -30,6 +30,7 @@ export async function POST(request: NextRequest) {
     youtube_id,
     titulo,
     descripcion,
+    semana_numero,
   } = body as {
     module_id?: string;
     lesson_id?: string;
@@ -37,7 +38,13 @@ export async function POST(request: NextRequest) {
     youtube_id?: string;
     titulo?: string;
     descripcion?: string;
+    semana_numero?: number;
   };
+  // Scope por semana: si el caller lo manda, SOLO tocamos lecciones de esa
+  // semana. Evita que un título repetido en varias semanas (ej "Drill 1: Leg
+  // Trap") se contamine entre semanas. Las semanas compartidas (mes 1-2) igual
+  // aplican a las 4 planillas porque el scope es por semana, no por planilla.
+  const scopeSemana = typeof semana_numero === 'number' ? semana_numero : null;
   if (!module_id || (!lesson_id && !lesson_titulo_original)) {
     return NextResponse.json(
       { error: 'module_id y lesson_id (o lesson_titulo_original) son requeridos' },
@@ -61,7 +68,7 @@ export async function POST(request: NextRequest) {
   // override canónico para que /api/course-data lo aplique por titulo.
   const { data: rows, error: readErr } = await admin
     .from('course_data')
-    .select('user_id, module_id, lessons');
+    .select('user_id, module_id, lessons, semana_numero');
   if (readErr) {
     logger.error('admin.updateLessonVideo.read.failed', { err: readErr });
     return NextResponse.json({ error: readErr.message }, { status: 500 });
@@ -75,7 +82,13 @@ export async function POST(request: NextRequest) {
     s.toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '').trim();
   const targetTituloNorm = lesson_titulo_original ? norm(lesson_titulo_original) : '';
 
-  for (const row of (rows as Array<{ user_id: string; module_id: string; lessons: unknown }> | null) || []) {
+  for (const row of (rows as Array<{ user_id: string; module_id: string; lessons: unknown; semana_numero: number | null }> | null) || []) {
+    // Scope por semana: si el caller mandó semana_numero y esta fila es de OTRA
+    // semana, la salteamos. Filas sin semana_numero (datos viejos) no se filtran
+    // para no dejar de actualizarlas — usan el match por título como antes.
+    if (scopeSemana !== null && row.semana_numero != null && row.semana_numero !== scopeSemana) {
+      continue;
+    }
     const lessons = Array.isArray(row.lessons) ? (row.lessons as LessonJSON[]) : [];
     let matchedIdx = -1;
     if (lesson_id) {

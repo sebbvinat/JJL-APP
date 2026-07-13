@@ -97,12 +97,17 @@ export default function LessonRow({
     if (!canSave) return;
     setSaving(true);
     try {
-      const payload: Record<string, string> = {
+      const payload: Record<string, string | number> = {
         module_id: moduleId,
         // IDs de planillas.ts no siempre matchean los de DB; el endpoint usa
         // lesson_titulo_original como fallback (matching por titulo).
         lesson_id: '',
         lesson_titulo_original: originalTitulo,
+        // Scope por semana: el endpoint solo toca la lección de ESTA semana,
+        // así un título repetido en otras semanas (ej "Drill 1: Leg Trap") no
+        // se contamina. Las semanas compartidas (mes 1-2) siguen aplicando a
+        // las 4 planillas porque el scope es por semana, no por planilla.
+        semana_numero: semanaNumero,
       };
       if (idChanged) payload.youtube_id = pendingId;
       if (tituloChanged) payload.titulo = titulo.trim();
