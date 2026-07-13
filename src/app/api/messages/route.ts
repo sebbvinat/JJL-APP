@@ -26,6 +26,7 @@ function getAdmin() {
 function formatPreview(contenido: string | null | undefined): string | null {
   if (!contenido) return null;
   if (contenido.startsWith('[audio]')) return '🎤 Audio';
+  if (contenido.startsWith('[image]')) return '📷 Foto';
   return contenido;
 }
 

@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { format, formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { ArrowLeft, Send, MessageCircle, Shield, Mic, Square, Play, Pause, LifeBuoy } from 'lucide-react';
+import { ArrowLeft, Send, MessageCircle, Shield, Mic, Square, Play, Pause, LifeBuoy, Image as ImageIcon, Trash2, X } from 'lucide-react';
 import Card from '@/components/ui/Card';
 import Avatar from '@/components/ui/Avatar';
 import { useToast } from '@/components/ui/Toast';
@@ -47,10 +47,12 @@ export default function ChatPage() {
   const recordTimerRef = useRef<NodeJS.Timeout | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const pollRef = useRef<NodeJS.Timeout | null>(null);
   const lastMsgCountRef = useRef(0);
   const isAtBottomRef = useRef(true);
   const [supportUnread, setSupportUnread] = useState(0);
+  const [lightbox, setLightbox] = useState<string | null>(null);
 
   useEffect(() => {
     loadChannels();
@@ -174,6 +176,49 @@ export default function ChatPage() {
     }
 
     setSending(false);
+  }
+
+  async function handleImageSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // permitir re-elegir la misma foto
+    if (!file || !selectedChannel || sending) return;
+    if (!file.type.startsWith('image/')) {
+      toast.error('Elegí una imagen.');
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('La imagen es muy grande (máx 10MB).');
+      return;
+    }
+    setSending(true);
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+      formData.append('channelId', selectedChannel.channelId);
+      const res = await fetch('/api/messages/image', { method: 'POST', body: formData });
+      if (!res.ok) throw new Error('upload failed');
+      await loadMessages(selectedChannel.channelId);
+    } catch {
+      toast.error('No pudimos enviar la foto. Probá de nuevo.');
+    } finally {
+      setSending(false);
+    }
+  }
+
+  // Borrar mensaje (solo admin). Optimista: lo saco de la lista y revierto si
+  // el backend falla.
+  async function handleDelete(msgId: string) {
+    if (!selectedChannel || msgId.startsWith('temp-')) return;
+    if (!window.confirm('¿Borrar este mensaje? No se puede deshacer.')) return;
+    const prev = messages;
+    setMessages((m) => m.filter((x) => x.id !== msgId));
+    try {
+      const res = await fetch(`/api/messages/${msgId}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('delete failed');
+    } catch {
+      setMessages(prev);
+      toast.error('No se pudo borrar el mensaje.');
+    }
   }
 
   // Safari iOS NO soporta audio/webm — el constructor de MediaRecorder
@@ -406,6 +451,20 @@ export default function ChatPage() {
                       preload="metadata"
                       className="max-w-[220px] h-10"
                     />
+                  ) : msg.contenido.startsWith('[image]') ? (
+                    <button
+                      type="button"
+                      onClick={() => setLightbox(msg.contenido.replace('[image]', ''))}
+                      className="block -mx-1 -mt-0.5"
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={msg.contenido.replace('[image]', '')}
+                        alt="Foto"
+                        loading="lazy"
+                        className="rounded-lg max-w-[220px] max-h-[280px] object-cover cursor-zoom-in"
+                      />
+                    </button>
                   ) : (
                     <p className="whitespace-pre-wrap break-words">{msg.contenido}</p>
                   )}
@@ -413,6 +472,17 @@ export default function ChatPage() {
                     {format(new Date(msg.created_at), 'HH:mm')}
                   </p>
                 </div>
+                {isAdmin && !msg.id.startsWith('temp-') && (
+                  <div className={`mt-0.5 ${msg.isMine ? 'text-right' : 'text-left'}`}>
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(msg.id)}
+                      className="inline-flex items-center gap-0.5 text-[10px] text-jjl-muted/60 hover:text-jjl-red transition-colors"
+                    >
+                      <Trash2 className="h-2.5 w-2.5" /> Borrar
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -436,6 +506,22 @@ export default function ChatPage() {
         </div>
       ) : (
         <form onSubmit={handleSend} className="flex gap-2 pt-3 border-t border-jjl-border shrink-0 pb-2 items-end">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleImageSelect}
+          />
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={sending}
+            title="Enviar foto"
+            className="px-4 py-3 bg-jjl-gray-light border border-jjl-border text-white rounded-xl hover:bg-jjl-border disabled:opacity-50 transition-colors shrink-0 min-w-[48px] min-h-[48px] flex items-center justify-center"
+          >
+            <ImageIcon className="h-5 w-5" />
+          </button>
           <textarea
             value={newMessage}
             onChange={(e) => {
@@ -474,6 +560,30 @@ export default function ChatPage() {
             </button>
           )}
         </form>
+      )}
+
+      {/* Visor de foto ampliada */}
+      {lightbox && (
+        <div
+          className="fixed inset-0 z-[60] bg-black/90 flex items-center justify-center p-4"
+          onClick={() => setLightbox(null)}
+        >
+          <button
+            type="button"
+            onClick={() => setLightbox(null)}
+            className="absolute top-4 right-4 text-white/80 hover:text-white"
+            aria-label="Cerrar"
+          >
+            <X className="h-7 w-7" />
+          </button>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={lightbox}
+            alt="Foto ampliada"
+            className="max-w-full max-h-full object-contain rounded-lg"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
       )}
     </div>
   );
