@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, Fragment } from 'react';
 import Link from 'next/link';
-import { format, formatDistanceToNow } from 'date-fns';
+import { format, formatDistanceToNow, isSameDay, isToday, isYesterday } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { ArrowLeft, Send, MessageCircle, Shield, Mic, Square, Play, Pause, LifeBuoy, Image as ImageIcon, Trash2, X } from 'lucide-react';
 import Card from '@/components/ui/Card';
@@ -424,8 +424,17 @@ export default function ChatPage() {
             <p className="text-xs text-jjl-muted/60 mt-1">Escribi algo para empezar la conversacion</p>
           </div>
         )}
-        {messages.map((msg) => (
-          <div key={msg.id} className={`flex ${msg.isMine ? 'justify-end' : 'justify-start'}`}>
+        {messages.map((msg, i) => {
+          // Separador de fecha: solo cuando cambia el día respecto del mensaje
+          // anterior (estilo WhatsApp). Así se ve de qué día es cada mensaje
+          // sin repetir la fecha en cada burbuja.
+          const prev = i > 0 ? messages[i - 1] : null;
+          const showDateSep =
+            !prev || !isSameDay(new Date(prev.created_at), new Date(msg.created_at));
+          return (
+          <Fragment key={msg.id}>
+          {showDateSep && <DateSeparator iso={msg.created_at} />}
+          <div className={`flex ${msg.isMine ? 'justify-end' : 'justify-start'}`}>
             <div className={`max-w-[80%] ${msg.isMine ? '' : 'flex gap-2'}`}>
               {!msg.isMine && (
                 <Avatar src={msg.senderAvatar} name={msg.senderName} size="sm" />
@@ -468,7 +477,10 @@ export default function ChatPage() {
                   ) : (
                     <p className="whitespace-pre-wrap break-words">{msg.contenido}</p>
                   )}
-                  <p className={`text-[10px] mt-1 ${msg.isMine ? 'text-white/50' : 'text-jjl-muted'}`}>
+                  <p
+                    className={`text-[10px] mt-1 ${msg.isMine ? 'text-white/50' : 'text-jjl-muted'}`}
+                    title={format(new Date(msg.created_at), "d 'de' MMMM yyyy, HH:mm", { locale: es })}
+                  >
                     {format(new Date(msg.created_at), 'HH:mm')}
                   </p>
                 </div>
@@ -486,7 +498,9 @@ export default function ChatPage() {
               </div>
             </div>
           </div>
-        ))}
+          </Fragment>
+          );
+        })}
         <div ref={messagesEndRef} />
       </div>
 
@@ -585,6 +599,33 @@ export default function ChatPage() {
           />
         </div>
       )}
+    </div>
+  );
+}
+
+/**
+ * Separador de día entre mensajes (estilo WhatsApp). Muestra "Hoy" / "Ayer"
+ * para los días recientes y la fecha para el resto. El año solo aparece si el
+ * mensaje no es de este año.
+ */
+function DateSeparator({ iso }: { iso: string }) {
+  const d = new Date(iso);
+  const label = isToday(d)
+    ? 'Hoy'
+    : isYesterday(d)
+      ? 'Ayer'
+      : format(
+          d,
+          d.getFullYear() === new Date().getFullYear() ? "d 'de' MMMM" : "d 'de' MMMM yyyy",
+          { locale: es },
+        );
+  return (
+    <div className="flex items-center gap-3 py-1.5">
+      <div className="flex-1 h-px bg-jjl-border/50" />
+      <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wider text-jjl-muted px-2.5 py-1 rounded-full bg-white/[0.04] border border-jjl-border/50">
+        {label}
+      </span>
+      <div className="flex-1 h-px bg-jjl-border/50" />
     </div>
   );
 }
