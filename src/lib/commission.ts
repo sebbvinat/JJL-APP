@@ -21,11 +21,16 @@ export const DEFAULT_COMMISSION_RATE = 0.05;
 
 /**
  * Overrides por user id. Cargar acá los setters con tasa distinta a la
- * default. Ejemplo: Agustín Coronel cobra 8%.
+ * default, con el nombre en el comentario.
+ *
+ * OJO al cargar uno: verificá que el id corresponda HOY a esa persona. Las
+ * cuentas se reutilizan (se les cambia el email/nombre), así que un id viejo
+ * puede terminar apuntando a otro. Pasó con el override del 8% de Agustín
+ * Coronel: su cuenta se reasignó a otra persona y la tasa quedó apuntando al
+ * usuario equivocado. Se removió al dejar de trabajar con él.
  */
 const RATE_BY_USER: Record<string, number> = {
-  // Agustín Coronel — setter, 8%
-  '4298fabc-90f0-490f-b428-ca64d09f3b5e': 0.08,
+  // (vacío — todos cobran DEFAULT_COMMISSION_RATE)
 };
 
 /** Tasa (0-1) del setter dado. Default si no tiene override. */

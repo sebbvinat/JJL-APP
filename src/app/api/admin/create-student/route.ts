@@ -65,13 +65,30 @@ export async function POST(request: NextRequest) {
     //    otro flujo y caen como rol='cliente_cursos' + program_member=false.
     if (newUser.user) {
       const baseRow = { id: newUser.user.id, nombre, email, rol: 'alumno' };
+      const nowIso = new Date().toISOString();
+      // lifecycle_stage se setea EXPLÍCITAMENTE. Si no lo mandamos, la DB
+      // aplica su default ('prospect') y el alumno queda marcado como
+      // prospecto para siempre: ningún flujo lo mueve después (el cron de
+      // at_risk solo mira a los que ya están en 'active'/'onboarding').
+      // Mismo criterio que /api/admin/leads/[id]/convert.
+      const fullRow = {
+        ...baseRow,
+        program_member: true,
+        lifecycle_stage: 'onboarding',
+        lifecycle_changed_at: nowIso,
+        started_at: nowIso,
+      };
       let upsertError = null;
-      const r = await adminClient.from('users').upsert({ ...baseRow, program_member: true } as any);
+      const r = await adminClient.from('users').upsert(fullRow as any);
       upsertError = r.error;
-      // Fallback pre-migración si la columna program_member no existe
-      if (upsertError && /column .* does not exist|program_member.*schema cache/i.test(upsertError.message)) {
-        const fb = await adminClient.from('users').upsert(baseRow as any);
+      // Fallbacks pre-migración, de más completo a más básico.
+      if (upsertError && /column .* does not exist|schema cache/i.test(upsertError.message)) {
+        const fb = await adminClient.from('users').upsert({ ...baseRow, program_member: true } as any);
         upsertError = fb.error;
+      }
+      if (upsertError && /column .* does not exist|program_member.*schema cache/i.test(upsertError.message)) {
+        const fb2 = await adminClient.from('users').upsert(baseRow as any);
+        upsertError = fb2.error;
       }
 
       if (upsertError) {

@@ -193,8 +193,17 @@ function StudentsManagement() {
     setPromoting(false);
   }
 
-  async function toggleAdmin(studentId: string, currentRol: string) {
+  async function toggleAdmin(studentId: string, currentRol: string, nombre: string) {
     const newRol = currentRol === 'admin' ? 'alumno' : 'admin';
+    // Dar admin = acceso TOTAL al panel. El botón es un ícono chico entre
+    // "Editar" y "Eliminar", así que sin confirmación se dispara de un click
+    // accidental (ya pasó: un alumno quedó como admin y perdió su chat de
+    // soporte porque la app lo trataba como staff).
+    const msg =
+      newRol === 'admin'
+        ? `¿Dar acceso de ADMIN a ${nombre}?\n\nVa a poder ver y editar TODOS los alumnos, los leads y las agendas.`
+        : `¿Quitarle el acceso de admin a ${nombre}?`;
+    if (!window.confirm(msg)) return;
     try {
       const res = await fetch('/api/admin/update-role', {
         method: 'POST',
@@ -434,7 +443,7 @@ function StudentsManagement() {
                   key={student.id}
                   student={student}
                   onEdit={() => startEdit(student)}
-                  onToggleAdmin={() => toggleAdmin(student.id, student.rol || 'alumno')}
+                  onToggleAdmin={() => toggleAdmin(student.id, student.rol || 'alumno', student.nombre)}
                   onDelete={() => setConfirmDelete(student)}
                 />
               )
