@@ -1,6 +1,6 @@
 // NOTE: CACHE_NAME is bumped on every build by scripts/build-sw.mjs so the
 // browser detects an update → skipWaiting → controllerchange → client reload.
-const CACHE_NAME = 'jjl-1782501594069';
+const CACHE_NAME = 'jjl-1784816358487';
 const STATIC_CACHE = `${CACHE_NAME}-static`;
 const RUNTIME_CACHE = `${CACHE_NAME}-runtime`;
 
@@ -72,14 +72,35 @@ function isStaticAsset(url) {
   );
 }
 
-async function networkFirst(request, runtime) {
+// Timeouts. En mobile con señal inestable un fetch NO falla: queda colgado
+// indefinidamente. Sin timeout, el SW nunca resuelve la request y el usuario
+// se queda con el spinner para siempre (la queja más común). Con timeout
+// abortamos y caemos al cache / a una respuesta de error, que el cliente sí
+// puede manejar.
+const NAV_TIMEOUT_MS = 8000;    // navegación HTML — hay cache de respaldo
+const API_TIMEOUT_MS = 12000;   // APIs — algunas tardan por cold start de Vercel
+const ASSET_TIMEOUT_MS = 12000; // assets estáticos
+
+function fetchWithTimeout(request, timeoutMs) {
+  // AbortController corta el fetch colgado. Si el navegador no lo soporta,
+  // degradamos a un fetch normal (mejor que romper).
+  if (typeof AbortController === 'undefined') return fetch(request);
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  return fetch(request, { signal: controller.signal }).finally(() =>
+    clearTimeout(timer),
+  );
+}
+
+async function networkFirst(request, runtime, timeoutMs = NAV_TIMEOUT_MS) {
   try {
-    const response = await fetch(request);
+    const response = await fetchWithTimeout(request, timeoutMs);
     if (response && response.ok && request.method === 'GET') {
       runtime.put(request, response.clone()).catch(() => undefined);
     }
     return response;
   } catch (err) {
+    // Incluye el abort por timeout: servimos cache si lo hay.
     const cached = await runtime.match(request);
     if (cached) return cached;
     throw err;
@@ -89,7 +110,7 @@ async function networkFirst(request, runtime) {
 async function cacheFirst(request, cache) {
   const cached = await cache.match(request);
   if (cached) return cached;
-  const response = await fetch(request);
+  const response = await fetchWithTimeout(request, ASSET_TIMEOUT_MS);
   if (response && response.ok && request.method === 'GET') {
     cache.put(request, response.clone()).catch(() => undefined);
   }
@@ -163,7 +184,9 @@ self.addEventListener('fetch', (event) => {
   // Resto de /api/* → network only, sin cache. POSTs, admin sensible, etc.
   if (url.pathname.startsWith('/api/')) {
     event.respondWith(
-      fetch(request).catch(
+      // Con timeout: si la API queda colgada devolvemos 503 y el cliente
+      // muestra su estado de error en vez de girar para siempre.
+      fetchWithTimeout(request, API_TIMEOUT_MS).catch(
         () =>
           new Response(JSON.stringify({ error: 'offline' }), {
             status: 503,
