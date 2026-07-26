@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { Phone, Plus, ExternalLink, Save } from 'lucide-react';
+import { useToast } from '@/components/ui/Toast';
 
 type Llamada = {
   id: string;
@@ -34,6 +35,8 @@ export default function LlamadasTab({ userId, onScheduleClick }: Props) {
   const [loading, setLoading] = useState(true);
   const [setupRequired, setSetupRequired] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [savingEdit, setSavingEdit] = useState(false);
+  const toast = useToast();
   const [draft, setDraft] = useState<{ status: Llamada['status']; notes: string; duration_min: number | null }>({
     status: 'completada', notes: '', duration_min: null,
   });
@@ -49,14 +52,35 @@ export default function LlamadasTab({ userId, onScheduleClick }: Props) {
 
   useEffect(() => { void load(); }, [load]);
 
+  /**
+   * Guarda la edición de una llamada (status, duración y NOTAS PRIVADAS del
+   * 1-on-1). Antes no chequeaba res.ok, no tenía guard de doble submit y
+   * cerraba el editor igual: si el PATCH fallaba, diez líneas de notas
+   * desaparecían sin ningún aviso. Ahora el editor solo se cierra si el
+   * guardado confirmó.
+   */
   async function saveEdit(l: Llamada) {
-    await fetch(`/api/admin/students/${userId}/llamadas`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: l.id, ...draft }),
-    });
-    setEditingId(null);
-    await load();
+    if (savingEdit) return;
+    setSavingEdit(true);
+    try {
+      const res = await fetch(`/api/admin/students/${userId}/llamadas`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: l.id, ...draft }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body?.error || 'No se pudo guardar');
+      }
+      setEditingId(null);
+      await load();
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : 'No pudimos guardar. Tus notas siguen acá.',
+      );
+    } finally {
+      setSavingEdit(false);
+    }
   }
 
   if (setupRequired) {

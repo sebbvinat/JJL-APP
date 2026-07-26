@@ -77,21 +77,36 @@ export default function CrmHeader({ userId, onScheduleClick, onConfirmMonthClick
   const [data, setData] = useState<CrmSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [setupRequired, setSetupRequired] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [savingLifecycle, setSavingLifecycle] = useState(false);
 
   const load = useCallback(async () => {
+    setLoadError(null);
     try {
       const res = await fetch(`/api/admin/students/${userId}/crm-summary`, { cache: 'no-store' });
-      if (res.status === 500 || res.status === 503) {
-        const body = await res.json().catch(() => ({}));
+      // El body se lee UNA sola vez: antes se hacía res.json() en la rama de
+      // error y otra vez abajo, lo que tiraba "body disturbed" y —sin catch—
+      // dejaba la página en esqueleto girando para siempre.
+      const body = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
         if (/column .* does not exist|lifecycle_stage column missing/i.test(body?.error || '')) {
           setSetupRequired(true);
-          setLoading(false);
           return;
         }
+        // Sin este guard, un 403 (sesión vencida) o 404 pasaba el chequeo de
+        // `!data` y reventaba la página entera del alumno al leer
+        // profile.lifecycle_stage sobre undefined.
+        setLoadError(
+          res.status === 403
+            ? 'Tu sesión venció. Recargá la página.'
+            : body?.error || `No pudimos cargar los datos (error ${res.status}).`,
+        );
+        return;
       }
-      const body = await res.json();
       setData(body);
+    } catch {
+      setLoadError('No pudimos conectar con el servidor. Revisá tu conexión.');
     } finally {
       setLoading(false);
     }
@@ -116,6 +131,19 @@ export default function CrmHeader({ userId, onScheduleClick, onConfirmMonthClick
     return (
       <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 text-[13px] text-amber-200">
         Falta correr la migración SQL <code className="font-mono text-amber-100">2026_05_22_crm_foundation.sql</code> en Supabase.
+      </div>
+    );
+  }
+  if (loadError) {
+    return (
+      <div className="rounded-xl border border-red-500/30 bg-red-500/5 p-4">
+        <p className="text-[13px] text-red-200">{loadError}</p>
+        <button
+          onClick={() => { setLoading(true); void load(); }}
+          className="mt-2 text-[12px] font-semibold text-white underline underline-offset-2 hover:text-red-200"
+        >
+          Reintentar
+        </button>
       </div>
     );
   }

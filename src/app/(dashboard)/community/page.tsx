@@ -97,12 +97,14 @@ export default function CommunityPage() {
         setShowForm(false);
         mutate();
         toast.success('Post publicado');
-      } else {
-        toast.error('No pudimos publicar el post');
+        return true;
       }
+      toast.error('No pudimos publicar el post. Tu texto sigue acá.');
+      return false;
     } catch (err) {
       logger.error('community.createPost.failed', { err });
-      toast.error('Error de conexion');
+      toast.error('Error de conexión. Tu texto sigue acá.');
+      return false;
     }
   }
 
@@ -128,8 +130,12 @@ export default function CommunityPage() {
     if (!data) return;
     setLikingId(postId);
     const prev = data.posts;
+    // Se conserva el resto del objeto (`...data`): antes se reemplazaba por
+    // `{ posts }` a secas y se perdía `isAdmin`, así que al admin le
+    // desaparecían los botones de fijar post con solo dar un like.
     mutate(
       {
+        ...data,
         posts: prev.map((p) =>
           p.id === postId
             ? { ...p, liked: !p.liked, likes: p.liked ? p.likes - 1 : p.likes + 1 }
@@ -139,14 +145,18 @@ export default function CommunityPage() {
       { revalidate: false }
     );
     try {
-      await fetch('/api/community/like', {
+      const res = await fetch('/api/community/like', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ postId }),
       });
+      // Sin chequear res.ok, el like quedaba pintado aunque el server
+      // devolviera 500 — el alumno creía que había quedado.
+      if (!res.ok) throw new Error(`like failed (${res.status})`);
     } catch (err) {
       logger.error('community.like.failed', { err, postId });
-      mutate({ posts: prev }, { revalidate: false });
+      mutate({ ...data, posts: prev }, { revalidate: false });
+      toast.error('No pudimos registrar tu like.');
     }
     setLikingId(null);
   }

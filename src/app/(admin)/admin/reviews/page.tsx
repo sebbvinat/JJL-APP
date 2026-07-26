@@ -35,6 +35,7 @@ export default function ReviewsPage() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState('');
   const [saving, setSaving] = useState(false);
+  const [reviewError, setReviewError] = useState('');
   const [syncing, setSyncing] = useState(false);
   const [syncMsg, setSyncMsg] = useState('');
   const [scanDetails, setScanDetails] = useState<any[]>([]);
@@ -200,12 +201,23 @@ export default function ReviewsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status, feedback: feedback.trim() }),
       });
-      if (res.ok) {
-        setActiveId(null);
-        setFeedback('');
-        loadVideos();
+      // Antes era `if (res.ok) {...}` sin else y con `catch {}` vacío: si
+      // fallaba, el coach tocaba "Revisado" y no pasaba absolutamente nada —
+      // ni cambio ni error. Se quedaba tocando el botón.
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body?.error || `Error ${res.status}`);
       }
-    } catch {}
+      setActiveId(null);
+      setFeedback('');
+      loadVideos();
+    } catch (err) {
+      setReviewError(
+        err instanceof Error
+          ? `No se pudo guardar la revisión: ${err.message}`
+          : 'No se pudo guardar la revisión. Probá de nuevo.',
+      );
+    }
     setSaving(false);
   }
 
@@ -589,10 +601,13 @@ export default function ReviewsPage() {
                         <Button size="sm" variant="secondary" onClick={() => handleReview(v.id, 'para_rehacer')} loading={saving}>
                           <RotateCcw className="h-4 w-4 mr-1.5" /> Pedir rehacer
                         </Button>
-                        <Button size="sm" variant="ghost" onClick={() => { setActiveId(null); setFeedback(''); }}>
+                        <Button size="sm" variant="ghost" onClick={() => { setActiveId(null); setFeedback(''); setReviewError(''); }}>
                           Cancelar
                         </Button>
                       </div>
+                      {reviewError && (
+                        <p className="text-[12px] text-red-400 mt-2">{reviewError}</p>
+                      )}
                     </div>
                   ) : (
                     <div className="flex gap-2 flex-wrap pt-2">

@@ -308,6 +308,21 @@ export default function AdminStudentPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || 'Error');
+
+      // El endpoint puede responder 200 con affected_modules = 0 (por ejemplo
+      // si el alumno no tiene esos módulos cargados). Antes el cliente hacía
+      // `data.affected_modules || total`, así que 0 caía al total y mostraba
+      // un toast VERDE — "Mes 3 desbloqueado (4 módulos)" — con cero
+      // desbloqueados. Ahora se reporta lo que realmente pasó.
+      const affected = typeof data?.affected_modules === 'number' ? data.affected_modules : null;
+      if (affected === 0) {
+        showToast(
+          `No se desbloqueó ningún módulo de ${label}. Puede que el alumno no los tenga cargados — probá sincronizar planillas.`,
+          'error',
+        );
+        return;
+      }
+
       // Marcar todos los modulos del block como unlocked en UI local
       const block = MONTH_RANGES.find((b) => b.mes === mes);
       if (block) {
@@ -320,7 +335,7 @@ export default function AdminStudentPage() {
           return next;
         });
       }
-      showToast(`${label} desbloqueado (${data.affected_modules || total} módulos)`, 'success');
+      showToast(`${label} desbloqueado (${affected ?? total} módulos)`, 'success');
     } catch (e) {
       showToast(e instanceof Error ? e.message : 'Error', 'error');
     } finally {

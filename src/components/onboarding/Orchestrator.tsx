@@ -19,12 +19,25 @@ interface OrchestratorProps {
 export default function Orchestrator({ initialStep, userName, userRole, userBelt }: OrchestratorProps) {
   const [step, setStep] = useState(Math.min(Math.max(initialStep, 1), TOTAL_STEPS));
 
+  /**
+   * Avanza al siguiente paso. Persistir el progreso es best-effort: si el POST
+   * falla, el alumno AVANZA IGUAL.
+   *
+   * Antes, un `await fetch` sin catch dejaba al alumno nuevo trabado en el
+   * paso, sin mensaje ni forma de seguir — el peor momento posible para
+   * frenarlo. El paso se re-persiste en el siguiente avance; lo importante es
+   * que llegue al dashboard.
+   */
   async function advance(next: number, opts: { complete?: boolean } = {}) {
-    await fetch('/api/onboarding/step', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ step: next, complete: opts.complete }),
-    });
+    try {
+      await fetch('/api/onboarding/step', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ step: next, complete: opts.complete }),
+      });
+    } catch {
+      /* seguimos igual */
+    }
     if (opts.complete) {
       window.location.href = '/dashboard';
       return;

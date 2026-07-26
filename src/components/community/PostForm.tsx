@@ -7,12 +7,14 @@ import Input from '@/components/ui/Input';
 
 interface PostFormProps {
   onClose: () => void;
+  /** Devuelve false si NO se pudo publicar — el modal queda abierto con el
+   *  texto para reintentar en vez de descartarlo. */
   onSubmit: (data: {
     titulo: string;
     contenido: string;
     categoria: string;
     poll?: { pregunta: string; opciones: string[]; multiple: boolean };
-  }) => void;
+  }) => void | boolean | Promise<void | boolean>;
 }
 
 const CATEGORIES = [
@@ -35,10 +37,11 @@ export default function PostForm({ onClose, onSubmit }: PostFormProps) {
   const [pollQuestion, setPollQuestion] = useState('');
   const [pollOptions, setPollOptions] = useState(['', '']);
   const [pollMultiple, setPollMultiple] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!titulo.trim() || !contenido.trim()) return;
+    if (!titulo.trim() || !contenido.trim() || submitting) return;
 
     let poll: { pregunta: string; opciones: string[]; multiple: boolean } | undefined;
     if (pollEnabled && pollQuestion.trim()) {
@@ -48,8 +51,16 @@ export default function PostForm({ onClose, onSubmit }: PostFormProps) {
       }
     }
 
-    onSubmit({ titulo, contenido, categoria, poll });
-    onClose();
+    // Esperamos la confirmación antes de cerrar. Antes se llamaba a onSubmit y
+    // se cerraba en la misma línea: si fallaba la red, el alumno perdía el post
+    // entero (escrito en el celular) y solo veía un toast rojo.
+    setSubmitting(true);
+    try {
+      const ok = await onSubmit({ titulo, contenido, categoria, poll });
+      if (ok !== false) onClose();
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (

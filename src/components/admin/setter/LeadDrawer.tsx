@@ -33,6 +33,7 @@ export default function LeadDrawer({ lead, admins, onClose, onChanged, onConvert
   const [newDir, setNewDir] = useState<Contact['direccion']>('saliente');
   const [newNota, setNewNota] = useState('');
   const [savingContact, setSavingContact] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   // Marcar venta
   const [showSaleForm, setShowSaleForm] = useState(false);
@@ -53,25 +54,37 @@ export default function LeadDrawer({ lead, admins, onClose, onChanged, onConvert
 
   useEffect(() => { void loadContacts(); }, [loadContacts]);
 
+  // Sin chequear res.ok, un PATCH fallido no avisaba nada: la tarjeta volvía
+  // sola a su estado anterior tras el mutate() y el setter no entendía por qué.
+  async function patchLead(patch: Record<string, unknown>, what: string) {
+    const res = await fetch(`/api/admin/leads/${lead.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(patch),
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body?.error || `No se pudo cambiar ${what}`);
+    }
+  }
+
   async function changeStage(stage: LeadStage) {
     setSavingStage(true);
     try {
-      await fetch(`/api/admin/leads/${lead.id}`, {
-        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ stage }),
-      });
+      await patchLead({ stage }, 'el estado');
       onChanged();
+    } catch (e) {
+      setActionError(e instanceof Error ? e.message : 'No se pudo cambiar el estado');
     } finally { setSavingStage(false); }
   }
 
   async function changeAssigned(uid: string | null) {
     setSavingAssign(true);
     try {
-      await fetch(`/api/admin/leads/${lead.id}`, {
-        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ assigned_to: uid }),
-      });
+      await patchLead({ assigned_to: uid }, 'la asignación');
       onChanged();
+    } catch (e) {
+      setActionError(e instanceof Error ? e.message : 'No se pudo cambiar la asignación');
     } finally { setSavingAssign(false); }
   }
 
@@ -181,6 +194,10 @@ export default function LeadDrawer({ lead, admins, onClose, onChanged, onConvert
               </select>
             </label>
           </div>
+
+          {actionError && (
+            <p className="text-[12px] text-red-400 -mt-2">{actionError}</p>
+          )}
 
           {/* Acciones rápidas (contacto externo) */}
           <div className="flex gap-1.5 flex-wrap">

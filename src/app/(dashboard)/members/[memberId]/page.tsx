@@ -32,13 +32,21 @@ export default function MemberPage() {
 
   useEffect(() => {
     async function load() {
-      const res = await fetch(`/api/members?id=${memberId}`);
-      if (res.ok) {
-        const data = await res.json();
-        setMember(data.member);
-        setIsAdmin(data.isAdmin);
+      // try/catch + finally: sin esto, un fetch fallido (entrando desde el
+      // Ranking con mala señal) dejaba el esqueleto girando para siempre,
+      // porque setLoading(false) estaba fuera del camino de error.
+      try {
+        const res = await fetch(`/api/members?id=${memberId}`);
+        if (res.ok) {
+          const data = await res.json();
+          setMember(data.member);
+          setIsAdmin(data.isAdmin);
+        }
+      } catch {
+        /* member queda null → se muestra el estado "no encontrado" */
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     }
     load();
   }, [memberId]);

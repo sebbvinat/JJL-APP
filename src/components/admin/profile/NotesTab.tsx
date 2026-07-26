@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { Pin, PinOff, Plus, Trash2, Save } from 'lucide-react';
+import { useToast } from '@/components/ui/Toast';
 
 type Note = {
   id: string;
@@ -25,6 +26,8 @@ export default function NotesTab({ userId }: Props) {
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingText, setEditingText] = useState('');
+  const [savingEdit, setSavingEdit] = useState(false);
+  const toast = useToast();
 
   const load = useCallback(async () => {
     try {
@@ -60,17 +63,32 @@ export default function NotesTab({ userId }: Props) {
     void load();
   }
 
+  // Solo cierra el editor si el guardado confirmó. Antes descartaba el texto
+  // editado y recargaba mostrando el viejo, sin ningún aviso.
   async function saveEdit(id: string) {
     const texto = editingText.trim();
-    if (!texto) return;
-    await fetch(`/api/admin/students/${userId}/notes`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id, texto }),
-    });
-    setEditingId(null);
-    setEditingText('');
-    void load();
+    if (!texto || savingEdit) return;
+    setSavingEdit(true);
+    try {
+      const res = await fetch(`/api/admin/students/${userId}/notes`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, texto }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body?.error || 'No se pudo guardar');
+      }
+      setEditingId(null);
+      setEditingText('');
+      void load();
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : 'No pudimos guardar. Tu texto sigue acá.',
+      );
+    } finally {
+      setSavingEdit(false);
+    }
   }
 
   async function deleteNote(id: string) {
