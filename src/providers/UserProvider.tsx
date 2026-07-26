@@ -29,10 +29,22 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     const supabase = createClient();
     let mounted = true;
 
-    async function loadUser() {
+    async function loadUser(attempt = 0) {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!mounted) return;
+
+        // getUser() NO lanza excepción ante un fallo de red: devuelve
+        // { user: null }. Sin reintento, una señal mala momentánea (o el
+        // lock de auth trabado con la PWA y el navegador abiertos a la vez)
+        // dejaba la sesión en null PARA SIEMPRE en el cliente, aunque el
+        // server siguiera autenticando por cookie. De ahí salía el crash del
+        // chat al enviar. Reintentamos con backoff antes de darla por perdida.
+        if (!user && attempt < 3) {
+          await new Promise((r) => setTimeout(r, 400 * 2 ** attempt));
+          if (mounted) return loadUser(attempt + 1);
+          return;
+        }
 
         setAuthUser(user);
 

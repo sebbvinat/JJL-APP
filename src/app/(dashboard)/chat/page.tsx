@@ -49,6 +49,11 @@ export default function ChatPage() {
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pollRef = useRef<NodeJS.Timeout | null>(null);
+  // created_at del último mensaje que tenemos → se manda como ?since=
+  const lastAtRef = useRef<string | null>(null);
+  // Cada N ticks hacemos una recarga completa para reconciliar borrados
+  // (con ?since= un mensaje borrado por el admin no desaparecería solo).
+  const pollTickRef = useRef(0);
   const lastMsgCountRef = useRef(0);
   const isAtBottomRef = useRef(true);
   const [supportUnread, setSupportUnread] = useState(0);
@@ -86,9 +91,29 @@ export default function ChatPage() {
 
   useEffect(() => {
     if (!selectedChannel) return;
-    loadMessages(selectedChannel.channelId);
-    pollRef.current = setInterval(() => loadMessages(selectedChannel.channelId), 5000);
+    const channelId = selectedChannel.channelId;
+    lastAtRef.current = null;
+    pollTickRef.current = 0;
+    void loadMessages(channelId);
+    // 15s (antes 5s) y sin poll con la app en segundo plano. Con 5s y payload
+    // completo eran 720 requests/hora y ~21 MB de datos móviles por alumno.
+    pollRef.current = setInterval(() => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
+      void loadMessages(channelId, { incremental: true });
+    }, 15000);
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
+  }, [selectedChannel]);
+
+  // Al volver a la pestaña, refrescar enseguida en vez de esperar al tick.
+  useEffect(() => {
+    if (!selectedChannel) return;
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') {
+        void loadMessages(selectedChannel.channelId, { incremental: true });
+      }
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
   }, [selectedChannel]);
 
   // Auto-scroll only if user is near bottom OR message count changed because of a new message they sent
@@ -130,17 +155,70 @@ export default function ChatPage() {
     setLoading(false);
   }
 
-  async function loadMessages(channelId: string) {
-    const res = await fetch(`/api/messages?channel=${channelId}`);
-    if (res.ok) {
+  /**
+   * Carga mensajes. Por defecto trae la última página completa; con
+   * `incremental` pide solo lo posterior al último que tenemos (?since=) y
+   * hace append — así el poll no baja los 200 mensajes cada vez ni re-renderiza
+   * toda la lista.
+   */
+  async function loadMessages(channelId: string, opts?: { incremental?: boolean }) {
+    const incremental = !!opts?.incremental && !!lastAtRef.current;
+    // Cada 10 ticks (~2,5 min) recarga completa para reconciliar borrados.
+    const forceFull = incremental && ++pollTickRef.current % 10 === 0;
+
+    const qs = incremental && !forceFull
+      ? `?channel=${channelId}&since=${encodeURIComponent(lastAtRef.current!)}`
+      : `?channel=${channelId}`;
+
+    try {
+      const res = await fetch(`/api/messages${qs}`);
+      if (!res.ok) return; // silencioso: es un poll, el próximo tick reintenta
       const data = await res.json();
-      setMessages(data.messages || []);
+      const incoming: Message[] = data.messages || [];
+
+      if (incremental && !forceFull) {
+        if (incoming.length === 0) return;
+        setMessages((prev) => {
+          const known = new Set(prev.map((m) => m.id));
+          const fresh = incoming.filter((m) => !known.has(m.id));
+          if (fresh.length === 0) return prev;
+          // Sacamos los optimistas ya confirmados por el server.
+          const pending = prev.filter((m) => !m.id.startsWith('temp-'));
+          const optimistic = prev.filter((m) => m.id.startsWith('temp-'));
+          const stillPending = optimistic.filter(
+            (o) => !fresh.some((f) => f.contenido === o.contenido && f.isMine),
+          );
+          return [...pending, ...fresh, ...stillPending];
+        });
+      } else {
+        setMessages(incoming);
+      }
+
+      const last = incoming[incoming.length - 1];
+      if (last?.created_at) lastAtRef.current = last.created_at;
+    } catch {
+      // Sin catch, un poll fallido con la red caída generaba un
+      // unhandledrejection cada 5 s que ErrorReporter mandaba a
+      // /api/client-errors, ensuciando la tabla de errores.
     }
   }
 
   async function handleSend(e: React.FormEvent) {
     e.preventDefault();
     if (!newMessage.trim() || !selectedChannel || sending) return;
+
+    // GUARD DE SESIÓN. `authUser` arranca en null y se llena async; si
+    // getUser() falla por red devuelve { user: null } SIN lanzar excepción, así
+    // que el catch del provider nunca corre y queda en null para siempre.
+    // Mientras tanto el chat carga igual (el server autentica por cookie), el
+    // alumno escribe, toca enviar → `authUser!.id` reventaba: el texto ya se
+    // había borrado del input y `sending` quedaba en true, o sea mensaje
+    // perdido y botón muerto hasta recargar.
+    if (!authUser?.id) {
+      toast.error('Perdimos la conexión con tu sesión. Recargá la app para enviar.');
+      return;
+    }
+
     setSending(true);
 
     const msg = newMessage.trim();
@@ -150,7 +228,7 @@ export default function ChatPage() {
     // Optimistic add
     setMessages((prev) => [...prev, {
       id: tempId,
-      from_user_id: authUser!.id,
+      from_user_id: authUser.id,
       contenido: msg,
       created_at: new Date().toISOString(),
       senderName: profile?.nombre || 'Yo',

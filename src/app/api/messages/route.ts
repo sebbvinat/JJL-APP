@@ -48,13 +48,40 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
     }
 
+    // Modos:
+    //   (sin params)   → últimos PAGE_SIZE mensajes
+    //   ?since=<iso>   → solo los posteriores (poll incremental: el cliente
+    //                    hace append en vez de reemplazar los 200)
+    //   ?before=<iso>  → PAGE_SIZE anteriores (scroll hacia arriba)
+    //
+    // Internamente SIEMPRE descending+limit y se invierte antes de responder.
+    // Antes era ascending+limit(200), o sea los 200 MÁS VIEJOS: el canal con
+    // más actividad (161 mensajes) iba a congelarse al pasar de 200 y ni el
+    // alumno ni el coach verían los nuevos, sin ningún error visible.
+    const PAGE_SIZE = 50;
+    const since = request.nextUrl.searchParams.get('since');
+    const before = request.nextUrl.searchParams.get('before');
+
     const admin = getAdmin();
-    const { data: messages } = await admin
+    let q = admin
       .from('messages')
       .select('id, from_user_id, contenido, created_at')
       .eq('to_user_id', channelId)
-      .order('created_at', { ascending: true })
-      .limit(200);
+      .order('created_at', { ascending: false });
+
+    if (since) {
+      // Incremental: sin límite de página (siempre son pocos) pero acotado
+      // por seguridad.
+      q = q.gt('created_at', since).limit(200);
+    } else if (before) {
+      q = q.lt('created_at', before).limit(PAGE_SIZE);
+    } else {
+      q = q.limit(PAGE_SIZE);
+    }
+
+    const { data: rows } = await q;
+    // Devolvemos en orden cronológico, que es como los pinta el cliente.
+    const messages = (rows || []).slice().reverse();
 
     // Get sender names
     const senderIds = [...new Set((messages || []).map((m: any) => m.from_user_id))];
@@ -88,28 +115,37 @@ export async function GET(request: NextRequest) {
       .eq('rol', 'alumno')
       .order('nombre');
 
-    // Get last message per channel + unread count
-    const channels = [];
-    for (const alumno of (alumnos || [])) {
-      const { data: lastMsg } = await admin
+    // Último mensaje por canal en UNA query. Antes era un bucle con un query
+    // adentro: 1 + N (26 consultas con 25 alumnos), y se re-ejecutaba cada vez
+    // que el admin volvía a la lista. Mismo patrón que ya usa /api/admin/soporte.
+    const alumnoIds = (alumnos || []).map((a: any) => a.id);
+    const lastByChannel = new Map<string, { contenido: string | null; created_at: string; from_user_id: string }>();
+    if (alumnoIds.length > 0) {
+      const { data: recent } = await admin
         .from('messages')
-        .select('contenido, created_at, from_user_id')
-        .eq('to_user_id', alumno.id)
+        .select('contenido, created_at, from_user_id, to_user_id')
+        .in('to_user_id', alumnoIds)
         .order('created_at', { ascending: false })
-        .limit(1);
+        .limit(1000);
+      // Vienen ordenados desc → el primero de cada canal es el más reciente.
+      for (const m of (recent || []) as any[]) {
+        if (!lastByChannel.has(m.to_user_id)) lastByChannel.set(m.to_user_id, m);
+      }
+    }
 
-      const msg = lastMsg?.[0];
+    const channels = (alumnos || []).map((alumno: any) => {
+      const msg = lastByChannel.get(alumno.id);
       // "hasNew" = last message is FROM the alumno (not from an admin)
       const hasNew = msg?.from_user_id === alumno.id;
-      channels.push({
+      return {
         channelId: alumno.id,
         nombre: alumno.nombre,
         avatar_url: alumno.avatar_url,
         lastMessage: formatPreview(msg?.contenido),
         lastAt: msg?.created_at || null,
         hasNew,
-      });
-    }
+      };
+    });
 
     // Sort: channels with messages first, then by last message time
     channels.sort((a, b) => {
@@ -172,22 +208,40 @@ export async function POST(request: NextRequest) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  // Push notification
-  try {
-    const { createNotification } = await import('@/lib/notifications');
-    const senderName = (profile as any)?.nombre || 'alguien';
+  // Notificaciones: FUERA del camino crítico. Antes se esperaban antes de
+  // responder — insert + select de push_subscriptions + N llamadas HTTP a
+  // FCM/APNs, todo en serie: con 3 admins eran ~9 round-trips más HTTP externo
+  // entre que el alumno tocaba "enviar" y el mensaje aparecía (1-3 s).
+  // El mensaje YA está guardado; la notificación es best-effort.
+  const notify = (async () => {
+    try {
+      const { createNotification } = await import('@/lib/notifications');
+      const senderName = (profile as any)?.nombre || 'alguien';
+      const preview = contenido.trim().slice(0, 100);
 
-    if (isAdmin) {
-      // Admin sends → notify the alumno
-      await createNotification(channelId, 'system', `Mensaje de ${senderName}`, contenido.trim().slice(0, 100), '/chat');
-    } else {
-      // Alumno sends → notify all admins
-      const { data: admins } = await admin.from('users').select('id').eq('rol', 'admin');
-      for (const a of (admins || [])) {
-        await createNotification(a.id, 'system', `Mensaje de ${senderName}`, contenido.trim().slice(0, 100), '/chat');
+      if (isAdmin) {
+        // Admin sends → notify the alumno
+        await createNotification(channelId, 'system', `Mensaje de ${senderName}`, preview, '/chat');
+      } else {
+        // Alumno sends → notify all admins, en paralelo
+        const { data: admins } = await admin.from('users').select('id').eq('rol', 'admin');
+        await Promise.allSettled(
+          (admins || []).map((a: { id: string }) =>
+            createNotification(a.id, 'system', `Mensaje de ${senderName}`, preview, '/chat'),
+          ),
+        );
       }
-    }
-  } catch {}
+    } catch { /* best-effort */ }
+  })();
+  // `after` deja que Vercel complete el trabajo tras responder. Si no está
+  // disponible, no esperamos igual: la notificación se pierde en el peor caso,
+  // pero el mensaje —que es lo que importa— ya quedó guardado.
+  try {
+    const { after } = await import('next/server');
+    after(notify);
+  } catch {
+    void notify;
+  }
 
   return NextResponse.json({ success: true });
 }
