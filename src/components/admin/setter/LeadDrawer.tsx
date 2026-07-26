@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { X, MessageSquare, ExternalLink, UserPlus, Send, ChevronDown, Phone as PhoneIcon, DollarSign } from 'lucide-react';
 import {
   COMPROMISO_LABEL, ESTADO_LABEL, FORTALEZA_LABEL, LIMITACION_LABEL, VISION_LABEL,
-  flagFor, phoneToWaMe,
+  URGENCIA_LABEL, flagFor, phoneToWaMe,
 } from '@/lib/lead-labels';
 import { STAGES, type LeadRowExt, type LeadStage } from './Kanban';
 
@@ -294,7 +294,7 @@ export default function LeadDrawer({ lead, admins, onClose, onChanged, onConvert
           </div>
 
           {/* Quiz */}
-          {(lead.fortaleza || lead.limitacion || lead.estado || lead.vision || lead.compromiso) && (
+          {(lead.fortaleza || lead.limitacion || lead.estado || lead.vision || lead.compromiso || lead.urgencia) && (
             <div className="rounded-lg border border-jjl-border bg-white/[0.02] p-3">
               <p className="text-[10px] uppercase tracking-wide text-jjl-muted font-semibold mb-2">Quiz</p>
               <dl className="space-y-1.5 text-[12px]">
@@ -304,6 +304,31 @@ export default function LeadDrawer({ lead, admins, onClose, onChanged, onConvert
                 {lead.vision && <Row k="Visión" v={VISION_LABEL[lead.vision] || lead.vision} />}
                 {lead.compromiso && <Row k="Compromiso" v={COMPROMISO_LABEL[lead.compromiso] || lead.compromiso} />}
               </dl>
+
+              {/* Disposición a invertir — es LA pregunta que califica al lead,
+                  así que va separada y con color, no perdida entre las otras. */}
+              <div className="mt-2.5 pt-2.5 border-t border-jjl-border/50">
+                <p className="text-[10px] uppercase tracking-wide text-jjl-muted font-semibold mb-1">
+                  ¿Dispuesto a invertir?
+                </p>
+                {lead.urgencia ? (
+                  <div
+                    className={`rounded-md border px-2.5 py-1.5 text-[12px] font-semibold ${
+                      lead.urgencia === 'si'
+                        ? 'border-green-500/40 bg-green-500/10 text-green-300'
+                        : lead.urgencia === 'no'
+                          ? 'border-amber-500/40 bg-amber-500/10 text-amber-300'
+                          : 'border-jjl-border bg-white/[0.03] text-white'
+                    }`}
+                  >
+                    {URGENCIA_LABEL[lead.urgencia] || lead.urgencia}
+                  </div>
+                ) : (
+                  <p className="text-[12px] text-jjl-muted italic">
+                    No contestó — completó el quiz antes de que existiera esta pregunta
+                  </p>
+                )}
+              </div>
             </div>
           )}
 
