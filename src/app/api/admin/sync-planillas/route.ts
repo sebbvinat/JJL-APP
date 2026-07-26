@@ -104,22 +104,26 @@ export async function POST(request: NextRequest) {
 
       for (const student of planillaStudents) {
         let studentErrors = 0;
-        for (const mod of modules) {
-          const { error } = await adminClient
-            .from('course_data')
-            .upsert(
-              {
-                user_id: student.id,
-                module_id: mod.module_id,
-                semana_numero: mod.semana_numero,
-                titulo: mod.titulo,
-                descripcion: mod.descripcion,
-                lessons: applyOverrides(mod.module_id, mod.lessons),
-                updated_at: new Date().toISOString(),
-              },
-              { onConflict: 'user_id,module_id' }
-            );
-          if (error) studentErrors++;
+        // UN upsert con las 26 filas del alumno, no una por módulo. Con 30
+        // alumnos eso era 780 round-trips secuenciales (~60s) y la función
+        // se pasaba de maxDuration: el admin veía "Error de conexión" y el
+        // sync quedaba a medias. En lote son 30 requests y termina en segundos.
+        const nowIso = new Date().toISOString();
+        const rows = modules.map((mod) => ({
+          user_id: student.id,
+          module_id: mod.module_id,
+          semana_numero: mod.semana_numero,
+          titulo: mod.titulo,
+          descripcion: mod.descripcion,
+          lessons: applyOverrides(mod.module_id, mod.lessons),
+          updated_at: nowIso,
+        }));
+        const { error: upsertErr } = await adminClient
+          .from('course_data')
+          .upsert(rows, { onConflict: 'user_id,module_id' });
+        if (upsertErr) {
+          studentErrors = rows.length;
+          details.push(`${student.nombre}: ${upsertErr.message}`);
         }
 
         // Asegurar user_access de los módulos iniciales. El sync creaba las
@@ -143,12 +147,9 @@ export async function POST(request: NextRequest) {
           }
         } catch { /* best-effort: el course_data ya quedó sincronizado */ }
 
-        if (studentErrors === 0) {
-          synced++;
-        } else {
-          errors++;
-          details.push(`${student.nombre}: ${studentErrors} errores`);
-        }
+        // El detalle del error ya se agregó arriba con el mensaje real de la DB.
+        if (studentErrors === 0) synced++;
+        else errors++;
       }
     }
 

@@ -394,14 +394,35 @@ function PlanillaTab() {
     setSyncing(true);
     try {
       const res = await fetch('/api/admin/sync-planillas', { method: 'POST' });
-      const data = await res.json();
+      // Un timeout de la función devuelve HTML (504), no JSON: parsear a ciegas
+      // tiraba "Error de conexión" y ocultaba la causa real.
+      let data: { synced?: number; errors?: number; error?: string; details?: string[] } | null = null;
+      try {
+        data = await res.json();
+      } catch {
+        showToast(
+          res.status === 504 || res.status === 502
+            ? 'La sincronización tardó demasiado y se cortó. Avisá para revisarlo.'
+            : `El servidor respondió ${res.status}. Probá de nuevo.`,
+          'error',
+        );
+        setSyncing(false);
+        return;
+      }
       if (res.ok) {
-        showToast(`${data.synced} alumnos sincronizados`, 'success');
+        const fallidos = data?.errors || 0;
+        showToast(
+          fallidos > 0
+            ? `${data?.synced ?? 0} sincronizados · ${fallidos} con error`
+            : `${data?.synced ?? 0} alumnos sincronizados`,
+          fallidos > 0 ? 'error' : 'success',
+        );
+        if (data?.details?.length) console.warn('[sync-planillas]', data.details);
       } else {
-        showToast(data.error || 'Error', 'error');
+        showToast(data?.error || `Error ${res.status}`, 'error');
       }
     } catch {
-      showToast('Error de conexion', 'error');
+      showToast('No pudimos conectar con el servidor. Revisá tu conexión.', 'error');
     }
     setSyncing(false);
   }
