@@ -144,11 +144,13 @@ function AdminVideosContent() {
 
   // Local update post-save: refleja el cambio en memoria sin refetch completo
   const onLessonSaved = useCallback(
-    (savedFromTitulo: string, patch: { youtube_id?: string; titulo?: string; descripcion?: string }) => {
+    (moduleId: string, savedFromTitulo: string, patch: { youtube_id?: string; titulo?: string; descripcion?: string }) => {
       const key = normTitle(savedFromTitulo);
       setOverridesRaw((prev) => {
-        const idx = prev.findIndex((o) => o.lesson_key === key);
-        const moduleId = idx >= 0 ? prev[idx].module_id : '';   // si es nuevo, dejamos placeholder
+        // Matchea por (módulo, título), igual que la clave única de la tabla.
+        // Antes matcheaba solo por título: guardar un video actualizaba en
+        // memoria el override de OTRA semana con el mismo nombre de lección.
+        const idx = prev.findIndex((o) => o.lesson_key === key && o.module_id === moduleId);
         const merged: VideoOverride = idx >= 0
           ? {
               ...prev[idx],

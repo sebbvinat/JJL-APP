@@ -122,6 +122,27 @@ export async function POST(request: NextRequest) {
           if (error) studentErrors++;
         }
 
+        // Asegurar user_access de los módulos iniciales. El sync creaba las
+        // filas de course_data pero NUNCA las de user_access: cuando se agregó
+        // el módulo "Cómo usar la app" (semana -1), todos los alumnos
+        // existentes lo recibieron sin desbloquear. `ignoreDuplicates` hace que
+        // no pise desbloqueos ya otorgados a mano.
+        try {
+          const initial = modules.filter(
+            (m) => m.semana_numero >= -1 && m.semana_numero <= 4,
+          );
+          if (initial.length > 0) {
+            await adminClient.from('user_access').upsert(
+              initial.map((m) => ({
+                user_id: student.id,
+                module_id: m.module_id,
+                is_unlocked: true,
+              })),
+              { onConflict: 'user_id,module_id', ignoreDuplicates: true },
+            );
+          }
+        } catch { /* best-effort: el course_data ya quedó sincronizado */ }
+
         if (studentErrors === 0) {
           synced++;
         } else {

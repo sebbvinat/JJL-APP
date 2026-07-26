@@ -63,9 +63,16 @@ export default function DashboardPage() {
     }
   );
 
-  // Fetch course data for "Continuar" card
-  const { data: courseData } = useSWR<{ modules: ModuleWithLessons[] }>(
-    '/api/course-data?all=true',
+  // Fetch course data for "Continuar" card.
+  // Usa /api/student-dashboard (el endpoint combinado) en vez del viejo
+  // course-data?all=true: trae lo mismo en un solo round-trip y además los
+  // módulos DESBLOQUEADOS, que hacen falta para no mandar al alumno a una
+  // pantalla de "Módulo bloqueado".
+  const { data: courseData } = useSWR<{
+    modules: ModuleWithLessons[];
+    unlockedModuleIds?: string[];
+  }>(
+    '/api/student-dashboard',
     fetcher,
     { revalidateOnFocus: false, dedupingInterval: 120_000 }
   );
@@ -96,10 +103,15 @@ export default function DashboardPage() {
     totalLessonsCompleted: lessonsCompleted,
   });
 
-  // Find active module (lowest semana_numero with pending lessons)
+  // Find active module (lowest semana_numero with pending lessons).
+  // SOLO entre los desbloqueados: sin este filtro, el alumno que terminaba
+  // todo lo disponible veía "Continuar" apuntando al módulo siguiente (que
+  // está bloqueado) → callejón sin salida en la pantalla "Módulo Bloqueado".
   const completedLessonIds = new Set(data?.completedLessonIds || []);
+  const unlockedIds = new Set(courseData?.unlockedModuleIds || []);
   const activeModule = courseData?.modules
-    ?.filter((m) => m.lessons.some((l) => !completedLessonIds.has(l.id)))
+    ?.filter((m) => unlockedIds.size === 0 || unlockedIds.has(m.id))
+    .filter((m) => m.lessons.some((l) => !completedLessonIds.has(l.id)))
     .sort((a, b) => a.semana_numero - b.semana_numero)[0];
 
   return (

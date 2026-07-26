@@ -55,16 +55,29 @@ export function applyOverride(lesson: PlanillaLesson, ov: VideoOverride | null |
   };
 }
 
+/** Clave compuesta del índice de overrides: la tabla es UNIQUE(module_id, lesson_key). */
+export function overrideKey(moduleId: string, lessonKey: string): string {
+  return `${moduleId}::${lessonKey}`;
+}
+
 /**
- * Indexa overrides por lesson_key (normalizado) para lookup O(1).
- * Múltiples module_ids pueden tener override para el mismo lesson_key —
- * tomamos el primero (read-merge prefiere module match cuando aplica).
+ * Indexa overrides por (module_id, lesson_key) — la misma clave única que usa
+ * la tabla.
+ *
+ * Antes se indexaba SOLO por lesson_key y se quedaba con el primero. Como la
+ * planilla repite títulos entre semanas ("Juego ecológico: posiciones
+ * dominantes" aparece 13 veces, "Drill 2: De la Riva" 10), al asignar un video
+ * el editor lo mostraba en TODAS esas semanas aunque en la base solo hubiera
+ * cambiado una: los puntitos de estado y el contador "x/y videos asignados"
+ * mentían, y recargar no lo corregía. El guardado ya estaba acotado por semana;
+ * esto arregla la lectura.
  */
 export function indexOverridesByKey(overrides: VideoOverride[]): Map<string, VideoOverride> {
   const m = new Map<string, VideoOverride>();
   for (const o of overrides) {
-    if (!o?.lesson_key) continue;
-    if (!m.has(o.lesson_key)) m.set(o.lesson_key, o);
+    if (!o?.lesson_key || !o?.module_id) continue;
+    const k = overrideKey(o.module_id, o.lesson_key);
+    if (!m.has(k)) m.set(k, o);
   }
   return m;
 }
@@ -89,10 +102,13 @@ export function computePlanillaStats(planilla: Planilla, ovByKey: Map<string, Vi
   const byMes: Record<number, { total: number; filled: number }> = {};
   for (const week of planilla.weeks) {
     const mes = mesFromSemana(week.semana_numero);
+    const moduleId = week.semana_numero === -1 ? 'mod-intro' : `mod-${week.semana_numero}`;
     byMes[mes] = byMes[mes] || { total: 0, filled: 0 };
     for (const lesson of week.lessons) {
       if (lesson.tipo === 'reflection') continue;
-      const eff = applyOverride(lesson, ovByKey.get(normTitle(lesson.titulo)));
+      // Lookup por (módulo, título): sin el module_id, un título repetido en
+      // varias semanas inflaba el contador de "videos asignados".
+      const eff = applyOverride(lesson, ovByKey.get(overrideKey(moduleId, normTitle(lesson.titulo))));
       total++;
       byMes[mes].total++;
       if (eff.youtube_id) { filled++; byMes[mes].filled++; }

@@ -2,14 +2,14 @@
 
 import LessonRow from './LessonRow';
 import type { PlanillaWeek } from '@/lib/planillas';
-import { applyOverride, isSharedSemana, lessonStatus, normTitle, type VideoOverride } from '@/lib/admin-videos';
+import { applyOverride, isSharedSemana, lessonStatus, normTitle, overrideKey, type VideoOverride } from '@/lib/admin-videos';
 
 export interface SemanaCardProps {
   week: PlanillaWeek;
   overrides: Map<string, VideoOverride>;
   expandedLessonKey: string | null;       // lesson_key (normTitle) o null
   onToggleLesson: (lessonKey: string) => void;
-  onLessonSaved: (savedFromTitulo: string, patch: { youtube_id?: string; titulo?: string; descripcion?: string }) => void;
+  onLessonSaved: (moduleId: string, savedFromTitulo: string, patch: { youtube_id?: string; titulo?: string; descripcion?: string }) => void;
   searchFilter: string;                   // ya en lowercase
 }
 
@@ -30,9 +30,11 @@ export default function SemanaCard({
   const moduleId = moduleIdFromSemana(week.semana_numero);
   const shared = isSharedSemana(week.semana_numero);
 
-  // Compute lessons (con override aplicado) y dot stats
+  // Compute lessons (con override aplicado) y dot stats.
+  // El lookup incluye el moduleId: sin él, un título que se repite en varias
+  // semanas (hay uno que aparece 13 veces) mostraba el video en todas.
   const lessonsEffective = week.lessons.map((orig) => {
-    const eff = applyOverride(orig, overrides.get(normTitle(orig.titulo)));
+    const eff = applyOverride(orig, overrides.get(overrideKey(moduleId, normTitle(orig.titulo))));
     return { orig, eff };
   });
 
@@ -89,7 +91,9 @@ export default function SemanaCard({
 
       <div className="p-2 space-y-1.5">
         {filtered.map(({ orig, eff }, idx) => {
-          const key = normTitle(orig.titulo);
+          // Incluye el módulo: con solo el título, expandir una lección abría
+          // TODAS las que se llaman igual en las demás semanas.
+          const key = overrideKey(moduleId, normTitle(orig.titulo));
           // El indice mostrado es el real en la semana (no el del filtro)
           const realIndex = lessonsEffective.findIndex((l) => l.orig === orig);
           return (
@@ -102,7 +106,7 @@ export default function SemanaCard({
               originalTitulo={orig.titulo}
               expanded={expandedLessonKey === key}
               onToggle={() => onToggleLesson(key)}
-              onSaved={(patch, savedFromTitulo) => onLessonSaved(savedFromTitulo, patch)}
+              onSaved={(patch, savedFromTitulo) => onLessonSaved(moduleId, savedFromTitulo, patch)}
             />
           );
         })}

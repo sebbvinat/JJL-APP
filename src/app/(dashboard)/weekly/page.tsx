@@ -295,7 +295,7 @@ export default function WeeklyPage() {
             return (
               <Link
                 key={d.fecha}
-                href={`/journal?d=${d.fecha}`}
+                href={`/journal?fecha=${d.fecha}`}
                 className={`group aspect-square rounded-lg border flex flex-col items-center justify-center gap-1 transition-colors ${
                   d.entrenado
                     ? 'border-jjl-red/30 bg-jjl-red/5'

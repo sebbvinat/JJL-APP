@@ -546,7 +546,7 @@ function EntryCard({ entry, onChanged }: { entry: Entry; onChanged: () => void }
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <Link
-              href={`/journal?d=${entry.fecha}`}
+              href={`/journal?fecha=${entry.fecha}`}
               className="text-[12px] font-semibold text-white hover:text-jjl-red"
             >
               {format(parseISO(entry.fecha), "EEE d 'de' MMM", { locale: es })}

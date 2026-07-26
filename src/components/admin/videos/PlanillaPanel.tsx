@@ -12,7 +12,7 @@ export interface PlanillaPanelProps {
   setSearchFilter: (s: string) => void;
   expandedLessonKey: string | null;
   onToggleLesson: (lessonKey: string) => void;
-  onLessonSaved: (savedFromTitulo: string, patch: { youtube_id?: string; titulo?: string; descripcion?: string }) => void;
+  onLessonSaved: (moduleId: string, savedFromTitulo: string, patch: { youtube_id?: string; titulo?: string; descripcion?: string }) => void;
   mesFilter: number | null;       // null = mostrar todos, sino solo el mes seleccionado
 }
 
