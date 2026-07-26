@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
+import { imageExtFor, randomSuffix } from '@/lib/upload-types';
 
 export const runtime = 'nodejs';
 
@@ -48,10 +49,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Imagen demasiado grande (máx 10MB)' }, { status: 400 });
   }
 
-  // Validar tipo: solo imágenes. Evita subir cualquier blob al bucket.
-  const imageType = image.type || '';
-  if (!imageType.startsWith('image/')) {
-    return NextResponse.json({ error: 'Tipo de archivo inválido' }, { status: 400 });
+  // Whitelist por MIME. `startsWith('image/')` dejaba pasar image/svg+xml,
+  // que servido desde el bucket ejecuta scripts en el origen del storage.
+  const imageType = (image.type || '').split(';')[0].trim().toLowerCase();
+  const ext = imageExtFor(imageType);
+  if (!ext) {
+    return NextResponse.json(
+      { error: 'Formato no permitido. Usá JPG, PNG o WEBP.' },
+      { status: 400 },
+    );
   }
 
   const adminClient = createClient(
@@ -60,12 +66,9 @@ export async function POST(request: NextRequest) {
     { auth: { autoRefreshToken: false, persistSession: false } }
   );
 
-  const ext = imageType.includes('png') ? 'png'
-    : imageType.includes('webp') ? 'webp'
-    : imageType.includes('gif') ? 'gif'
-    : imageType.includes('heic') ? 'heic'
-    : 'jpg';
-  const fileName = `chat/${channelId}/${Date.now()}.${ext}`;
+  // Sufijo aleatorio: el bucket es público y la URL permanente, así que sin
+  // esto la ruta (canal + timestamp) es adivinable por fuerza bruta.
+  const fileName = `chat/${channelId}/${Date.now()}-${randomSuffix()}.${ext}`;
   const buffer = Buffer.from(await image.arrayBuffer());
 
   const { error: uploadError } = await adminClient.storage

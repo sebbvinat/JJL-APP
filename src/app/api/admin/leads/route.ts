@@ -19,6 +19,11 @@ export async function GET(request: NextRequest) {
     if (!ctx) return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
 
     const { admin } = ctx;
+    // Un setter solo ve su propia cartera: los leads asignados a él más los
+    // que están sin asignar (hoy están TODOS sin asignar, así que en la
+    // práctica sigue viendo lo mismo — pero el día que haya dos setters no se
+    // pisan ni se leen los contactos del otro).
+    const isSetter = ctx.tags.includes('setter');
     const url = new URL(request.url);
     const filter = url.searchParams.get('filter') || 'all';
     const stageParam = url.searchParams.get('stage');
@@ -50,6 +55,9 @@ export async function GET(request: NextRequest) {
     if (assignedParam) {
       if (assignedParam === 'unassigned') query = query.is('assigned_to', null);
       else query = query.eq('assigned_to', assignedParam);
+    }
+    if (isSetter) {
+      query = query.or(`assigned_to.eq.${ctx.user.id},assigned_to.is.null`);
     }
 
     const { data, error } = await query;

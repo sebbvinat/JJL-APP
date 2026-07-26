@@ -9,6 +9,20 @@ export async function GET(_request: NextRequest, ctx: Ctx) {
   const auth = await requireAdmin(_request);
   if (!auth) return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
 
+  // Un setter solo lee el historial de SU cartera (asignados a él o sin
+  // asignar). Sin esto podía iterar todos los leads y leer las notas de
+  // ventas ajenas.
+  if (auth.tags.includes('setter')) {
+    const { data: lead } = await auth.admin
+      .from('lead_quiz_responses')
+      .select('assigned_to')
+      .eq('id', id)
+      .maybeSingle<{ assigned_to: string | null }>();
+    if (lead && lead.assigned_to && lead.assigned_to !== auth.user.id) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
+    }
+  }
+
   const { data, error } = await auth.admin
     .from('lead_contacts')
     .select('id, canal, direccion, nota, hecho_por, created_at')

@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { listDriveFolderAll, listMainSubfolders } from '@/lib/google-drive';
+import { requireCron } from '@/lib/cron';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -264,13 +265,12 @@ export async function POST(request: NextRequest) {
  * Auth: header `Authorization: Bearer ${CRON_SECRET}` (Vercel lo manda).
  */
 export async function GET(request: NextRequest) {
-  const cronSecret = process.env.CRON_SECRET;
-  if (cronSecret) {
-    const authHeader = request.headers.get('authorization');
-    if (authHeader !== `Bearer ${cronSecret}`) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-  }
+  // Era la única ruta que NO usaba requireCron(): si CRON_SECRET no estaba
+  // seteada no chequeaba nada y cualquiera disparaba un sync completo de
+  // Drive. El helper falla cerrado y compara en tiempo constante.
+  const deny = requireCron(request);
+  if (deny) return deny;
+
   const result = await runSync(adminSb());
   const status = (result as { error?: string; status?: number }).status;
   if (status) return NextResponse.json({ error: (result as { error?: string }).error }, { status });

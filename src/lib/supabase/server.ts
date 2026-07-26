@@ -85,21 +85,35 @@ export async function getAuthedUser(request: NextRequest) {
 
 /**
  * Helper: return the authenticated user AND verify admin role.
- * Returns { user, supabase, admin } where admin is the service-role client,
- * or null if not authenticated / not admin.
+ * Returns { user, supabase, admin, tags } where admin is the service-role
+ * client, or null if not authenticated / not admin.
+ *
+ * `opts.denyTags`: rechaza al caller si tiene alguno de esos tags. Los setters
+ * son rol='admin' + tags:['setter'], así que sin esto pasan por TODOS los
+ * endpoints de admin. El middleware ya aplica una whitelist global; esto es la
+ * segunda capa para las rutas sensibles (defensa en profundidad — si alguien
+ * suma una ruta al whitelist por error, el guard local sigue cerrando).
  */
-export async function requireAdmin(request: NextRequest) {
+export async function requireAdmin(
+  request: NextRequest,
+  opts?: { denyTags?: string[] },
+) {
   const { user, supabase } = await getAuthedUser(request);
   if (!user) return null;
 
   const admin = createAdminSupabaseClient();
   const { data: profile } = await admin
     .from('users')
-    .select('rol')
+    .select('rol, tags')
     .eq('id', user.id)
-    .single();
+    .single<{ rol: string; tags: string[] | null }>();
 
   if (profile?.rol !== 'admin') return null;
 
-  return { user, supabase, admin };
+  const tags = profile?.tags || [];
+  if (opts?.denyTags?.length && opts.denyTags.some((t) => tags.includes(t))) {
+    return null;
+  }
+
+  return { user, supabase, admin, tags };
 }

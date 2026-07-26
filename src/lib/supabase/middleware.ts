@@ -3,6 +3,40 @@ import { NextResponse, type NextRequest } from 'next/server';
 import type { SupabaseClient, User } from '@supabase/supabase-js';
 import { getSiteFromRequest } from '@/lib/hosts';
 
+/**
+ * Rutas de admin que un SETTER sí puede usar. Todo lo demás bajo /api/admin/*
+ * le queda cerrado (deny-by-default): así una ruta nueva nace protegida en
+ * lugar de nacer expuesta por olvido.
+ *
+ * El setter solo opera el Kanban de /admin/agendas, así que necesita:
+ *  - listar y editar leads (y sus sub-rutas: contacts, convert, mark-sale)
+ *  - su resumen de ventas y comisión
+ *  - el dropdown de asignación (GET de tags — el PATCH queda bloqueado abajo)
+ *  - marcar como vista la guía de bienvenida
+ */
+const SETTER_ALLOWED_PREFIXES = [
+  '/api/admin/leads',
+  '/api/admin/setter/',
+];
+
+/** Rutas permitidas al setter solo en lectura. */
+const SETTER_ALLOWED_GET_ONLY = ['/api/admin/tags'];
+
+function isAdminApi(pathname: string): boolean {
+  return pathname.startsWith('/api/admin/');
+}
+
+function isSetterAllowed(pathname: string, method: string): boolean {
+  if (SETTER_ALLOWED_GET_ONLY.some((p) => pathname === p || pathname.startsWith(p + '/'))) {
+    // Sin el gate de método, un setter se borra su propio tag 'setter' con un
+    // PATCH y el panel deja de restringirlo: escalada a admin pleno.
+    return method === 'GET';
+  }
+  return SETTER_ALLOWED_PREFIXES.some(
+    (p) => pathname === p || pathname.startsWith(p.endsWith('/') ? p : p + '/'),
+  );
+}
+
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
@@ -73,12 +107,13 @@ async function handleAlumno(
     if (!isPublicLeadApi && user) {
       const { data: prof } = await supabase
         .from('users')
-        .select('rol, program_member, onboarding_completed_at')
+        .select('rol, program_member, onboarding_completed_at, tags')
         .eq('id', user.id)
         .single<{
           rol: string;
           program_member: boolean | null;
           onboarding_completed_at: string | null;
+          tags: string[] | null;
         }>();
       const isAdmin = prof?.rol === 'admin';
       const isCursosClient = prof?.rol === 'cliente_cursos';
@@ -88,6 +123,17 @@ async function handleAlumno(
         prof?.onboarding_completed_at !== null;
       if (!isAdmin && (isCursosClient || isGhostAlumno)) {
         return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
+      }
+
+      // GATE DE SETTER. Un setter es rol='admin' + tags:['setter'], así que
+      // pasa `requireAdmin` en TODOS los endpoints de admin — el límite a
+      // /admin/agendas vive solo en el cliente. Acá lo cerramos del lado del
+      // server con una whitelist: es un único punto de control y las rutas
+      // nuevas quedan protegidas por defecto (deny-by-default).
+      if (isAdmin && (prof?.tags || []).includes('setter') && isAdminApi(pathname)) {
+        if (!isSetterAllowed(pathname, request.method)) {
+          return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
+        }
       }
     }
     return supabaseResponse;

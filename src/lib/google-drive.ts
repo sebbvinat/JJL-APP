@@ -181,10 +181,21 @@ export async function createDriveFolder(folderName: string) {
     supportsAllDrives: true,
   });
 
+  // Permiso de SOLO LECTURA. Antes era 'writer' + 'anyone': cualquiera con el
+  // link podía agregar y sobre todo BORRAR los videos de entrenamiento del
+  // alumno. La subida no se ve afectada porque va por una URL resumable que
+  // firma el service account (initResumableUpload), no por el permiso del
+  // alumno sobre la carpeta.
+  //
+  // Se mantiene 'anyone' —en vez de 'user' con el email del alumno— porque
+  // varios alumnos se registraron con mails que no son cuentas de Google
+  // (icloud, hotmail) y ahí el permiso por usuario no les daría acceso.
+  // Endurecer a 'user' requiere primero confirmar que cada alumno tenga una
+  // cuenta de Google asociada.
   await drive.permissions.create({
     fileId: response.data.id!,
     requestBody: {
-      role: 'writer',
+      role: 'reader',
       type: 'anyone',
     },
     supportsAllDrives: true,

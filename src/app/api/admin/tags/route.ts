@@ -20,12 +20,22 @@ function getAdminClient() {
 async function ensureAdmin(request: NextRequest) {
   const supabase = getSupabase(request);
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { admin: null, error: 'No autenticado', status: 401 } as const;
-  const { data: profile } = await supabase.from('users').select('rol').eq('id', user.id).single();
-  if ((profile as { rol?: string } | null)?.rol !== 'admin') {
-    return { admin: null, error: 'No autorizado', status: 403 } as const;
+  if (!user) return { admin: null, userId: null, tags: [], error: 'No autenticado', status: 401 } as const;
+  const { data: profile } = await supabase
+    .from('users')
+    .select('rol, tags')
+    .eq('id', user.id)
+    .single<{ rol: string; tags: string[] | null }>();
+  if (profile?.rol !== 'admin') {
+    return { admin: null, userId: null, tags: [], error: 'No autorizado', status: 403 } as const;
   }
-  return { admin: getAdminClient(), error: null, status: 200 } as const;
+  return {
+    admin: getAdminClient(),
+    userId: user.id,
+    tags: profile?.tags || [],
+    error: null,
+    status: 200,
+  } as const;
 }
 
 const ALLOWED_TAGS = new Set(['soporte', 'profesor', 'setter']);
@@ -66,6 +76,21 @@ export async function PATCH(request: NextRequest) {
   const userId = String(body?.userId || '');
   const rawTags = Array.isArray(body?.tags) ? body.tags : null;
   if (!userId || !rawTags) return NextResponse.json({ error: 'userId y tags requeridos' }, { status: 400 });
+
+  // Nadie edita sus PROPIOS tags. Sin esto, un setter se borra el tag
+  // 'setter' a sí mismo y queda con panel de admin completo — era el camino
+  // de escalada más directo que había.
+  if (userId === auth.userId) {
+    return NextResponse.json(
+      { error: 'No podés modificar tus propios permisos' },
+      { status: 403 },
+    );
+  }
+  // Segunda capa: un setter tampoco edita los tags de otros (el middleware ya
+  // le bloquea el PATCH, esto cubre si esa whitelist cambiara).
+  if (auth.tags.includes('setter')) {
+    return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
+  }
 
   const tags = rawTags
     .map((t: unknown) => String(t).toLowerCase().trim())

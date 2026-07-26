@@ -29,6 +29,9 @@ function EditModulePageInner() {
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [hasChanges, setHasChanges] = useState(false);
+  // Planilla de la fila que se cargó. Se reenvía al guardar para que el update
+  // masivo se acote a ESA planilla (sin esto pisaba las 4).
+  const [sourcePlanilla, setSourcePlanilla] = useState<string | null>(null);
 
   function showToast(message: string, type: 'success' | 'error') {
     setToast({ message, type });
@@ -48,6 +51,7 @@ function EditModulePageInner() {
           const data = await res.json();
           if (data.module) {
             setModule(data.module);
+            setSourcePlanilla(data.planilla_id ?? null);
             setLoading(false);
             return;
           }
@@ -147,7 +151,11 @@ function EditModulePageInner() {
           titulo: module.titulo,
           descripcion: module.descripcion,
           lessons: module.lessons,
-          ...(targetUserId ? { userId: targetUserId } : {}),
+          ...(targetUserId
+            ? { userId: targetUserId }
+            : sourcePlanilla
+              ? { planilla_id: sourcePlanilla }
+              : {}),
         }),
       });
 

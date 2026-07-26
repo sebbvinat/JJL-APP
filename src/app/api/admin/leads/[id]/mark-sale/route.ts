@@ -104,11 +104,15 @@ export async function POST(request: NextRequest, ctx: Ctx) {
   }
 
   // Loguear contacto para el historial del Drawer.
+  //
+  // OJO: NO escribimos el monto bruto acá. El historial de contactos lo lee
+  // cualquier admin —incluidos los setters— sin filtro, así que poner el
+  // ticket en texto plano anulaba el hideAmount de sales-summary y
+  // commission-monthly. El monto ya vive estructurado en lead_sales.monto,
+  // que sí está controlado; el setter ve su comisión, que es lo que le toca.
   try {
-    const montoText = monto != null ? `${monto.toLocaleString('es-AR')} ${moneda}` : null;
     const nota = [
       `💰 ${isFee ? 'Fee/reserva' : 'Venta'} marcada manualmente`,
-      montoText && `Monto: ${montoText}`,
       !isFee && monto != null && `Comisión (${ratePct(setterId)}%): $${comision.toLocaleString('es-AR')}`,
       concepto && `Concepto: ${concepto}`,
     ].filter(Boolean).join(' · ');

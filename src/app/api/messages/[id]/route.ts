@@ -37,12 +37,13 @@ export async function DELETE(request: NextRequest, ctx: Ctx) {
     { auth: { autoRefreshToken: false, persistSession: false } }
   );
 
-  // Traer el mensaje para saber si tiene archivo asociado.
+  // Traer el mensaje para saber si tiene archivo asociado. Necesitamos también
+  // to_user_id (el canal) para validar que el archivo pertenezca a ESTE hilo.
   const { data: msg } = await admin
     .from('messages')
-    .select('id, contenido')
+    .select('id, contenido, to_user_id')
     .eq('id', id)
-    .maybeSingle<{ id: string; contenido: string | null }>();
+    .maybeSingle<{ id: string; contenido: string | null; to_user_id: string }>();
 
   if (!msg) return NextResponse.json({ error: 'Mensaje no encontrado' }, { status: 404 });
 
@@ -52,6 +53,11 @@ export async function DELETE(request: NextRequest, ctx: Ctx) {
 
   // Best-effort: borrar el archivo del bucket si era audio/imagen. El path
   // dentro del bucket es lo que sigue a "/avatars/" en la URL pública.
+  //
+  // SEGURIDAD: el contenido del mensaje lo escribe el usuario, así que un
+  // alumno podía mandar el texto literal `[image]https://…/avatars/<uuid>.jpg`
+  // y, cuando un admin borraba ese mensaje, el service-role borraba el avatar
+  // de otra persona. Solo tocamos archivos dentro de la carpeta de ESTE canal.
   const contenido = msg.contenido || '';
   const isFile = contenido.startsWith('[audio]') || contenido.startsWith('[image]');
   if (isFile) {
@@ -59,10 +65,14 @@ export async function DELETE(request: NextRequest, ctx: Ctx) {
     const marker = '/avatars/';
     const idx = url.indexOf(marker);
     if (idx !== -1) {
-      const path = url.slice(idx + marker.length);
-      try {
-        await admin.storage.from('avatars').remove([path]);
-      } catch { /* best-effort — la fila ya se borró, eso es lo importante */ }
+      const path = decodeURIComponent(url.slice(idx + marker.length).split('?')[0]);
+      const expectedPrefix = `chat/${msg.to_user_id}/`;
+      const isOwnChannelFile = path.startsWith(expectedPrefix) && !path.includes('..');
+      if (isOwnChannelFile) {
+        try {
+          await admin.storage.from('avatars').remove([path]);
+        } catch { /* best-effort — la fila ya se borró, eso es lo importante */ }
+      }
     }
   }
 

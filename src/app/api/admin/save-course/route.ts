@@ -6,12 +6,12 @@ import { logger } from '@/lib/logger';
  * Admin: update a module's content (title, description, lessons).
  *
  * Body:
- *   { module_id, semana_numero, titulo, descripcion, lessons, userId? }
+ *   { module_id, semana_numero, titulo, descripcion, lessons, userId?, planilla_id? }
  *
- * - If `userId` is present → upsert that single student's row.
- * - If omitted → propagate the edit to ALL students that already have this
- *   module assigned (bulk update). This was the implicit intent of the
- *   previous (broken) `onConflict: 'module_id'` code.
+ * - Con `userId` → upsert de la fila de ESE alumno.
+ * - Sin `userId` → propaga a los alumnos de `planilla_id`. `planilla_id` es
+ *   OBLIGATORIO en ese caso: sin él, el update pisaba las 4 planillas con el
+ *   contenido de una sola.
  */
 export async function POST(request: NextRequest) {
   try {
@@ -27,6 +27,7 @@ export async function POST(request: NextRequest) {
       descripcion?: string;
       lessons?: unknown[];
       userId?: string;
+      planilla_id?: string;
     };
 
     if (!module_id || !titulo) {
@@ -55,18 +56,43 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, scope: 'single', userId });
     }
 
-    // No userId → propagate to every student that already has this module.
-    const { data: affected, error: listErr } = await adminClient
-      .from('course_data')
-      .select('user_id')
-      .eq('module_id', module_id);
+    // Sin userId → propagar. PERO acotado a UNA planilla.
+    //
+    // Antes se hacía `.update(payload).eq('module_id', module_id)` a secas: el
+    // contenido cargado desde el editor (que sale de la fila de UN alumno) se
+    // escribía sobre las CUATRO planillas. Un coach corrigiendo un título
+    // podía meter lecciones de simbio en livianos/medios/atléticos y dejar el
+    // progreso de esos alumnos apuntando a ids inexistentes.
+    //
+    // La planilla objetivo viene del body; si no viene, la deducimos de la
+    // fila de referencia que se está editando.
+    const targetPlanilla =
+      typeof body?.planilla_id === 'string' && body.planilla_id.trim()
+        ? body.planilla_id.trim()
+        : null;
 
-    if (listErr) {
-      logger.error('admin.save-course.list.failed', { err: listErr, module_id });
-      return NextResponse.json({ error: listErr.message }, { status: 500 });
+    if (!targetPlanilla) {
+      return NextResponse.json(
+        {
+          error:
+            'Falta planilla_id. Guardar sin planilla afectaría a los 4 curriculums a la vez.',
+        },
+        { status: 400 },
+      );
     }
 
-    const userIds = ((affected as Array<{ user_id: string }> | null) || []).map((r) => r.user_id);
+    // Usuarios de ESA planilla que ya tienen el módulo.
+    const { data: planillaUsers, error: usersErr } = await adminClient
+      .from('users')
+      .select('id')
+      .eq('planilla_id', targetPlanilla);
+
+    if (usersErr) {
+      logger.error('admin.save-course.users.failed', { err: usersErr, targetPlanilla });
+      return NextResponse.json({ error: usersErr.message }, { status: 500 });
+    }
+
+    const userIds = ((planillaUsers as Array<{ id: string }> | null) || []).map((r) => r.id);
     if (userIds.length === 0) {
       return NextResponse.json({ success: true, scope: 'none', count: 0 });
     }
@@ -74,14 +100,20 @@ export async function POST(request: NextRequest) {
     const { error: updateErr } = await adminClient
       .from('course_data')
       .update(payload)
-      .eq('module_id', module_id);
+      .eq('module_id', module_id)
+      .in('user_id', userIds);
 
     if (updateErr) {
       logger.error('admin.save-course.update.failed', { err: updateErr, module_id });
       return NextResponse.json({ error: updateErr.message }, { status: 500 });
     }
 
-    return NextResponse.json({ success: true, scope: 'all', count: userIds.length });
+    return NextResponse.json({
+      success: true,
+      scope: 'planilla',
+      planilla_id: targetPlanilla,
+      count: userIds.length,
+    });
   } catch (err) {
     logger.error('admin.save-course.unhandled', { err });
     return NextResponse.json({ error: 'Error interno' }, { status: 500 });

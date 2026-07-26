@@ -125,12 +125,12 @@ export async function POST(request: NextRequest) {
 
   // Anotar también en lead_contacts para que quede en el historial del Drawer.
   try {
-    const montoText = monto != null ? `${monto.toLocaleString('es-AR')}${moneda ? ' ' + moneda : ''}` : null;
+    // Sin monto bruto en la nota: el historial de contactos lo leen también
+    // los setters (ver mark-sale). El monto queda en lead_sales.
     const assignedSetter = (lead as { assigned_to?: string | null }).assigned_to ?? null;
     const comision = !isFee && monto != null ? commissionFor(monto, assignedSetter) : null;
     const nota = [
       `💰 ${isFee ? 'Fee/reserva' : 'Venta'} registrada en CRM`,
-      montoText && `Monto: ${montoText}`,
       comision != null && `Comisión setter (${ratePct(assignedSetter)}%): $${comision.toLocaleString('es-AR')}`,
       situacion && `Situación: ${situacion}`,
       fecha && `Fecha: ${new Date(fecha).toLocaleString('es-AR')}`,

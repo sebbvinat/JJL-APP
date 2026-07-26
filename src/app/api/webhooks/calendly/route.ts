@@ -216,12 +216,17 @@ function extractPhone(payload: Record<string, unknown>): string | null {
 function verifyCalendlySignature(request: NextRequest, rawBody: string): boolean {
   const signingKey = process.env.CALENDLY_WEBHOOK_SIGNING_KEY;
   if (!signingKey) {
-    if (process.env.CALENDLY_WEBHOOK_STRICT === '1') {
-      logger.error('calendly.webhook.no_signing_key.strict_reject');
-      return false;
-    }
-    logger.warn('calendly.webhook.no_signing_key');
-    return true;
+    // FAIL-CLOSED. Antes, sin la key configurada, esto devolvía `true` y
+    // aceptaba cualquier POST sin firma: se podían inyectar agendas falsas,
+    // pisar leads descartados y borrar la fecha de reservas reales. Un
+    // endpoint que se ABRE cuando falta configuración es peor que uno que se
+    // cae — el que se cae se nota. Mismo criterio que mark-sold.
+    //
+    // Si esto empieza a rechazar en producción: setear
+    // CALENDLY_WEBHOOK_SIGNING_KEY en Vercel con el "Signing Key" que da
+    // Calendly en su panel de Webhooks.
+    logger.error('calendly.webhook.no_signing_key.reject');
+    return false;
   }
 
   const header = request.headers.get('Calendly-Webhook-Signature');

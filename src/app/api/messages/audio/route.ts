@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
+import { audioExtFor, randomSuffix } from '@/lib/upload-types';
 
 export async function POST(request: NextRequest) {
   const supabase = createServerClient(
@@ -39,10 +40,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Audio demasiado largo (max 5MB)' }, { status: 400 });
   }
 
-  // Validar tipo: solo audio. Evita subir cualquier blob arbitrario al bucket.
-  const audioType = audio.type || '';
-  if (!audioType.startsWith('audio/')) {
-    return NextResponse.json({ error: 'Tipo de archivo inválido' }, { status: 400 });
+  // Whitelist por MIME (mismo criterio que imágenes: la extensión nunca sale
+  // del nombre del archivo, que lo controla el cliente).
+  const audioType = (audio.type || '').split(';')[0].trim().toLowerCase();
+  const ext = audioExtFor(audioType);
+  if (!ext) {
+    return NextResponse.json({ error: 'Formato de audio no permitido' }, { status: 400 });
   }
 
   const adminClient = createClient(
@@ -55,11 +58,7 @@ export async function POST(request: NextRequest) {
   // archivo (iOS Safari graba audio/mp4, Chrome audio/webm) para que el
   // <audio> lo reproduzca en cualquier dispositivo. Antes se forzaba .webm,
   // que iOS no puede reproducir.
-  const ext = audioType.includes('mp4') ? 'mp4'
-    : audioType.includes('mpeg') ? 'mp3'
-    : audioType.includes('ogg') ? 'ogg'
-    : 'webm';
-  const fileName = `chat/${channelId}/${Date.now()}.${ext}`;
+  const fileName = `chat/${channelId}/${Date.now()}-${randomSuffix()}.${ext}`;
   const buffer = Buffer.from(await audio.arrayBuffer());
 
   const { error: uploadError } = await adminClient.storage

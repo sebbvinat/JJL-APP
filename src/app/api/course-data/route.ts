@@ -191,20 +191,75 @@ export async function GET(request: NextRequest) {
     console.error('course-data fetch error:', error.message);
   }
 
-  // Admin fallback: if no row exists for this admin/student combo, return
-  // any row for the module. Bulk saves keep rows in sync per module, so any
-  // row reflects the canonical version.
+  // Admin fallback: si no hay fila para este admin, tomamos la de OTRO usuario
+  // como referencia canónica del módulo.
+  //
+  // Antes era `.limit(1)` sin orden: devolvía la fila de un alumno arbitrario,
+  // de cualquier planilla. Si el coach abría el editor así y guardaba, escribía
+  // contenido de (por ejemplo) simbio sobre las otras tres planillas. Ahora
+  // resolvemos por la planilla del propio admin y, si no tiene, de forma
+  // determinística — así lo que ve es siempre lo mismo.
   if (!data && isAdmin) {
-    const { data: anyRow } = await adminClient
-      .from('course_data')
-      .select('*')
+    const { data: adminProfile } = await adminClient
+      .from('users')
+      .select('planilla_id')
+      .eq('id', user.id)
+      .maybeSingle<{ planilla_id: string | null }>();
+
+    let ref: Record<string, unknown> | null = null;
+    if (adminProfile?.planilla_id) {
+      const { data: samePlanilla } = await adminClient
+        .from('course_data')
+        .select('*, users!inner(planilla_id)')
+        .eq('module_id', moduleId)
+        .eq('users.planilla_id', adminProfile.planilla_id)
+        .order('user_id', { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      ref = samePlanilla ?? null;
+    }
+    if (!ref) {
+      const { data: anyRow } = await adminClient
+        .from('course_data')
+        .select('*')
+        .eq('module_id', moduleId)
+        .order('user_id', { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      ref = anyRow ?? null;
+    }
+    if (ref) data = ref;
+  }
+
+  // GATE DE DESBLOQUEO. El candado vivía solo en el cliente: un alumno de Mes 1
+  // podía pedir mod-24 por API y sacar títulos + youtube_id de los 6 meses.
+  // Los admins pasan de largo (necesitan ver todo para editar).
+  if (data && !isAdmin && targetUserId === user.id) {
+    const { data: access } = await adminClient
+      .from('user_access')
+      .select('is_unlocked')
+      .eq('user_id', user.id)
       .eq('module_id', moduleId)
-      .limit(1)
-      .maybeSingle();
-    if (anyRow) data = anyRow;
+      .maybeSingle<{ is_unlocked: boolean | null }>();
+    if (!access?.is_unlocked) {
+      return NextResponse.json({ error: 'Modulo bloqueado' }, { status: 403 });
+    }
   }
 
   if (data) {
+    // De qué planilla es la fila que estamos devolviendo. El editor la
+    // reenvía al guardar, para que el update se acote a ESA planilla y no
+    // pise las otras tres (ver save-course).
+    let sourcePlanilla: string | null = null;
+    if (isAdmin) {
+      const { data: owner } = await adminClient
+        .from('users')
+        .select('planilla_id')
+        .eq('id', data.user_id)
+        .maybeSingle<{ planilla_id: string | null }>();
+      sourcePlanilla = owner?.planilla_id ?? null;
+    }
+
     return NextResponse.json({
       module: {
         id: data.module_id,
@@ -218,6 +273,7 @@ export async function GET(request: NextRequest) {
         titulo: data.titulo,
         descripcion: data.descripcion || '',
       },
+      planilla_id: sourcePlanilla,
     });
   }
 
