@@ -47,9 +47,11 @@ interface ModuleWithLessons {
 }
 
 export default function DashboardPage() {
-  const today = format(new Date(), 'yyyy-MM-dd');
+  // El server calcula "hoy" en hora argentina (lib/dates). Ya no le mandamos
+  // la fecha del dispositivo: era el único de los tres cálculos de fecha de la
+  // app que dependía del cliente.
   const { data, isLoading: loading } = useSWR<DashboardData>(
-    `/api/dashboard-stats?today=${today}`,
+    '/api/dashboard-stats',
     fetcher,
     {
       // revalidateOnFocus:false — dashboard-stats no es tiempo real; cambia
@@ -216,7 +218,9 @@ export default function DashboardPage() {
             <div className="w-full bg-jjl-gray-light rounded-full h-2.5">
               <div
                 className="bg-gradient-to-r from-jjl-red to-orange-500 h-2.5 rounded-full transition-all duration-700"
-                style={{ width: `${data?.overallProgress || 0}%` }}
+                // Clamp defensivo: si el dato viniera fuera de rango la barra
+                // se desbordaba del contenedor (pasaba con el 118%).
+                style={{ width: `${Math.min(100, Math.max(0, data?.overallProgress || 0))}%` }}
               />
             </div>
             {(data?.completedWeeksCount ?? 0) > 0 && (

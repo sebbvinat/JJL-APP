@@ -4,6 +4,7 @@ import { createAdminSupabaseClient } from '@/lib/supabase/server';
 import { sendPushToUser, createNotification } from '@/lib/notifications';
 import { requireCron } from '@/lib/cron';
 import { logger } from '@/lib/logger';
+import { todayInAppTz, dateKeyDaysAgo } from '@/lib/dates';
 
 /**
  * Daily journal reminder + re-engagement. Corre via Vercel Cron a las
@@ -60,8 +61,12 @@ export async function GET(request: NextRequest) {
   if (denied) return denied;
 
   const admin = createAdminSupabaseClient();
-  const today = format(new Date(), 'yyyy-MM-dd');
-  const floor = format(subDays(new Date(), 14), 'yyyy-MM-dd');
+  // La fecha se calcula en hora ARGENTINA, no en UTC. El cron corre 00:00 UTC
+  // = 21:00 ART, así que `format(new Date(),...)` ya devolvía MAÑANA: el set
+  // `journaledToday` quedaba vacío y el recordatorio le llegaba a todos los
+  // alumnos activos, incluidos los que ya habían cargado el diario.
+  const today = todayInAppTz();
+  const floor = dateKeyDaysAgo(14);
 
   const [usersRes, tasksRes] = await Promise.all([
     admin.from('users').select('id, nombre, created_at, program_member').eq('rol', 'alumno'),

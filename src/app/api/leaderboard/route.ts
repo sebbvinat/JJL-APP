@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
-import { format, subDays } from 'date-fns';
+import { dateKeyDaysAgo } from '@/lib/dates';
 
 /**
  * GET /api/leaderboard
@@ -50,8 +50,11 @@ export async function GET(request: NextRequest) {
   }
 
   const userIds = users.map((u: any) => u.id);
-  const today = new Date();
-  const ninetyDaysAgo = format(subDays(today, 90), 'yyyy-MM-dd');
+  // Fechas en hora ARGENTINA. Con `new Date()` en UTC, después de las 21:00
+  // ART el índice 0 del loop de racha apuntaba a MAÑANA y se consumía el slot
+  // de tolerancia de "hoy todavía no entrené": el alumno veía su racha en 0 en
+  // el Ranking (pero bien en el Dashboard) entre las 21:00 y las 23:59.
+  const ninetyDaysAgo = dateKeyDaysAgo(90);
 
   // Queries en paralelo, ambas acotadas a userIds + ventana de 90 días.
   const [{ data: allProgress }, { data: allTraining }] = await Promise.all([
@@ -87,7 +90,7 @@ export async function GET(request: NextRequest) {
   for (const [userId, dates] of Object.entries(userTrainingDates)) {
     let streak = 0;
     for (let i = 0; i < 90; i++) {
-      const d = format(subDays(today, i), 'yyyy-MM-dd');
+      const d = dateKeyDaysAgo(i);
       if (dates.has(d)) streak++;
       else if (i > 0) break;
     }

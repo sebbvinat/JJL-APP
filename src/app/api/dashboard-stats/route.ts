@@ -5,6 +5,7 @@ import { calculateGamification } from '@/lib/gamification';
 import { BELT_PROGRESSION } from '@/lib/constants';
 import { createNotification, BELT_NAMES } from '@/lib/notifications';
 import { logger } from '@/lib/logger';
+import { todayInAppTz } from '@/lib/dates';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 interface ProfileRow {
@@ -110,10 +111,11 @@ async function fallbackWeekCompletion(
   return weeks;
 }
 
-// Ancla la racha en el "hoy" DEL ALUMNO (llega por ?today= desde el cliente),
-// no en el reloj del server. Vercel corre en UTC: entre las ~21:00 y las
-// 23:59 hora Argentina el server ya está en "mañana", y la racha se veía
-// rota de noche aunque el alumno hubiera entrenado.
+// Ancla la racha en el "hoy" de Argentina, calculado en el SERVER (ver
+// lib/dates). Antes llegaba por ?today= desde el cliente: funcionaba, pero
+// era el único de los tres lugares que calculan fecha que lo hacía así
+// (el cron no tiene cliente a quien preguntarle, y el leaderboard usaba UTC),
+// y además un alumno podía mandar otra fecha para inflar su racha.
 function computeStreak(trainedDates: string[], todayStr: string): number {
   const set = new Set(trainedDates);
   // Mediodía para esquivar saltos de DST al restar días.
@@ -178,8 +180,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
   }
 
-  const url = new URL(request.url);
-  const today = url.searchParams.get('today') || format(new Date(), 'yyyy-MM-dd');
+  // El server calcula la fecha en hora argentina. Ya no se confía en un
+  // ?today= del cliente (inconsistente entre pantallas y falsificable).
+  const today = todayInAppTz();
 
   const {
     profile,
@@ -192,13 +195,18 @@ export async function GET(request: NextRequest) {
   } = await fetchCore(supabase, user.id, today);
 
   const completedSet = new Set(completedLessonIds);
-  const actualLessonsCompleted = completedLessonIds.length;
 
   // Completed weeks + per-week totals
   let totalLessonsAvailable = 0;
   let completedWeeksCount = 0;
   let totalWeeks = 0;
   const completedWeekNumbers: number[] = [];
+  // IDs de lecciones de VIDEO del programa. Sirve para que el numerador use la
+  // MISMA definición que el denominador: antes el numerador contaba todas las
+  // filas de user_progress (incluidas las 24 reflexiones) y el denominador
+  // solo los videos, así que un alumno que terminaba el programa veía
+  // "158/134 lecciones · 118%" y la barra se desbordaba del contenedor.
+  const videoLessonIds = new Set<string>();
 
   if (userCourseData.length > 0) {
     for (const row of userCourseData) {
@@ -212,6 +220,7 @@ export async function GET(request: NextRequest) {
       const videoLessons = lessons.filter((l) => l.tipo !== 'reflection');
       totalLessonsAvailable += videoLessons.length;
       totalWeeks++;
+      videoLessons.forEach((l) => videoLessonIds.add(l.id));
       const completedInWeek = videoLessons.filter((l) => completedSet.has(l.id)).length;
       if (videoLessons.length > 0 && completedInWeek === videoLessons.length) {
         completedWeekNumbers.push(row.semana_numero);
@@ -222,6 +231,14 @@ export async function GET(request: NextRequest) {
     const weeks = await fallbackWeekCompletion(supabase, completedSet);
     completedWeekNumbers.push(...weeks);
   }
+
+  // Numerador alineado al denominador (solo videos). Si no tenemos el curso
+  // cargado no podemos filtrar, así que caemos al conteo crudo — pero ahí
+  // tampoco hay denominador, así que no puede dar >100%.
+  const actualLessonsCompleted =
+    videoLessonIds.size > 0
+      ? completedLessonIds.filter((id) => videoLessonIds.has(id)).length
+      : completedLessonIds.length;
 
   const trainedDates = trainingDays.map((t) => t.fecha);
   const streak = computeStreak(trainedDates, today);
