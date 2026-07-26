@@ -31,11 +31,20 @@ export async function GET(request: NextRequest) {
 
   const admin = getAdmin();
 
-  // Traer todos los mensajes (cohorte chica) y agregar en memoria por user_id.
+  // Traer los mensajes recientes y agregar en memoria por user_id.
+  //
+  // Antes no tenía ni limit ni filtro de fecha: se traía la tabla ENTERA. Y
+  // este endpoint se llama desde tres lugares a la vez (layout admin cada
+  // 2 min, página de soporte cada 12 s, chat cada 30 s) = ~330 lecturas de
+  // tabla completa por hora, creciendo para siempre. La bandeja solo necesita
+  // el último mensaje y los no leídos de cada hilo.
+  const desde = new Date(Date.now() - 120 * 86_400_000).toISOString();
   const { data: msgs, error } = await admin
     .from('support_messages')
     .select('id, user_id, sender, contenido, leido, created_at')
-    .order('created_at', { ascending: false });
+    .gte('created_at', desde)
+    .order('created_at', { ascending: false })
+    .limit(500);
 
   if (error) {
     if (/relation .* does not exist/i.test(error.message)) {

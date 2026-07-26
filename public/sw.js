@@ -1,7 +1,13 @@
 // NOTE: CACHE_NAME is bumped on every build by scripts/build-sw.mjs so the
 // browser detects an update → skipWaiting → controllerchange → client reload.
-const CACHE_NAME = 'jjl-1784816358487';
-const STATIC_CACHE = `${CACHE_NAME}-static`;
+const CACHE_NAME = 'jjl-1785104685398';
+// STATIC_CACHE tiene nombre FIJO a propósito. Los archivos de /_next/static/
+// llevan un hash en el nombre: su contenido nunca cambia, así que no hace falta
+// tirarlos en cada deploy. Cuando derivaba de CACHE_NAME, cada deploy vaciaba
+// el cache y el alumno volvía a bajar ~2 MB de JavaScript — justo lo peor con
+// señal mala. Los archivos viejos que ya nadie pide quedan en el cache sin
+// molestar; el navegador los desaloja solo si necesita espacio.
+const STATIC_CACHE = 'jjl-static-v1';
 const RUNTIME_CACHE = `${CACHE_NAME}-runtime`;
 
 // Minimal app shell that should survive offline.

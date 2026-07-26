@@ -151,25 +151,29 @@ export async function GET(request: NextRequest) {
     }
   });
 
-  // Get per-user lesson counts
-  const { data: userLessons } = await adminClient
-    .from('user_progress')
-    .select('user_id')
-    .eq('completado', true);
+  // Conteos por usuario: lecciones completadas y días de entreno.
+  //
+  // Antes eran dos escaneos de tabla COMPLETA (user_progress y daily_tasks son
+  // las dos que más crecen) y encima secuenciales, solo para contar por
+  // usuario. Ahora se acotan a los usuarios que el panel realmente muestra y
+  // van en paralelo.
+  const userIds = (allUsers || []).map((u: any) => u.id);
+  const [lessonsRes, trainingRes] = await Promise.all([
+    userIds.length
+      ? adminClient.from('user_progress').select('user_id').eq('completado', true).in('user_id', userIds)
+      : Promise.resolve({ data: [] as any[] }),
+    userIds.length
+      ? adminClient.from('daily_tasks').select('user_id').eq('entreno_check', true).in('user_id', userIds)
+      : Promise.resolve({ data: [] as any[] }),
+  ]);
 
   const userLessonCounts: Record<string, number> = {};
-  (userLessons || []).forEach((l: any) => {
+  (lessonsRes.data || []).forEach((l: any) => {
     userLessonCounts[l.user_id] = (userLessonCounts[l.user_id] || 0) + 1;
   });
 
-  // Get per-user training days count
-  const { data: userTraining } = await adminClient
-    .from('daily_tasks')
-    .select('user_id')
-    .eq('entreno_check', true);
-
   const userTrainingCounts: Record<string, number> = {};
-  (userTraining || []).forEach((t: any) => {
+  (trainingRes.data || []).forEach((t: any) => {
     userTrainingCounts[t.user_id] = (userTrainingCounts[t.user_id] || 0) + 1;
   });
 
