@@ -69,6 +69,23 @@ export default function LeadDrawer({ lead, admins, onClose, onChanged, onConvert
   }
 
   async function changeStage(stage: LeadStage) {
+    // Marcar "convertido" a mano deja el lead SIN vincular al alumno
+    // (converted_user_id queda en null), y ese vínculo es lo único que después
+    // permite saber de qué campaña salió cada alumno. Hoy los 10 convertidos
+    // están así: nadie usó el botón. Empujamos a "Convertir a alumno", que crea
+    // (o reactiva) la cuenta y deja el vínculo hecho.
+    if (stage === 'convertido' && !lead.converted_user_id) {
+      const usarBoton = window.confirm(
+        'Conviene usar "Convertir a alumno": deja este lead vinculado al alumno, ' +
+        'y es lo que después permite saber de qué campaña vino.\n\n' +
+        'Aceptar → abrir "Convertir a alumno"\n' +
+        'Cancelar → marcarlo igual, pero sin vincular',
+      );
+      if (usarBoton) {
+        onConvertClick();
+        return;
+      }
+    }
     setSavingStage(true);
     try {
       await patchLead({ stage }, 'el estado');
