@@ -9,6 +9,7 @@ import LeadDrawer from '@/components/admin/setter/LeadDrawer';
 import ConvertToAlumnoModal from '@/components/admin/setter/ConvertToAlumnoModal';
 import SetterGuide from '@/components/admin/setter/SetterGuide';
 import CommissionPanel from '@/components/admin/setter/CommissionPanel';
+import FollowupsPanel from '@/components/admin/setter/FollowupsPanel';
 
 type AdminRow = { id: string; nombre: string; avatar_url: string | null; tags: string[] };
 
@@ -115,6 +116,9 @@ export default function AgendasClient() {
           tone="green"
         />
       </div>
+
+      {/* Follow-ups del bot que hay que seguir a mano (logs del CRM) */}
+      <FollowupsPanel />
 
       {/* Comisión por mes — cuánto va ganando el setter cada mes */}
       <CommissionPanel isSetter={isSetter} />
