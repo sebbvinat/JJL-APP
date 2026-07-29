@@ -51,6 +51,27 @@ function shiftDay(dia: string, delta: number): string {
   return d.toISOString().slice(0, 10);
 }
 
+/**
+ * ManyChat guarda en USUARIO el NOMBRE de la persona ("antonio jose diaz
+ * ramirez"), no siempre su @usuario. Armar la URL del perfil con eso lleva a
+ * una página que no existe.
+ *
+ * Si parece un handle real (sin espacios, solo caracteres válidos) vamos
+ * directo al perfil; si no, abrimos la búsqueda de Instagram con ese nombre,
+ * que es lo que el setter haría a mano.
+ */
+function esHandle(usuario: string): boolean {
+  const u = usuario.trim().replace(/^@/, '');
+  return /^[A-Za-z0-9._]{1,30}$/.test(u);
+}
+
+function instagramUrl(usuario: string): string {
+  const u = usuario.trim().replace(/^@/, '');
+  return esHandle(u)
+    ? `https://www.instagram.com/${encodeURIComponent(u)}`
+    : `https://www.instagram.com/explore/search/keyword/?q=${encodeURIComponent(u)}`;
+}
+
 function labelDia(dia: string, hoy: string): string {
   if (dia === hoy) return 'Hoy';
   if (dia === shiftDay(hoy, -1)) return 'Ayer';
@@ -195,67 +216,74 @@ export default function FollowupsPanel() {
             const hecho = item.estado === 'hecho';
             const busy = trabajando === id;
             return (
+              // En el celular el nombre es lo más importante: va en su propia
+              // línea, a ancho completo. Los botones bajan abajo. En pantallas
+              // anchas (sm+) entra todo en una fila.
               <div
                 key={id}
-                className={`flex items-center gap-2.5 px-4 py-2.5 ${hecho ? 'opacity-45' : 'hover:bg-white/[0.02]'}`}
+                className={`px-4 py-3 ${hecho ? 'opacity-45' : 'hover:bg-white/[0.02]'}`}
               >
-                <span
-                  className={`shrink-0 inline-flex items-center h-5 px-1.5 rounded border text-[10px] font-bold uppercase tracking-wider ${TIPO_STYLE[item.tipo]}`}
-                >
-                  {TIPO_LABEL[item.tipo]}
-                </span>
-
-                <div className="flex-1 min-w-0">
-                  <p className={`text-[13px] font-semibold text-white truncate ${hecho ? 'line-through' : ''}`}>
+                <div className="flex items-center gap-2 min-w-0">
+                  <span
+                    className={`shrink-0 inline-flex items-center h-5 px-1.5 rounded border text-[10px] font-bold uppercase tracking-wider ${TIPO_STYLE[item.tipo]}`}
+                  >
+                    {TIPO_LABEL[item.tipo]}
+                  </span>
+                  <p className={`flex-1 min-w-0 truncate text-[14px] font-semibold text-white ${hecho ? 'line-through' : ''}`}>
                     {item.usuario}
                   </p>
-                  <p className="text-[11px] text-jjl-muted tabular-nums">
+                  <span className="shrink-0 text-[11px] text-jjl-muted tabular-nums">
                     {new Date(item.fecha).toLocaleTimeString('es-AR', {
-                      hour: '2-digit', minute: '2-digit', timeZone: 'America/Argentina/Buenos_Aires',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      hour12: false, // 24h: "16:07" en vez de "04:0 p. m."
+                      timeZone: 'America/Argentina/Buenos_Aires',
                     })}
-                    {item.estado === 'pospuesto' && item.snooze_until && ' · pospuesto'}
-                  </p>
+                  </span>
                 </div>
 
-                <a
-                  href={`https://www.instagram.com/${encodeURIComponent(item.usuario.replace(/^@/, ''))}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  title="Buscar en Instagram"
-                  className="shrink-0 h-8 w-8 grid place-items-center rounded-lg border border-purple-500/30 bg-purple-500/10 text-purple-300 hover:bg-purple-500/20"
-                >
-                  <AtSign className="h-3.5 w-3.5" />
-                </a>
-
-                {hecho ? (
-                  <button
-                    onClick={() => accion(item, 'reabrir')}
-                    disabled={busy}
-                    title="Volver a pendiente"
-                    className="shrink-0 h-8 w-8 grid place-items-center rounded-lg border border-jjl-border text-jjl-muted hover:text-white disabled:opacity-40"
+                <div className="mt-2 flex items-center gap-1.5">
+                  <a
+                    href={instagramUrl(item.usuario)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 h-8 px-2.5 rounded-lg border border-purple-500/30 bg-purple-500/10 text-[11px] font-semibold text-purple-300 hover:bg-purple-500/20"
                   >
-                    <RotateCcw className="h-3.5 w-3.5" />
-                  </button>
-                ) : (
-                  <>
+                    <AtSign className="h-3.5 w-3.5" />
+                    {esHandle(item.usuario) ? 'Instagram' : 'Buscar en IG'}
+                  </a>
+
+                  {item.estado === 'pospuesto' && (
+                    <span className="text-[11px] text-jjl-muted">pospuesto</span>
+                  )}
+
+                  {hecho ? (
                     <button
-                      onClick={() => accion(item, 'posponer')}
+                      onClick={() => accion(item, 'reabrir')}
                       disabled={busy}
-                      title="Posponer — vuelve mañana"
-                      className="shrink-0 inline-flex items-center gap-1 h-8 px-2 rounded-lg border border-jjl-border text-[11px] font-semibold text-jjl-muted hover:text-white hover:bg-white/5 disabled:opacity-40"
+                      className="ml-auto inline-flex items-center gap-1 h-8 px-2.5 rounded-lg border border-jjl-border text-[11px] font-semibold text-jjl-muted hover:text-white disabled:opacity-40"
                     >
-                      <Clock className="h-3.5 w-3.5" /> Mañana
+                      <RotateCcw className="h-3.5 w-3.5" /> Reabrir
                     </button>
-                    <button
-                      onClick={() => accion(item, 'hecho')}
-                      disabled={busy}
-                      title="Ya le hablé"
-                      className="shrink-0 inline-flex items-center gap-1 h-8 px-2 rounded-lg border border-green-500/40 bg-green-500/10 text-[11px] font-semibold text-green-300 hover:bg-green-500/20 disabled:opacity-40"
-                    >
-                      <Check className="h-3.5 w-3.5" /> Ya le hablé
-                    </button>
-                  </>
-                )}
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => accion(item, 'posponer')}
+                        disabled={busy}
+                        className="ml-auto inline-flex items-center gap-1 h-8 px-2.5 rounded-lg border border-jjl-border text-[11px] font-semibold text-jjl-muted hover:text-white hover:bg-white/5 disabled:opacity-40"
+                      >
+                        <Clock className="h-3.5 w-3.5" /> Mañana
+                      </button>
+                      <button
+                        onClick={() => accion(item, 'hecho')}
+                        disabled={busy}
+                        className="inline-flex items-center gap-1 h-8 px-2.5 rounded-lg border border-green-500/40 bg-green-500/10 text-[11px] font-semibold text-green-300 hover:bg-green-500/20 disabled:opacity-40"
+                      >
+                        <Check className="h-3.5 w-3.5" /> Ya le hablé
+                      </button>
+                    </>
+                  )}
+                </div>
               </div>
             );
           })
