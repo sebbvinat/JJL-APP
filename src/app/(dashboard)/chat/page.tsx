@@ -308,11 +308,21 @@ export default function ChatPage() {
     if (typeof MediaRecorder === 'undefined' || !MediaRecorder.isTypeSupported) {
       return { mime: '', ext: 'webm' };
     }
+    // ORDEN IMPORTANTE: mp4/aac PRIMERO.
+    //
+    // webm no lo reproduce Safari/iOS. Antes se probaba webm al principio, así
+    // que Android y PC grababan en webm y después el coach no podía escuchar
+    // NINGÚN audio desde el iPhone. Chrome moderno (Android incluido) sí puede
+    // grabar en mp4, y ese formato lo entienden todos los dispositivos.
+    //
+    // isTypeSupported filtra igual: si el navegador no puede grabar mp4, cae a
+    // webm como antes. O sea, este orden es mejor o igual, nunca peor.
     const candidates: { mime: string; ext: string }[] = [
-      { mime: 'audio/webm;codecs=opus', ext: 'webm' },
-      { mime: 'audio/webm', ext: 'webm' },
+      { mime: 'audio/mp4;codecs=mp4a.40.2', ext: 'mp4' }, // AAC-LC explícito
       { mime: 'audio/mp4', ext: 'mp4' },
       { mime: 'audio/mpeg', ext: 'mp3' },
+      { mime: 'audio/webm;codecs=opus', ext: 'webm' },
+      { mime: 'audio/webm', ext: 'webm' },
     ];
     for (const c of candidates) {
       if (MediaRecorder.isTypeSupported(c.mime)) return c;
@@ -532,12 +542,7 @@ export default function ChatPage() {
                       : 'bg-jjl-gray-light text-white rounded-bl-md'
                 }`}>
                   {msg.contenido.startsWith('[audio]') ? (
-                    <audio
-                      src={msg.contenido.replace('[audio]', '')}
-                      controls
-                      preload="metadata"
-                      className="max-w-[220px] h-10"
-                    />
+                    <AudioMensaje src={msg.contenido.replace('[audio]', '')} />
                   ) : msg.contenido.startsWith('[image]') ? (
                     <button
                       type="button"
@@ -678,6 +683,58 @@ export default function ChatPage() {
         </div>
       )}
     </div>
+  );
+}
+
+/**
+ * Reproductor de audio con salida digna cuando el formato no se puede leer.
+ *
+ * Los audios grabados en Android/PC salían en webm, que Safari/iOS no
+ * reproduce: el coach veía un reproductor que simplemente no sonaba, sin
+ * explicación. Ahora grabamos en mp4 (ver pickAudioMime), pero pueden quedar
+ * webm viejos o de navegadores que solo saben grabar en ese formato.
+ *
+ * Si el dispositivo no puede leerlo, en vez de un control muerto mostramos qué
+ * pasó y un link para bajarlo y escucharlo fuera de la app.
+ */
+function AudioMensaje({ src }: { src: string }) {
+  const [noSoportado, setNoSoportado] = useState(false);
+
+  useEffect(() => {
+    // canPlayType devuelve '' cuando el navegador sabe que no puede.
+    const ext = (src.split('?')[0].split('.').pop() || '').toLowerCase();
+    const mime =
+      ext === 'webm' ? 'audio/webm' :
+      ext === 'ogg' ? 'audio/ogg' :
+      ext === 'mp3' ? 'audio/mpeg' :
+      ext === 'wav' ? 'audio/wav' : 'audio/mp4';
+    const el = document.createElement('audio');
+    setNoSoportado(el.canPlayType(mime) === '');
+  }, [src]);
+
+  if (noSoportado) {
+    return (
+      <a
+        href={src}
+        target="_blank"
+        rel="noopener noreferrer"
+        download
+        className="flex items-center gap-2 max-w-[240px] rounded-lg border border-amber-500/40 bg-amber-500/10 px-2.5 py-2 text-[11px] text-amber-200 hover:bg-amber-500/15"
+      >
+        <Mic className="h-3.5 w-3.5 shrink-0" />
+        <span>Este audio no se reproduce en este dispositivo · <b>Descargar</b></span>
+      </a>
+    );
+  }
+
+  return (
+    <audio
+      src={src}
+      controls
+      preload="metadata"
+      className="max-w-[220px] h-10"
+      onError={() => setNoSoportado(true)}
+    />
   );
 }
 
