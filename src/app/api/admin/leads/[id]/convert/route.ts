@@ -4,6 +4,37 @@ import { MONTH_RANGES } from '@/lib/crm';
 
 type Ctx = { params: Promise<{ id: string }> };
 
+type AdminClient = {
+  auth: {
+    admin: {
+      listUsers: (p: { page: number; perPage: number }) => Promise<{
+        data: { users: { id: string; email?: string | null }[] } | null;
+        error: unknown;
+      }>;
+    };
+  };
+};
+
+/**
+ * Busca una cuenta de login por email.
+ *
+ * La API admin de Supabase no tiene "traeme el usuario con este email", así
+ * que hay que recorrer las páginas. Con ~130 cuentas es una sola vuelta, y
+ * sólo se llama cuando el perfil no apareció por email — o sea, casi nunca.
+ */
+async function buscarIdEnAuth(admin: AdminClient, email: string): Promise<string | null> {
+  const PER_PAGE = 200;
+  for (let page = 1; page <= 25; page++) {
+    const { data, error } = await admin.auth.admin.listUsers({ page, perPage: PER_PAGE });
+    const users = data?.users;
+    if (error || !users?.length) return null;
+    const hit = users.find((u) => (u.email || '').toLowerCase() === email);
+    if (hit) return hit.id;
+    if (users.length < PER_PAGE) return null; // última página
+  }
+  return null;
+}
+
 /**
  * POST /api/admin/leads/[id]/convert
  * Body: {
@@ -38,27 +69,52 @@ export async function POST(request: NextRequest, ctx: Ctx) {
 
   if (!nombre || !email) return NextResponse.json({ error: 'nombre y email requeridos' }, { status: 400 });
 
-  // 1. Chequear si ya existe user con ese email
+  // 1. Chequear si ya existe user con ese email.
+  //
+  // Hay que mirar en DOS lados y no alcanza con uno solo:
+  //   - `users`      = el perfil (nombre, rol, programa…)
+  //   - auth.users   = la cuenta de login
+  // Pueden estar desincronizados: perfiles viejos quedaron con `email` en
+  // null, así que buscar sólo en `users` no los encuentra, el código creía
+  // que era gente nueva e intentaba crear la cuenta de login → Supabase
+  // respondía "A user with this email address has already been registered"
+  // y la conversión quedaba trabada sin forma de destrabarla desde la UI.
   const { data: existing } = await auth.admin
     .from('users')
-    .select('id, nombre, program_member')
+    .select('id')
     .eq('email', email)
     .maybeSingle();
 
-  let userId: string;
+  let userId: string | null = (existing as { id: string } | null)?.id ?? null;
+  if (!userId) userId = await buscarIdEnAuth(auth.admin, email);
 
-  if (existing?.id) {
-    // Ya existe: solo activar program_member + lifecycle
-    userId = (existing as { id: string }).id;
-    await auth.admin
+  if (userId) {
+    // Ya tiene cuenta de login. Activamos el programa sin tocar la contraseña.
+    const activacion = {
+      program_member: true,
+      lifecycle_stage: 'onboarding',
+      lifecycle_changed_at: new Date().toISOString(),
+      started_at: new Date().toISOString(),
+      planilla_id,
+    };
+
+    const { data: perfil } = await auth.admin
       .from('users')
-      .update({
-        program_member: true,
-        lifecycle_stage: 'onboarding',
-        lifecycle_changed_at: new Date().toISOString(),
-        started_at: new Date().toISOString(),
-      })
-      .eq('id', userId);
+      .select('id')
+      .eq('id', userId)
+      .maybeSingle();
+
+    // Ojo: si el perfil YA existe no le tocamos el `rol`. Puede ser un admin
+    // o un profe al que también se le da acceso al programa; pisarlo con
+    // 'alumno' le sacaría los permisos.
+    const { error: upErr } = perfil
+      ? await auth.admin.from('users').update({ ...activacion, email }).eq('id', userId)
+      : await auth.admin.from('users').insert({ id: userId, nombre, email, rol: 'alumno', ...activacion });
+
+    if (upErr) {
+      console.error('[convert] users activar failed', upErr);
+      return NextResponse.json({ error: upErr.message }, { status: 500 });
+    }
   } else {
     // 1a. Crear auth.user
     const { data: created, error: authErr } = await auth.admin.auth.admin.createUser({
