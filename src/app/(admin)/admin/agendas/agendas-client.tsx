@@ -10,6 +10,7 @@ import ConvertToAlumnoModal from '@/components/admin/setter/ConvertToAlumnoModal
 import SetterGuide from '@/components/admin/setter/SetterGuide';
 import CommissionPanel from '@/components/admin/setter/CommissionPanel';
 import FollowupsPanel from '@/components/admin/setter/FollowupsPanel';
+import AgendaCalendly from '@/components/admin/setter/AgendaCalendly';
 
 type AdminRow = { id: string; nombre: string; avatar_url: string | null; tags: string[] };
 
@@ -116,6 +117,10 @@ export default function AgendasClient() {
           tone="green"
         />
       </div>
+
+      {/* Consultorías agendadas — se leen en vivo de Calendly. Va primero
+          porque es lo más urgente: quién viene hoy y a qué hora. */}
+      <AgendaCalendly />
 
       {/* Follow-ups del bot que hay que seguir a mano (logs del CRM) */}
       <FollowupsPanel />
