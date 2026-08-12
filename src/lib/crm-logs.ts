@@ -19,7 +19,19 @@ import { dateKeyInAppTz } from '@/lib/dates';
 
 const CRM_SPREADSHEET_ID = '1HJqfRt2fst9Ug1Q8g536U3xvhpGferlosRXYxABLwiU';
 
-/** Los logs que el setter sigue hoy. La clave es el nombre real de la pestaña. */
+/**
+ * Los logs que el setter sigue hoy. El valor es un PREFIJO, no el nombre exacto
+ * de una pestaña.
+ *
+ * En la planilla no hay una pestaña por tipo: los problemas están partidos en
+ * LOG_PROBLEMA_PRINC / _FRUST / _JUEGO y los testimonios igual. Al pedir el
+ * nombre exacto, Sheets respondía "Unable to parse range: LOG_PROBLEMA!A2:B" y
+ * como las pestañas se piden todas juntas en un batchGet, esa sola falla
+ * volteaba la lectura entera y el panel quedaba vacío.
+ *
+ * Resolviendo por prefijo contra las pestañas que existen de verdad, el panel
+ * también toma solo las variantes nuevas que agreguen sin tocar el código.
+ */
 export const TIPOS_LOG = {
   calendario: 'LOG_CALENDARIO',
   problema: 'LOG_PROBLEMA',
@@ -63,20 +75,35 @@ function sheetsClient() {
 }
 
 /**
- * Parsea la fecha de la planilla. Vienen en ISO ("2026-07-22 18:30:03"), sin
- * zona horaria: se interpretan como hora argentina, que es como las escribe
- * ManyChat.
+ * Parsea la fecha de una fila.
+ *
+ * Pidiendo los valores sin formatear, las celdas de fecha llegan como número
+ * de serie de Sheets (días desde 1899-12-30), no como texto. Antes se leían
+ * formateadas y parecían ISO, pero eso depende del locale de la planilla
+ * (es_AR las devuelve con coma decimal), así que se rompía solo.
+ *
+ * La planilla está en America/Buenos_Aires, que es UTC-3 fijo (Argentina no
+ * tiene horario de verano), así que el número representa hora argentina. Sin
+ * ese ajuste, una fila de las 22:00 caería en el día siguiente y el setter la
+ * vería en el día equivocado.
  */
-function parseFecha(raw: string): Date | null {
-  const s = (raw || '').trim();
+const MS_POR_DIA = 86_400_000;
+/** Días entre la época de Sheets (1899-12-30) y la de Unix (1970-01-01). */
+const EPOCA_SHEETS = 25_569;
+const OFFSET_AR_MS = 3 * 3_600_000;
+
+function parseFecha(raw: unknown): Date | null {
+  if (typeof raw === 'number' && Number.isFinite(raw)) {
+    const dt = new Date(Math.round((raw - EPOCA_SHEETS) * MS_POR_DIA) + OFFSET_AR_MS);
+    return Number.isNaN(dt.getTime()) ? null : dt;
+  }
+  // Texto ISO — por si alguna pestaña guarda la fecha como string.
+  const s = String(raw ?? '').trim();
   if (!s) return null;
   const m = s.match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{1,2}):(\d{2})(?::(\d{2}))?/);
   if (!m) return null;
   const [, y, mo, d, h, mi, se] = m;
-  // -03:00 = Argentina. Sin esto, una fila de las 22:00 caería en el día
-  // siguiente al convertir a UTC y el setter la vería en el día equivocado.
-  const iso = `${y}-${mo}-${d}T${h.padStart(2, '0')}:${mi}:${se || '00'}-03:00`;
-  const dt = new Date(iso);
+  const dt = new Date(`${y}-${mo}-${d}T${h.padStart(2, '0')}:${mi}:${se || '00'}-03:00`);
   return Number.isNaN(dt.getTime()) ? null : dt;
 }
 
@@ -85,23 +112,48 @@ export async function fetchCrmLogs(): Promise<CrmLogEntry[]> {
   if (cache && Date.now() - cache.at < CACHE_TTL_MS) return cache.entries;
 
   const sheets = sheetsClient();
-  const tabs = Object.entries(TIPOS_LOG) as [TipoLog, string][];
 
-  // batchGet: una sola request para las 3 pestañas.
+  // Primero preguntamos qué pestañas existen y las clasificamos por prefijo.
+  // Pedir un nombre inventado hace fallar el batchGet completo, así que nunca
+  // pedimos una que no esté.
+  const meta = await sheets.spreadsheets.get({
+    spreadsheetId: CRM_SPREADSHEET_ID,
+    fields: 'sheets.properties.title',
+  });
+  const titulos = (meta.data.sheets || [])
+    .map((s) => s.properties?.title || '')
+    .filter(Boolean);
+
+  const tabs: [TipoLog, string][] = [];
+  for (const [tipo, prefijo] of Object.entries(TIPOS_LOG) as [TipoLog, string][]) {
+    for (const t of titulos) {
+      if (t.toUpperCase().startsWith(prefijo)) tabs.push([tipo, t]);
+    }
+  }
+  if (tabs.length === 0) {
+    cache = { at: Date.now(), entries: [] };
+    return [];
+  }
+
+  // batchGet: una sola request para todas las pestañas.
+  // UNFORMATTED_VALUE para que las fechas vengan como número y no dependan del
+  // locale de la planilla. Hasta la C porque en algunas filas viejas el nombre
+  // quedó corrido a esa columna.
   const res = await sheets.spreadsheets.values.batchGet({
     spreadsheetId: CRM_SPREADSHEET_ID,
-    ranges: tabs.map(([, tab]) => `${tab}!A2:B`),
+    ranges: tabs.map(([, tab]) => `${tab}!A2:C`),
+    valueRenderOption: 'UNFORMATTED_VALUE',
   });
 
   const entries: CrmLogEntry[] = [];
   (res.data.valueRanges || []).forEach((range, i) => {
     const tipo = tabs[i][0];
-    for (const row of (range.values || []) as string[][]) {
-      const usuario = (row?.[1] || '').trim();
+    for (const row of (range.values || []) as unknown[][]) {
+      const usuario = (String(row?.[1] ?? '').trim() || String(row?.[2] ?? '').trim());
       // Sin usuario no hay a quién escribirle: ManyChat a veces escribe la
       // fila antes de resolver el nombre. Se descartan.
       if (!usuario) continue;
-      const dt = parseFecha(row?.[0] || '');
+      const dt = parseFecha(row?.[0]);
       if (!dt) continue;
       entries.push({
         tipo,
