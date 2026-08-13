@@ -82,6 +82,7 @@ export async function GET(request: NextRequest) {
     return {
       tipo: l.tipo,
       usuario: l.usuario,
+      handle: l.handle,
       fecha: l.fecha,
       estado,
       snooze_until: st?.snooze_until ?? null,

@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import useSWR from 'swr';
-import { CalendarClock, AtSign, Check, Clock, RotateCcw, AlertTriangle } from 'lucide-react';
+import { CalendarClock, Send, Search, Check, Clock, RotateCcw, AlertTriangle } from 'lucide-react';
 import { fetcher } from '@/lib/fetcher';
 import { useToast } from '@/components/ui/Toast';
 import { APP_TZ } from '@/lib/dates';
@@ -10,6 +10,8 @@ import { APP_TZ } from '@/lib/dates';
 interface Item {
   tipo: string;
   usuario: string;
+  /** @ de Instagram. Null cuando ManyChat solo guardó el nombre visible. */
+  handle: string | null;
   fecha: string;
   estado: 'pendiente' | 'pospuesto' | 'hecho';
   snooze_until: string | null;
@@ -41,21 +43,25 @@ const VENTANAS = [
 ];
 
 /**
- * ManyChat reporta el nombre visible de Instagram, que no siempre es el @.
- * Si parece un handle vamos derecho al perfil; si tiene espacios o acentos
- * (ej "Clases de ingles online") abrimos la búsqueda, que es lo mejor que se
- * puede hacer sin el usuario real.
+ * Con el @ podemos abrirle el chat directo: ig.me/m/<usuario> es el link de
+ * mensajería de Instagram y cae en la conversación con esa persona.
  */
-function esHandle(usuario: string): boolean {
-  const u = usuario.trim().replace(/^@/, '');
-  return /^[A-Za-z0-9._]{1,30}$/.test(u);
+function dmUrl(handle: string): string {
+  return `https://ig.me/m/${encodeURIComponent(handle)}`;
 }
 
-function instagramUrl(usuario: string): string {
-  const u = usuario.trim().replace(/^@/, '');
-  return esHandle(u)
-    ? `https://www.instagram.com/${encodeURIComponent(u)}`
-    : `https://www.instagram.com/explore/search/keyword/?q=${encodeURIComponent(u)}`;
+function perfilUrl(handle: string): string {
+  return `https://www.instagram.com/${encodeURIComponent(handle)}`;
+}
+
+/**
+ * Sin el @ no hay link posible, así que lo mejor que se puede hacer es la
+ * búsqueda por nombre. Se muestra distinto a propósito: que quede claro que
+ * es una búsqueda y no la persona, en vez de simular un link que no lleva a
+ * quien corresponde.
+ */
+function busquedaUrl(usuario: string): string {
+  return `https://www.instagram.com/explore/search/keyword/?q=${encodeURIComponent(usuario.trim())}`;
 }
 
 /** "hace 3 h" lee más rápido que una fecha cuando estás filtrando por ventana. */
@@ -245,14 +251,21 @@ export default function FollowupsPanel() {
                   <span className="shrink-0 inline-flex items-center h-5 px-1.5 rounded border border-jjl-border bg-white/[0.04] text-[10px] font-bold uppercase tracking-wider text-jjl-muted">
                     {labelDe(item.tipo)}
                   </span>
-                  <a
-                    href={instagramUrl(item.usuario)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={`truncate text-[13px] font-medium hover:text-jjl-red transition-colors ${hecho ? 'line-through text-jjl-muted' : 'text-white'}`}
-                  >
-                    {item.usuario}
-                  </a>
+                  {item.handle ? (
+                    <a
+                      href={perfilUrl(item.handle)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title={`Ver el perfil de @${item.handle}`}
+                      className={`truncate text-[13px] font-medium hover:text-jjl-red transition-colors ${hecho ? 'line-through text-jjl-muted' : 'text-white'}`}
+                    >
+                      {item.usuario}
+                    </a>
+                  ) : (
+                    <span className={`truncate text-[13px] font-medium ${hecho ? 'line-through text-jjl-muted' : 'text-white'}`}>
+                      {item.usuario}
+                    </span>
+                  )}
                   <span className="ml-auto shrink-0 text-[11px] text-jjl-muted tabular-nums" title={cuando(item.fecha)}>
                     {haceCuanto(item.fecha)}
                   </span>
@@ -260,15 +273,29 @@ export default function FollowupsPanel() {
 
                 {/* Linea 2: acciones */}
                 <div className="mt-1.5 flex items-center gap-2 pl-1">
-                  <a
-                    href={instagramUrl(item.usuario)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 h-8 px-2.5 rounded-lg border border-purple-500/30 bg-purple-500/10 text-[11px] font-semibold text-purple-300 hover:bg-purple-500/20"
-                  >
-                    <AtSign className="h-3 w-3" />
-                    Escribirle
-                  </a>
+                  {item.handle ? (
+                    <a
+                      href={dmUrl(item.handle)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title={`Abrir el chat con @${item.handle}`}
+                      className="inline-flex items-center gap-1 h-8 px-2.5 rounded-lg border border-purple-500/30 bg-purple-500/10 text-[11px] font-semibold text-purple-300 hover:bg-purple-500/20"
+                    >
+                      <Send className="h-3 w-3" />
+                      Escribirle
+                    </a>
+                  ) : (
+                    <a
+                      href={busquedaUrl(item.usuario)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title="ManyChat no guardó el @ de esta persona, así que solo se puede buscar por el nombre"
+                      className="inline-flex items-center gap-1 h-8 px-2.5 rounded-lg border border-jjl-border text-[11px] font-semibold text-jjl-muted hover:text-white hover:bg-white/5"
+                    >
+                      <Search className="h-3 w-3" />
+                      Buscar
+                    </a>
+                  )}
 
                   {item.estado === 'pospuesto' && (
                     <span className="text-[11px] text-jjl-muted">pospuesto</span>

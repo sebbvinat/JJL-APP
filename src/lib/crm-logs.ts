@@ -37,11 +37,37 @@ export interface Etiqueta {
 
 export interface CrmLogEntry {
   tipo: string;
+  /** Nombre visible de Instagram, que es lo que reporta ManyChat. */
   usuario: string;
+  /**
+   * Usuario real de Instagram (sin @), si la pestaña lo trae.
+   *
+   * Es lo único que permite abrirle el chat a la persona correcta. ManyChat
+   * hoy escribe el nombre visible: cuando ese nombre ya es el @ se puede
+   * linkear igual, pero un "Martín Blanco" no lleva a ningún lado. Ver
+   * COLUMNA_HANDLE.
+   */
+  handle: string | null;
   /** ISO del momento en que ManyChat mandó el mensaje. */
   fecha: string;
   /** YYYY-MM-DD en horario argentino. */
   dia: string;
+}
+
+/**
+ * Encabezados que se aceptan para la columna con el usuario de Instagram.
+ *
+ * La columna es OPCIONAL y todavía no existe: hay que agregarla en la acción
+ * de Google Sheets de cada flujo de ManyChat, con el campo del usuario de
+ * Instagram. En cuanto aparezca con uno de estos nombres, el panel empieza a
+ * linkear al chat de la persona sin tocar nada más.
+ */
+const COLUMNA_HANDLE = /^(ig|instagram|usuario[ _]?ig|handle|arroba)$/i;
+
+/** Un @ de Instagram válido: letras, números, punto y guion bajo. */
+function limpiarHandle(raw: unknown): string | null {
+  const h = String(raw ?? '').trim().replace(/^@/, '');
+  return /^[A-Za-z0-9._]{1,30}$/.test(h) ? h : null;
 }
 
 /**
@@ -152,6 +178,14 @@ function esLogDePersonas(header: unknown[]): boolean {
   return a === 'FECHA' && b === 'USUARIO';
 }
 
+/** Índice de la columna con el @ de Instagram, o -1 si esa pestaña no la tiene. */
+function indiceHandle(header: unknown[]): number {
+  for (let i = 2; i < header.length; i++) {
+    if (COLUMNA_HANDLE.test(String(header[i] ?? '').trim())) return i;
+  }
+  return -1;
+}
+
 /** Lee todas las pestañas de log y devuelve las filas, más nuevas primero. */
 export async function fetchCrmLogs(): Promise<{ entries: CrmLogEntry[]; etiquetas: Etiqueta[] }> {
   if (cache && Date.now() - cache.at < CACHE_TTL_MS) {
@@ -175,13 +209,14 @@ export async function fetchCrmLogs(): Promise<{ entries: CrmLogEntry[]; etiqueta
     return { entries: [], etiquetas: [] };
   }
 
-  // A1 para poder mirar el encabezado y descartar las pestañas que no son de
-  // personas. Hasta la C porque en filas viejas el nombre quedó corrido ahí.
+  // A1 para poder mirar el encabezado: sirve para descartar las pestañas que
+  // no son de personas y para ubicar la columna del @ de Instagram.
+  // Hasta la E para que esa columna se pueda agregar en cualquier lado.
   // UNFORMATTED_VALUE para que las fechas vengan como número y no dependan del
   // locale de la planilla.
   const res = await sheets.spreadsheets.values.batchGet({
     spreadsheetId: CRM_SPREADSHEET_ID,
-    ranges: tabs.map((tab) => `${tab}!A1:C`),
+    ranges: tabs.map((tab) => `${tab}!A1:E`),
     valueRenderOption: 'UNFORMATTED_VALUE',
   });
 
@@ -197,16 +232,30 @@ export async function fetchCrmLogs(): Promise<{ entries: CrmLogEntry[]; etiqueta
     if (!tipo) return;
     etiquetas.push({ tipo, tab, label: labelDe(tipo) });
 
+    const idxHandle = indiceHandle(filas[0]);
+
     for (const row of filas.slice(1)) {
-      const usuario = String(row?.[1] ?? '').trim() || String(row?.[2] ?? '').trim();
+      // La C se usa como respaldo del nombre solo si NO es la columna del
+      // handle: en filas viejas el nombre quedó corrido a esa columna.
+      const respaldo = idxHandle === 2 ? '' : String(row?.[2] ?? '').trim();
+      const usuario = String(row?.[1] ?? '').trim() || respaldo;
       // Sin usuario no hay a quién escribirle: ManyChat a veces escribe la
       // fila antes de resolver el nombre. Se descartan.
       if (!usuario) continue;
       const dt = parseFecha(row?.[0]);
       if (!dt) continue;
+
+      // El handle SOLO sale de su columna. Se intentó deducirlo del nombre
+      // visible (si no tiene espacios, será el @) y estaba mal: "Martin",
+      // "Max" y "Sofii" pasan el filtro pero son nombres de pila, así que el
+      // link caía en el DM de un desconocido con ese @. Mandar al setter a
+      // escribirle a la persona equivocada es peor que no darle el link.
+      const handle = idxHandle >= 0 ? limpiarHandle(row?.[idxHandle]) : null;
+
       entries.push({
         tipo,
         usuario,
+        handle,
         fecha: dt.toISOString(),
         dia: dateKeyInAppTz(dt),
       });
