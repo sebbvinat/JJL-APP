@@ -5,61 +5,99 @@ import { dateKeyInAppTz } from '@/lib/dates';
 /**
  * Lectura de los LOG_* del CRM (planilla de Google Sheets).
  *
- * ManyChat va escribiendo una fila por cada mensaje que manda, en una pestaña
- * por tipo de log. El setter necesita ver a quién le llegó cada log el día
- * anterior para hacerle el seguimiento a mano.
+ * ManyChat escribe una fila cada vez que le manda un mensaje a alguien, en una
+ * pestaña distinta por tipo de mensaje. O sea que **cada pestaña LOG_ es una
+ * etiqueta**: estar en LOG_PROBLEMA_FRUST significa que a esa persona le
+ * llegó el mensaje de problema/frustración. El setter después les escribe a
+ * mano.
  *
- * Formato de cada pestaña: columna A = FECHA (ISO), columna B = USUARIO
- * (el nombre de Instagram tal como lo reporta ManyChat).
+ * Las pestañas NO están fijas en el código a propósito. Antes lo estaban y se
+ * rompió: se pedían LOG_PROBLEMA y LOG_TESTIMONIO, que nunca existieron
+ * (están partidas en _PRINC / _FRUST / _JUEGO), Sheets devolvía "Unable to
+ * parse range" y como se piden todas juntas en un batchGet, esa sola falla
+ * volteaba la lectura entera. Ahora se descubren solas, así que agregar una
+ * etiqueta nueva en el CRM no requiere tocar nada acá.
  *
- * La planilla está compartida como LECTOR con el service account de la app
- * (el mismo que ya se usa para Drive), así que no hace falta ningún script
- * externo ni sincronización: se lee en vivo.
+ * Formato esperado: columna A = FECHA, columna B = USUARIO. Las pestañas con
+ * otro encabezado (LOG_STORIES, LOG_CONTENIDO) no son de personas y se
+ * descartan por el encabezado, no por una lista negra.
+ *
+ * La planilla está compartida como LECTOR con el service account de la app.
  */
 
 const CRM_SPREADSHEET_ID = '1HJqfRt2fst9Ug1Q8g536U3xvhpGferlosRXYxABLwiU';
 
-/**
- * Los logs que el setter sigue hoy. El valor es un PREFIJO, no el nombre exacto
- * de una pestaña.
- *
- * En la planilla no hay una pestaña por tipo: los problemas están partidos en
- * LOG_PROBLEMA_PRINC / _FRUST / _JUEGO y los testimonios igual. Al pedir el
- * nombre exacto, Sheets respondía "Unable to parse range: LOG_PROBLEMA!A2:B" y
- * como las pestañas se piden todas juntas en un batchGet, esa sola falla
- * volteaba la lectura entera y el panel quedaba vacío.
- *
- * Resolviendo por prefijo contra las pestañas que existen de verdad, el panel
- * también toma solo las variantes nuevas que agreguen sin tocar el código.
- */
-export const TIPOS_LOG = {
-  calendario: 'LOG_CALENDARIO',
-  problema: 'LOG_PROBLEMA',
-  testimonio: 'LOG_TESTIMONIO',
-} as const;
-
-export type TipoLog = keyof typeof TIPOS_LOG;
-
-export const TIPO_LOG_LABEL: Record<TipoLog, string> = {
-  calendario: 'Calendario',
-  problema: 'Problema',
-  testimonio: 'Testimonio',
-};
+export interface Etiqueta {
+  /** Clave estable — se guarda en `crm_followups.tipo_log`. */
+  tipo: string;
+  /** Nombre real de la pestaña. */
+  tab: string;
+  label: string;
+}
 
 export interface CrmLogEntry {
-  tipo: TipoLog;
+  tipo: string;
   usuario: string;
   /** ISO del momento en que ManyChat mandó el mensaje. */
   fecha: string;
-  /** YYYY-MM-DD en horario argentino — es la clave por la que se agrupa. */
+  /** YYYY-MM-DD en horario argentino. */
   dia: string;
 }
 
+/**
+ * Nombres lindos para las etiquetas conocidas. Si aparece una nueva en el CRM
+ * igual se muestra, con el nombre de la pestaña prolijeado.
+ */
+const LABELS: Record<string, string> = {
+  calendario: 'Calendario',
+  problema_princ: 'Problema principal',
+  problema_frust: 'Problema · frustración',
+  problema_juego: 'Problema · juego',
+  testimonio_princ: 'Testimonio principal',
+  testimonio_frust: 'Testimonio · frustración',
+  testimonio_juego: 'Testimonio · juego',
+  inbound: 'Inbound',
+  outbound: 'Outbound',
+  '4_pregunta': '4ª pregunta',
+  audio: 'Audio',
+  no_agendo: 'No agendó',
+  form: 'Form',
+  calificado: 'Calificado',
+  seguidores: 'Seguidores',
+  rtanuevoseguidor: 'Rta. nuevo seguidor',
+};
+
+/**
+ * Etiquetas que arrancan apagadas en el panel.
+ *
+ * `seguidores` tiene 4.400+ filas pero NINGUNA con nombre: la pestaña guarda
+ * solo la fecha, así que es un contador de seguidores nuevos y no una lista de
+ * gente a la que escribirle. Hoy no produce ningún follow-up (las filas sin
+ * usuario se descartan igual); queda silenciada por si algún día empiezan a
+ * completar la columna, para que no tape el resto de golpe.
+ */
+export const ETIQUETAS_SILENCIADAS = ['seguidores'];
+
+/** Clave estable a partir del nombre de pestaña. */
+function slugDe(tab: string): string {
+  return tab
+    .replace(/^LOG\s*_?\s*/i, '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+}
+
+function labelDe(tipo: string): string {
+  if (LABELS[tipo]) return LABELS[tipo];
+  const t = tipo.replace(/_/g, ' ');
+  return t.charAt(0).toUpperCase() + t.slice(1);
+}
+
 // Cache en memoria: la planilla cambia de a poco y el panel se recarga seguido.
-// Sin esto, cada refresh del setter pega 3 veces contra la API de Sheets y se
-// come la cuota por minuto.
+// Sin esto, cada refresh pega contra la API de Sheets y se come la cuota.
 const CACHE_TTL_MS = 60_000;
-let cache: { at: number; entries: CrmLogEntry[] } | null = null;
+let cache: { at: number; entries: CrmLogEntry[]; etiquetas: Etiqueta[] } | null = null;
 
 function sheetsClient() {
   const raw = process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
@@ -107,49 +145,60 @@ function parseFecha(raw: unknown): Date | null {
   return Number.isNaN(dt.getTime()) ? null : dt;
 }
 
-/** Lee las 3 pestañas y devuelve las filas normalizadas, más nuevas primero. */
-export async function fetchCrmLogs(): Promise<CrmLogEntry[]> {
-  if (cache && Date.now() - cache.at < CACHE_TTL_MS) return cache.entries;
+/** Una pestaña sirve si su encabezado es FECHA | USUARIO. */
+function esLogDePersonas(header: unknown[]): boolean {
+  const a = String(header?.[0] ?? '').trim().toUpperCase();
+  const b = String(header?.[1] ?? '').trim().toUpperCase();
+  return a === 'FECHA' && b === 'USUARIO';
+}
+
+/** Lee todas las pestañas de log y devuelve las filas, más nuevas primero. */
+export async function fetchCrmLogs(): Promise<{ entries: CrmLogEntry[]; etiquetas: Etiqueta[] }> {
+  if (cache && Date.now() - cache.at < CACHE_TTL_MS) {
+    return { entries: cache.entries, etiquetas: cache.etiquetas };
+  }
 
   const sheets = sheetsClient();
 
-  // Primero preguntamos qué pestañas existen y las clasificamos por prefijo.
-  // Pedir un nombre inventado hace fallar el batchGet completo, así que nunca
-  // pedimos una que no esté.
+  // Primero qué pestañas existen. Pedir un nombre inventado hace fallar el
+  // batchGet completo, así que nunca pedimos una que no esté.
   const meta = await sheets.spreadsheets.get({
     spreadsheetId: CRM_SPREADSHEET_ID,
     fields: 'sheets.properties.title',
   });
-  const titulos = (meta.data.sheets || [])
+  const tabs = (meta.data.sheets || [])
     .map((s) => s.properties?.title || '')
-    .filter(Boolean);
+    .filter((t) => /^LOG/i.test(t));
 
-  const tabs: [TipoLog, string][] = [];
-  for (const [tipo, prefijo] of Object.entries(TIPOS_LOG) as [TipoLog, string][]) {
-    for (const t of titulos) {
-      if (t.toUpperCase().startsWith(prefijo)) tabs.push([tipo, t]);
-    }
-  }
   if (tabs.length === 0) {
-    cache = { at: Date.now(), entries: [] };
-    return [];
+    cache = { at: Date.now(), entries: [], etiquetas: [] };
+    return { entries: [], etiquetas: [] };
   }
 
-  // batchGet: una sola request para todas las pestañas.
+  // A1 para poder mirar el encabezado y descartar las pestañas que no son de
+  // personas. Hasta la C porque en filas viejas el nombre quedó corrido ahí.
   // UNFORMATTED_VALUE para que las fechas vengan como número y no dependan del
-  // locale de la planilla. Hasta la C porque en algunas filas viejas el nombre
-  // quedó corrido a esa columna.
+  // locale de la planilla.
   const res = await sheets.spreadsheets.values.batchGet({
     spreadsheetId: CRM_SPREADSHEET_ID,
-    ranges: tabs.map(([, tab]) => `${tab}!A2:C`),
+    ranges: tabs.map((tab) => `${tab}!A1:C`),
     valueRenderOption: 'UNFORMATTED_VALUE',
   });
 
   const entries: CrmLogEntry[] = [];
+  const etiquetas: Etiqueta[] = [];
+
   (res.data.valueRanges || []).forEach((range, i) => {
-    const tipo = tabs[i][0];
-    for (const row of (range.values || []) as unknown[][]) {
-      const usuario = (String(row?.[1] ?? '').trim() || String(row?.[2] ?? '').trim());
+    const filas = (range.values || []) as unknown[][];
+    if (filas.length === 0 || !esLogDePersonas(filas[0])) return;
+
+    const tab = tabs[i];
+    const tipo = slugDe(tab);
+    if (!tipo) return;
+    etiquetas.push({ tipo, tab, label: labelDe(tipo) });
+
+    for (const row of filas.slice(1)) {
+      const usuario = String(row?.[1] ?? '').trim() || String(row?.[2] ?? '').trim();
       // Sin usuario no hay a quién escribirle: ManyChat a veces escribe la
       // fila antes de resolver el nombre. Se descartan.
       if (!usuario) continue;
@@ -166,9 +215,10 @@ export async function fetchCrmLogs(): Promise<CrmLogEntry[]> {
 
   // La planilla no viene ordenada por fecha.
   entries.sort((a, b) => (a.fecha < b.fecha ? 1 : -1));
+  etiquetas.sort((a, b) => a.label.localeCompare(b.label, 'es'));
 
-  cache = { at: Date.now(), entries };
-  return entries;
+  cache = { at: Date.now(), entries, etiquetas };
+  return { entries, etiquetas };
 }
 
 /** Clave estable de un follow-up, para cruzar con la tabla de estado. */
