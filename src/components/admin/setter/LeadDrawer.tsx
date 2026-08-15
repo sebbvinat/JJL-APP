@@ -241,10 +241,15 @@ export default function LeadDrawer({ lead, admins, onClose, onChanged, onConvert
               className="ml-auto inline-flex items-center gap-1 h-8 px-3 rounded bg-green-500/15 border border-green-500/40 text-green-300 text-[11px] font-bold uppercase tracking-wider hover:bg-green-500/25">
               <DollarSign className="h-3 w-3" /> Marcar venta
             </button>
-            {lead.stage !== 'convertido' && (
+            {/* Se oculta solo si el lead YA quedó vinculado a un alumno.
+                Antes se ocultaba con solo estar en "convertido", y eso dejaba
+                sin salida a los que alguien marcó a mano: quedaban en esa
+                columna sin alumno y el boton para crearselo no aparecía más. */}
+            {(lead.stage !== 'convertido' || !lead.converted_user_id) && (
               <button onClick={onConvertClick}
                 className="inline-flex items-center gap-1 h-8 px-3 rounded bg-green-500 text-white text-[11px] font-bold uppercase tracking-wider hover:bg-green-600">
-                <UserPlus className="h-3 w-3" /> Convertir a alumno
+                <UserPlus className="h-3 w-3" />
+                {lead.stage === 'convertido' ? 'Crear su usuario' : 'Convertir a alumno'}
               </button>
             )}
           </div>
