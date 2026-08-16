@@ -1,8 +1,8 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import useSWR from 'swr';
-import { CalendarDays, Video, Mail, Phone, ChevronDown, ChevronUp, XCircle } from 'lucide-react';
+import { CalendarDays, Video, Mail, Phone, ChevronLeft, ChevronRight, XCircle } from 'lucide-react';
 import { fetcher } from '@/lib/fetcher';
 import { APP_TZ } from '@/lib/dates';
 
@@ -23,7 +23,10 @@ interface Resp {
   error?: string;
 }
 
-/** YYYY-MM-DD del evento en horario argentino, que es la clave para agrupar por día. */
+/**
+ * Todo se agrupa por el día ARGENTINO, no por el del navegador ni el UTC.
+ * Una consultoría de las 22:00 es de hoy, no de mañana.
+ */
 function diaDe(iso: string): string {
   return new Intl.DateTimeFormat('en-CA', {
     timeZone: APP_TZ,
@@ -42,46 +45,100 @@ function horaDe(iso: string): string {
   }).format(new Date(iso));
 }
 
-/** "Hoy" / "Mañana" leen mucho más rápido que la fecha cuando estás laburando. */
-function tituloDia(dia: string): string {
-  const hoy = diaDe(new Date().toISOString());
-  const manana = diaDe(new Date(Date.now() + 86_400_000).toISOString());
-  if (dia === hoy) return 'Hoy';
-  if (dia === manana) return 'Mañana';
+const HOY = () => diaDe(new Date().toISOString());
+
+/** "lunes 17 de agosto" — el encabezado del día elegido. */
+function tituloLargo(dia: string): string {
   const [y, m, d] = dia.split('-').map(Number);
-  return new Intl.DateTimeFormat('es-AR', {
+  const t = new Intl.DateTimeFormat('es-AR', {
     weekday: 'long',
     day: 'numeric',
-    month: 'short',
-  }).format(new Date(y, m - 1, d));
+    month: 'long',
+  }).format(new Date(y, m - 1, d, 12));
+  return t.charAt(0).toUpperCase() + t.slice(1);
+}
+
+function nombreMes(y: number, m: number): string {
+  const t = new Intl.DateTimeFormat('es-AR', { month: 'long', year: 'numeric' }).format(
+    new Date(y, m, 1, 12),
+  );
+  return t.charAt(0).toUpperCase() + t.slice(1);
+}
+
+const DIAS_SEMANA = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
+
+/**
+ * Celdas del mes, arrancando el lunes. Las de relleno (del mes anterior y el
+ * siguiente) van como null para que la grilla quede pareja.
+ */
+function celdasDelMes(y: number, m: number): (string | null)[] {
+  const primero = new Date(y, m, 1, 12);
+  // getDay() da 0=domingo; lo pasamos a 0=lunes.
+  const offset = (primero.getDay() + 6) % 7;
+  const cantidad = new Date(y, m + 1, 0, 12).getDate();
+  const celdas: (string | null)[] = Array(offset).fill(null);
+  for (let d = 1; d <= cantidad; d++) {
+    celdas.push(`${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`);
+  }
+  while (celdas.length % 7 !== 0) celdas.push(null);
+  return celdas;
 }
 
 export default function AgendaCalendly() {
-  const [abierto, setAbierto] = useState(true);
-
-  const { data, isLoading } = useSWR<Resp>('/api/admin/setter/agenda', fetcher, {
+  // Traemos un mes para atrás y tres para adelante de una sola vez: al volumen
+  // actual son ~60 consultorías, entra en una request y navegar por los meses
+  // no vuelve a pegarle a Calendly.
+  const { data, isLoading } = useSWR<Resp>('/api/admin/setter/agenda?atras=31&dias=90', fetcher, {
     revalidateOnFocus: true,
     refreshInterval: 300_000,
     dedupingInterval: 60_000,
   });
 
-  const items = useMemo(() => data?.items || [], [data]);
+  const hoy = HOY();
+  const [ancla, setAncla] = useState(() => {
+    const [y, m] = hoy.split('-').map(Number);
+    return { y, m: m - 1 };
+  });
+  const [elegido, setElegido] = useState<string | null>(null);
 
-  // Agrupadas por día, respetando el orden que ya viene del server.
+  /** dia (YYYY-MM-DD) → consultorías de ese día, ordenadas por hora. */
   const porDia = useMemo(() => {
     const g = new Map<string, Item[]>();
-    for (const it of items) {
+    for (const it of data?.items || []) {
       const d = diaDe(it.inicio);
       if (!g.has(d)) g.set(d, []);
       g.get(d)!.push(it);
     }
-    return [...g.entries()];
-  }, [items]);
+    for (const arr of g.values()) arr.sort((a, b) => (a.inicio < b.inicio ? -1 : 1));
+    return g;
+  }, [data]);
 
-  const activas = items.filter((i) => !i.cancelado).length;
+  // Al abrir, pararse en el día útil: hoy si hay algo, si no la próxima fecha
+  // con consultorías. Abrir en un día vacío obliga a buscar a mano.
+  useEffect(() => {
+    if (elegido || !data) return;
+    if (porDia.has(hoy)) {
+      setElegido(hoy);
+      return;
+    }
+    const proxima = [...porDia.keys()].filter((d) => d >= hoy).sort()[0];
+    setElegido(proxima || hoy);
+    if (proxima) {
+      const [y, m] = proxima.split('-').map(Number);
+      setAncla({ y, m: m - 1 });
+    }
+  }, [data, porDia, hoy, elegido]);
 
-  // Aviso con los pasos concretos: el que abre este panel es quien puede
-  // resolverlo, y "falta CALENDLY_TOKEN" no le dice qué hacer.
+  const celdas = useMemo(() => celdasDelMes(ancla.y, ancla.m), [ancla]);
+  const delDia = elegido ? porDia.get(elegido) || [] : [];
+
+  function moverMes(delta: number) {
+    setAncla(({ y, m }) => {
+      const d = new Date(y, m + delta, 1, 12);
+      return { y: d.getFullYear(), m: d.getMonth() };
+    });
+  }
+
   if (data?.setupRequired) {
     return (
       <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 px-4 py-3 space-y-2">
@@ -122,56 +179,133 @@ export default function AgendaCalendly() {
 
   return (
     <div className="rounded-xl border border-jjl-border bg-white/[0.02] overflow-hidden">
-      <button
-        type="button"
-        onClick={() => setAbierto((v) => !v)}
-        className="w-full flex items-center gap-2.5 px-4 py-3 text-left hover:bg-white/[0.02] transition-colors"
-      >
+      {/* Barra del mes */}
+      <div className="flex items-center gap-2 px-4 py-3 border-b border-jjl-border">
         <CalendarDays className="h-4 w-4 text-jjl-red shrink-0" />
-        <div className="min-w-0">
-          <p className="text-[13px] font-bold text-white">Consultorías agendadas</p>
-          <p className="text-[11px] text-jjl-muted">
-            {isLoading && !data
-              ? 'Cargando…'
-              : activas === 0
-                ? 'No hay consultorías próximas'
-                : `${activas} próxima${activas === 1 ? '' : 's'} · directo de Calendly`}
-          </p>
-        </div>
-        {abierto
-          ? <ChevronUp className="ml-auto h-4 w-4 text-jjl-muted shrink-0" />
-          : <ChevronDown className="ml-auto h-4 w-4 text-jjl-muted shrink-0" />}
-      </button>
+        <p className="text-[13px] font-bold text-white">Consultorías</p>
 
-      {abierto && (
-        <div className="border-t border-jjl-border">
-          {isLoading && !data ? (
-            <div className="flex items-center justify-center py-8">
-              <div className="w-5 h-5 border-2 border-jjl-red border-t-transparent rounded-full animate-spin" />
+        <div className="ml-auto flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => moverMes(-1)}
+            aria-label="Mes anterior"
+            className="h-8 w-8 grid place-items-center rounded-lg border border-jjl-border text-jjl-muted hover:text-white hover:bg-white/5"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+          <span className="min-w-[8.5rem] text-center text-[13px] font-semibold text-white tabular-nums">
+            {nombreMes(ancla.y, ancla.m)}
+          </span>
+          <button
+            type="button"
+            onClick={() => moverMes(1)}
+            aria-label="Mes siguiente"
+            className="h-8 w-8 grid place-items-center rounded-lg border border-jjl-border text-jjl-muted hover:text-white hover:bg-white/5"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+
+      {isLoading && !data ? (
+        <div className="flex items-center justify-center py-12">
+          <div className="w-6 h-6 border-2 border-jjl-red border-t-transparent rounded-full animate-spin" />
+        </div>
+      ) : (
+        <>
+          {/* Grilla del mes */}
+          <div className="px-3 pt-3 pb-1">
+            <div className="grid grid-cols-7 gap-1 mb-1">
+              {DIAS_SEMANA.map((d, i) => (
+                <div key={i} className="text-center text-[10px] font-bold uppercase tracking-wider text-jjl-muted/70 py-1">
+                  {d}
+                </div>
+              ))}
             </div>
-          ) : porDia.length === 0 ? (
-            <p className="px-4 py-6 text-center text-[13px] text-jjl-muted">
-              No hay consultorías agendadas en los próximos 30 días.
-            </p>
-          ) : (
-            porDia.map(([dia, delDia]) => (
-              <div key={dia}>
-                <p className="px-4 py-1.5 bg-white/[0.03] text-[10px] font-bold uppercase tracking-wider text-jjl-muted">
-                  {tituloDia(dia)}
-                </p>
-                {delDia.map((it) => (
-                  <div
-                    key={it.id}
-                    className={`px-4 py-2.5 border-t border-jjl-border/50 ${it.cancelado ? 'opacity-50' : ''}`}
+
+            <div className="grid grid-cols-7 gap-1">
+              {celdas.map((dia, i) => {
+                if (!dia) return <div key={i} />;
+                const items = porDia.get(dia) || [];
+                const activas = items.filter((x) => !x.cancelado).length;
+                const esHoy = dia === hoy;
+                const esElegido = dia === elegido;
+                const num = Number(dia.slice(-2));
+
+                return (
+                  <button
+                    key={dia}
+                    type="button"
+                    onClick={() => setElegido(dia)}
+                    disabled={items.length === 0}
+                    aria-label={`${num}${activas ? `, ${activas} consultorías` : ', sin consultorías'}`}
+                    className={`relative aspect-square rounded-lg flex flex-col items-center justify-center transition-colors ${
+                      esElegido
+                        ? 'bg-jjl-red text-white font-bold'
+                        : items.length > 0
+                          ? 'bg-white/[0.06] text-white hover:bg-white/[0.12] cursor-pointer'
+                          : 'text-jjl-muted/40 cursor-default'
+                    } ${esHoy && !esElegido ? 'ring-1 ring-jjl-red/60' : ''}`}
                   >
-                    {/* Linea 1: horario + nombre. En celu el nombre se corta, no rompe el layout. */}
-                    <div className="flex items-center gap-2.5">
-                      <span className="shrink-0 text-[13px] font-bold tabular-nums text-white">
-                        {horaDe(it.inicio)}
+                    <span className="text-[13px] tabular-nums leading-none">{num}</span>
+                    {/* Un punto por consultoría, hasta 3. Se lee de un vistazo
+                        cuáles son los días cargados sin tener que abrirlos. */}
+                    {items.length > 0 && (
+                      <span className="absolute bottom-1.5 flex gap-0.5">
+                        {items.slice(0, 3).map((it, k) => (
+                          <span
+                            key={k}
+                            className={`h-1 w-1 rounded-full ${
+                              it.cancelado
+                                ? esElegido ? 'bg-white/40' : 'bg-jjl-muted/50'
+                                : esElegido ? 'bg-white' : 'bg-jjl-red'
+                            }`}
+                          />
+                        ))}
                       </span>
-                      <span className={`truncate text-[13px] ${it.cancelado ? 'line-through text-jjl-muted' : 'text-white'}`}>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Día elegido */}
+          <div className="border-t border-jjl-border mt-2">
+            <div className="flex items-baseline gap-2 px-4 py-2.5">
+              <p className="text-[13px] font-bold text-white">
+                {elegido ? tituloLargo(elegido) : '—'}
+              </p>
+              <p className="text-[11px] text-jjl-muted">
+                {delDia.length === 0
+                  ? 'sin consultorías'
+                  : `${delDia.length} consultoría${delDia.length === 1 ? '' : 's'}`}
+              </p>
+            </div>
+
+            {delDia.length === 0 ? (
+              <p className="px-4 pb-5 text-[12px] text-jjl-muted/70">
+                Tocá un día marcado en el calendario para ver quién viene.
+              </p>
+            ) : (
+              delDia.map((it) => (
+                <div
+                  key={it.id}
+                  className={`flex gap-3 px-4 py-3 border-t border-jjl-border/50 ${it.cancelado ? 'opacity-50' : ''}`}
+                >
+                  {/* Horario a la izquierda, como en un calendario de verdad */}
+                  <div className="shrink-0 w-12 text-right">
+                    <p className={`text-[15px] font-bold tabular-nums leading-tight ${it.cancelado ? 'text-jjl-muted' : 'text-white'}`}>
+                      {horaDe(it.inicio)}
+                    </p>
+                    <p className="text-[10px] text-jjl-muted tabular-nums">{horaDe(it.fin)}</p>
+                  </div>
+
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <p className={`truncate text-[14px] font-semibold ${it.cancelado ? 'line-through text-jjl-muted' : 'text-white'}`}>
                         {it.invitado?.nombre || 'Sin nombre'}
-                      </span>
+                      </p>
                       {it.cancelado && (
                         <span className="shrink-0 inline-flex items-center gap-1 h-5 px-1.5 rounded border border-red-500/30 bg-red-500/10 text-[10px] font-bold uppercase tracking-wider text-red-300">
                           <XCircle className="h-3 w-3" />
@@ -180,15 +314,14 @@ export default function AgendaCalendly() {
                       )}
                     </div>
 
-                    {/* Linea 2: contacto + link. Todo clickeable para no copiar a mano. */}
-                    <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 pl-[3.1rem] text-[11px]">
+                    <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]">
                       {it.invitado?.email && (
                         <a
                           href={`mailto:${it.invitado.email}`}
                           className="inline-flex items-center gap-1 text-jjl-muted hover:text-white transition-colors"
                         >
                           <Mail className="h-3 w-3 shrink-0" />
-                          <span className="truncate max-w-[15rem]">{it.invitado.email}</span>
+                          <span className="truncate max-w-[14rem]">{it.invitado.email}</span>
                         </a>
                       )}
                       {it.invitado?.telefono && (
@@ -202,24 +335,25 @@ export default function AgendaCalendly() {
                           {it.invitado.telefono}
                         </a>
                       )}
-                      {it.joinUrl && !it.cancelado && (
-                        <a
-                          href={it.joinUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 font-semibold text-jjl-red hover:text-white transition-colors"
-                        >
-                          <Video className="h-3 w-3 shrink-0" />
-                          Entrar a la reunión
-                        </a>
-                      )}
                     </div>
                   </div>
-                ))}
-              </div>
-            ))
-          )}
-        </div>
+
+                  {it.joinUrl && !it.cancelado && (
+                    <a
+                      href={it.joinUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="self-center shrink-0 inline-flex items-center gap-1.5 h-8 px-3 rounded-lg bg-jjl-red text-white text-[11px] font-bold hover:bg-jjl-red/85 transition-colors"
+                    >
+                      <Video className="h-3.5 w-3.5" />
+                      Entrar
+                    </a>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+        </>
       )}
     </div>
   );

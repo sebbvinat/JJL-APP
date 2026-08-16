@@ -12,7 +12,8 @@ import { agendaCalendly, calendlyConfigurada } from '@/lib/calendly';
  * permitidas.
  *
  * Query params:
- *   dias  — cuántos días hacia adelante mirar (default 30, máx 90)
+ *   dias   — cuántos días hacia adelante mirar (default 30, máx 90)
+ *   atras  — cuántos días hacia atrás incluir (default 0, máx 60)
  */
 export async function GET(request: NextRequest) {
   const auth = await requireAdmin(request);
@@ -26,13 +27,20 @@ export async function GET(request: NextRequest) {
 
   const dias = Math.min(Math.max(Number(request.nextUrl.searchParams.get('dias')) || 30, 1), 90);
 
-  // Arrancamos una hora para atrás para que la reunión que está pasando
-  // ahora mismo siga a la vista y no desaparezca al empezar.
-  const desde = new Date(Date.now() - 3600_000).toISOString();
+  // Días hacia ATRÁS. El calendario mensual los necesita: si solo trajéramos
+  // lo que viene, el mes en curso aparecería con la primera mitad vacía como
+  // si no hubiera habido consultorías.
+  const atras = Math.min(Math.max(Number(request.nextUrl.searchParams.get('atras')) || 0, 0), 60);
+
+  // Cuando no se piden días para atrás igual retrocedemos una hora, para que
+  // la reunión que está pasando ahora mismo no desaparezca al empezar.
+  const desde = new Date(Date.now() - (atras > 0 ? atras * 86_400_000 : 3600_000)).toISOString();
   const hasta = Date.now() + dias * 86_400_000;
 
   try {
-    const todos = await agendaCalendly(desde);
+    // 100 es el tope por página de Calendly. Al volumen actual (~15 por mes)
+    // cubre de sobra los ~4 meses que pide el calendario.
+    const todos = await agendaCalendly(desde, 100);
     const items = todos.filter((i) => new Date(i.inicio).getTime() <= hasta);
     return NextResponse.json(
       { items },

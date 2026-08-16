@@ -43,7 +43,9 @@ export interface AgendaItem {
  * rate limit. 60s es suficiente: una consultoría nueva aparece en un minuto.
  */
 const CACHE_TTL_MS = 60_000;
-let cache: { at: number; items: AgendaItem[] } | null = null;
+// La clave incluye el `desde`: con el calendario mensual se pide más de un
+// rango, y un cache que los ignore devolvería el rango de la primera llamada.
+let cache: { at: number; desde: string; items: AgendaItem[] } | null = null;
 
 /** La URI de la organización no cambia nunca, así que se resuelve una sola vez. */
 let orgUri: string | null = null;
@@ -116,7 +118,7 @@ function telefonoDe(inv: RawInvitee): string | null {
  * Incluye las canceladas: al setter le sirve verlas para re-agendar.
  */
 export async function agendaCalendly(desdeIso: string, limite = 50): Promise<AgendaItem[]> {
-  if (cache && Date.now() - cache.at < CACHE_TTL_MS) return cache.items;
+  if (cache && cache.desde === desdeIso && Date.now() - cache.at < CACHE_TTL_MS) return cache.items;
 
   const org = await organizacion();
   const qs = new URLSearchParams({
@@ -168,7 +170,7 @@ export async function agendaCalendly(desdeIso: string, limite = 50): Promise<Age
     items.push(...conInvitado);
   }
 
-  cache = { at: Date.now(), items };
+  cache = { at: Date.now(), desde: desdeIso, items };
   return items;
 }
 
