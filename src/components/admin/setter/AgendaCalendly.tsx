@@ -80,11 +80,34 @@ export default function AgendaCalendly() {
 
   const activas = items.filter((i) => !i.cancelado).length;
 
+  // Aviso con los pasos concretos: el que abre este panel es quien puede
+  // resolverlo, y "falta CALENDLY_TOKEN" no le dice qué hacer.
   if (data?.setupRequired) {
     return (
-      <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-[13px] text-amber-200">
-        <span className="font-semibold">Agenda de Calendly sin conectar.</span>{' '}
-        Falta cargar <code className="text-[12px]">CALENDLY_TOKEN</code> en las variables de entorno.
+      <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 px-4 py-3 space-y-2">
+        <p className="flex items-center gap-2 text-[13px] font-semibold text-amber-200">
+          <CalendarDays className="h-4 w-4 shrink-0" />
+          Falta conectar Calendly
+        </p>
+        <ol className="ml-5 list-decimal space-y-1 text-[12px] text-amber-200/80">
+          <li>
+            En Calendly, entrá a{' '}
+            <a
+              href="https://calendly.com/integrations/api_webhooks"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline hover:text-white"
+            >
+              Integrations &amp; apps → API &amp; webhooks
+            </a>{' '}
+            y generá un <em>Personal Access Token</em>.
+          </li>
+          <li>
+            En Vercel → Settings → Environment Variables, agregá{' '}
+            <code className="text-[11px]">CALENDLY_TOKEN</code> con ese valor.
+          </li>
+          <li>Redeploy. Las consultorías aparecen acá solas.</li>
+        </ol>
       </div>
     );
   }
