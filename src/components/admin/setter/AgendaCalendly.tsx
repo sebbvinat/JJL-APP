@@ -130,7 +130,18 @@ export default function AgendaCalendly() {
   }, [data, porDia, hoy, elegido]);
 
   const celdas = useMemo(() => celdasDelMes(ancla.y, ancla.m), [ancla]);
-  const delDia = elegido ? porDia.get(elegido) || [] : [];
+  const delDia = useMemo(() => (elegido ? porDia.get(elegido) || [] : []), [elegido, porDia]);
+
+  // Nombre, mail y teléfono SOLO del día abierto. Traerlos para todo el mes
+  // es una llamada a Calendly por evento y a ese volumen se corta: con 77
+  // eventos se perdían 33 nombres. Así son 2 a 7 llamadas y llegan todos.
+  const idsDelDia = delDia.map((i) => i.id).join(',');
+  const { data: detalle, isLoading: cargandoDetalle } = useSWR<{ invitados: Record<string, Item['invitado']> }>(
+    idsDelDia ? `/api/admin/setter/agenda?ids=${idsDelDia}` : null,
+    fetcher,
+    { revalidateOnFocus: false, dedupingInterval: 60_000 },
+  );
+  const invitadoDe = (it: Item) => detalle?.invitados?.[it.id] ?? it.invitado;
 
   function moverMes(delta: number) {
     setAncla(({ y, m }) => {
@@ -288,7 +299,9 @@ export default function AgendaCalendly() {
                 Tocá un día marcado en el calendario para ver quién viene.
               </p>
             ) : (
-              delDia.map((it) => (
+              delDia.map((it) => {
+                const inv = invitadoDe(it);
+                return (
                 <div
                   key={it.id}
                   className={`flex gap-3 px-4 py-3 border-t border-jjl-border/50 ${it.cancelado ? 'opacity-50' : ''}`}
@@ -304,7 +317,7 @@ export default function AgendaCalendly() {
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       <p className={`truncate text-[14px] font-semibold ${it.cancelado ? 'line-through text-jjl-muted' : 'text-white'}`}>
-                        {it.invitado?.nombre || 'Sin nombre'}
+                        {inv?.nombre || (cargandoDetalle ? 'Cargando…' : 'Sin nombre')}
                       </p>
                       {it.cancelado && (
                         <span className="shrink-0 inline-flex items-center gap-1 h-5 px-1.5 rounded border border-red-500/30 bg-red-500/10 text-[10px] font-bold uppercase tracking-wider text-red-300">
@@ -315,24 +328,24 @@ export default function AgendaCalendly() {
                     </div>
 
                     <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]">
-                      {it.invitado?.email && (
+                      {inv?.email && (
                         <a
-                          href={`mailto:${it.invitado.email}`}
+                          href={`mailto:`}
                           className="inline-flex items-center gap-1 text-jjl-muted hover:text-white transition-colors"
                         >
                           <Mail className="h-3 w-3 shrink-0" />
-                          <span className="truncate max-w-[14rem]">{it.invitado.email}</span>
+                          <span className="truncate max-w-[14rem]">{inv.email}</span>
                         </a>
                       )}
-                      {it.invitado?.telefono && (
+                      {inv?.telefono && (
                         <a
-                          href={`https://wa.me/${it.invitado.telefono.replace(/[^0-9]/g, '')}`}
+                          href={`https://wa.me/${inv.telefono.replace(/[^0-9]/g, '')}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="inline-flex items-center gap-1 text-jjl-muted hover:text-white transition-colors"
                         >
                           <Phone className="h-3 w-3 shrink-0" />
-                          {it.invitado.telefono}
+                          {inv.telefono}
                         </a>
                       )}
                     </div>
@@ -350,7 +363,8 @@ export default function AgendaCalendly() {
                     </a>
                   )}
                 </div>
-              ))
+                );
+              })
             )}
           </div>
         </>

@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { requireAdmin } from '@/lib/supabase/server';
-import { agendaCalendly, calendlyConfigurada } from '@/lib/calendly';
+import { agendaCalendly, invitadosDe, calendlyConfigurada } from '@/lib/calendly';
 
 /**
  * GET /api/admin/setter/agenda
@@ -23,6 +23,25 @@ export async function GET(request: NextRequest) {
     // Sin token no es un error: es que falta configurarlo. El panel muestra
     // el aviso en vez de un cartel de error rojo.
     return NextResponse.json({ items: [], setupRequired: true });
+  }
+
+  // Modo detalle: los datos de los invitados de un puñado de eventos (los de
+  // un día). Va aparte del listado porque es una llamada a Calendly por
+  // evento, y pedirlas todas juntas para el mes hacía que se cortaran.
+  const idsParam = (request.nextUrl.searchParams.get('ids') || '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter((s) => /^[A-Za-z0-9-]{6,64}$/.test(s))
+    .slice(0, 20);
+
+  if (idsParam.length > 0) {
+    try {
+      const invitados = await invitadosDe(idsParam);
+      return NextResponse.json({ invitados }, { headers: { 'Cache-Control': 'private, max-age=60' } });
+    } catch (err) {
+      console.error('[agenda] invitados failed', err);
+      return NextResponse.json({ error: 'No se pudieron leer los invitados' }, { status: 502 });
+    }
   }
 
   const dias = Math.min(Math.max(Number(request.nextUrl.searchParams.get('dias')) || 30, 1), 90);

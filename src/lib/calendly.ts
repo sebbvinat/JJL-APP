@@ -116,8 +116,13 @@ function telefonoDe(inv: RawInvitee): string | null {
 /**
  * Consultorías desde `desdeIso` en adelante, ordenadas por horario.
  * Incluye las canceladas: al setter le sirve verlas para re-agendar.
+ *
+ * NO trae los datos del invitado. Eso es una llamada por evento, y el
+ * calendario pide ~4 meses: con 77 eventos se perdían 33 nombres (Calendly
+ * corta) y tardaba 10 segundos. Los datos de la persona se piden aparte, solo
+ * para el día que el setter abre — ver `invitadosDe`.
  */
-export async function agendaCalendly(desdeIso: string, limite = 50): Promise<AgendaItem[]> {
+export async function agendaCalendly(desdeIso: string, limite = 100): Promise<AgendaItem[]> {
   if (cache && cache.desde === desdeIso && Date.now() - cache.at < CACHE_TTL_MS) return cache.items;
 
   const org = await organizacion();
@@ -129,49 +134,55 @@ export async function agendaCalendly(desdeIso: string, limite = 50): Promise<Age
   });
   const { collection } = await get<{ collection: RawEvent[] }>(`${API}/scheduled_events?${qs}`);
 
-  // Los datos del invitado vienen en otra llamada, una por evento. Van en
-  // paralelo, pero de a tandas: 50 requests simultáneos a Calendly devuelven
-  // 429 y perdemos toda la lista por querer ir más rápido.
-  const items: AgendaItem[] = [];
-  const TANDA = 5;
-  for (let i = 0; i < collection.length; i += TANDA) {
-    const tanda = collection.slice(i, i + TANDA);
-    const conInvitado = await Promise.all(
-      tanda.map(async (ev) => {
-        let invitado: AgendaItem['invitado'] = null;
+  const items: AgendaItem[] = collection.map((ev) => ({
+    id: ev.uri.split('/').pop() || ev.uri,
+    evento: ev.name,
+    inicio: ev.start_time,
+    fin: ev.end_time,
+    cancelado: ev.status === 'canceled',
+    cancelacion: ev.cancellation
+      ? { por: ev.cancellation.canceled_by || 'alguien', motivo: ev.cancellation.reason ?? null }
+      : null,
+    joinUrl: joinUrlDe(ev),
+    invitado: null,
+  }));
+
+  cache = { at: Date.now(), desde: desdeIso, items };
+  return items;
+}
+
+/**
+ * Nombre, mail y teléfono de los invitados de estos eventos.
+ *
+ * Se llama con los eventos de UN día (2 a 7), no con los del mes, que es lo
+ * que hacía fallar a Calendly. Si uno falla se devuelve sin ese, para no
+ * perder los demás.
+ */
+export async function invitadosDe(ids: string[]): Promise<Record<string, AgendaItem['invitado']>> {
+  const salida: Record<string, AgendaItem['invitado']> = {};
+  const TANDA = 4;
+  for (let i = 0; i < ids.length; i += TANDA) {
+    await Promise.all(
+      ids.slice(i, i + TANDA).map(async (id) => {
         try {
-          const r = await get<{ collection: RawInvitee[] }>(`${ev.uri}/invitees?count=1`);
+          const r = await get<{ collection: RawInvitee[] }>(
+            `${API}/scheduled_events/${encodeURIComponent(id)}/invitees?count=1`,
+          );
           const inv = r.collection?.[0];
           if (inv) {
-            invitado = {
+            salida[id] = {
               nombre: inv.name?.trim() || null,
               email: inv.email?.trim() || null,
               telefono: telefonoDe(inv),
             };
           }
         } catch {
-          // Si falla el invitado igual mostramos el horario: media agenda es
-          // mucho mejor que un panel en blanco.
+          // Sin los datos de esa persona igual se muestra el horario.
         }
-        return {
-          id: ev.uri.split('/').pop() || ev.uri,
-          evento: ev.name,
-          inicio: ev.start_time,
-          fin: ev.end_time,
-          cancelado: ev.status === 'canceled',
-          cancelacion: ev.cancellation
-            ? { por: ev.cancellation.canceled_by || 'alguien', motivo: ev.cancellation.reason ?? null }
-            : null,
-          joinUrl: joinUrlDe(ev),
-          invitado,
-        } satisfies AgendaItem;
       }),
     );
-    items.push(...conInvitado);
   }
-
-  cache = { at: Date.now(), desde: desdeIso, items };
-  return items;
+  return salida;
 }
 
 export function calendlyConfigurada(): boolean {
