@@ -32,7 +32,9 @@ export async function GET(request: NextRequest) {
     .split(',')
     .map((s) => s.trim())
     .filter((s) => /^[A-Za-z0-9-]{6,64}$/.test(s))
-    .slice(0, 20);
+    // 40 cubre un mes cargado (julio tuvo 33). Se piden de a 4 contra
+    // Calendly, así que ni siquiera a tope se le hace pesado.
+    .slice(0, 40);
 
   if (idsParam.length > 0) {
     try {
