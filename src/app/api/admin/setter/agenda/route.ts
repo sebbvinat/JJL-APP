@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { requireAdmin } from '@/lib/supabase/server';
-import { agendaCalendly, invitadosDe, calendlyConfigurada } from '@/lib/calendly';
+import { agendaCalendly, invitadosDe, buscarPorEmail, calendlyConfigurada } from '@/lib/calendly';
 
 /**
  * GET /api/admin/setter/agenda
@@ -23,6 +23,23 @@ export async function GET(request: NextRequest) {
     // Sin token no es un error: es que falta configurarlo. El panel muestra
     // el aviso en vez de un cartel de error rojo.
     return NextResponse.json({ items: [], setupRequired: true });
+  }
+
+  // Modo búsqueda: las consultorías de una persona, por mail, sin límite de
+  // fecha. Es la salida cuando la venta se cerró hace más de dos semanas y ya
+  // no entra en la ventana del listado.
+  const emailParam = (request.nextUrl.searchParams.get('email') || '').trim().toLowerCase();
+  if (emailParam) {
+    if (!/^[^@s]+@[^@s]+.[^@s]+$/.test(emailParam)) {
+      return NextResponse.json({ error: 'Email inválido', items: [] }, { status: 400 });
+    }
+    try {
+      const items = await buscarPorEmail(emailParam);
+      return NextResponse.json({ items }, { headers: { 'Cache-Control': 'private, max-age=60' } });
+    } catch (err) {
+      console.error('[agenda] busqueda por email failed', err);
+      return NextResponse.json({ error: 'No se pudo buscar en Calendly' }, { status: 502 });
+    }
   }
 
   // Modo detalle: los datos de los invitados de un puñado de eventos (los de

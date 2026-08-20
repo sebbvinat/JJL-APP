@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import useSWR from 'swr';
-import { CalendarDays, Video, Mail, Phone, ChevronDown, ChevronUp, XCircle, UserPlus } from 'lucide-react';
+import { CalendarDays, Video, Mail, Phone, ChevronDown, ChevronUp, XCircle, UserPlus, Search } from 'lucide-react';
 import ConvertToAlumnoModal from './ConvertToAlumnoModal';
 import { useToast } from '@/components/ui/Toast';
 import { fetcher } from '@/lib/fetcher';
@@ -70,6 +70,18 @@ export default function AgendaCalendly({ puedeCrear = false }: { puedeCrear?: bo
   const [creando, setCreando] = useState<{ nombre: string | null; email: string | null; telefono: string | null } | null>(null);
   const toast = useToast();
 
+  const [busqueda, setBusqueda] = useState('');
+  const emailBuscado = /^[^@s]+@[^@s]+.[^@s]+$/.test(busqueda.trim()) ? busqueda.trim().toLowerCase() : '';
+
+  // Buscar por mail va contra Calendly, que filtra del lado del servidor y sin
+  // limite de fecha. Es la salida para las ventas cerradas hace mas de dos
+  // semanas, que ya no entran en la ventana del listado.
+  const { data: encontrado, isLoading: buscando } = useSWR<Resp>(
+    emailBuscado ? `/api/admin/setter/agenda?email=${encodeURIComponent(emailBuscado)}` : null,
+    fetcher,
+    { revalidateOnFocus: false, dedupingInterval: 60_000 },
+  );
+
   // "Pasadas" es lo que se mira para dar de alta a los que compraron: en la
   // consultoria la persona figura con nombre y mail reales, que es justo lo
   // que los leads no tienen (el quiz solo guarda el Instagram).
@@ -86,14 +98,17 @@ export default function AgendaCalendly({ puedeCrear = false }: { puedeCrear?: bo
     dedupingInterval: 60_000,
   });
 
-  const items = useMemo(() => data?.items || [], [data]);
+  const items = useMemo(
+    () => (emailBuscado ? encontrado?.items || [] : data?.items || []),
+    [data, encontrado, emailBuscado],
+  );
 
   // Nombre, mail y teléfono van en una request aparte. Son una llamada a
   // Calendly por evento, así que el listado no las incluye: pedirlas todas
   // juntas hacía que Calendly cortara y se perdieran nombres.
   const ids = items.map((i) => i.id).join(',');
   const { data: detalle } = useSWR<{ invitados: Record<string, Item['invitado']> }>(
-    ids ? `/api/admin/setter/agenda?ids=${ids}` : null,
+    ids && !emailBuscado ? `/api/admin/setter/agenda?ids=${ids}` : null,
     fetcher,
     { revalidateOnFocus: false, dedupingInterval: 60_000 },
   );
@@ -203,12 +218,38 @@ export default function AgendaCalendly({ puedeCrear = false }: { puedeCrear?: bo
         </button>
       </div>
 
+      {/* Buscar por mail: la lista muestra 2 semanas, pero una venta puede
+          haberse cerrado mucho antes. Calendly filtra por invitado sin limite
+          de fecha, asi que con el mail se llega a cualquiera. */}
+      {abierto && pasadas && (
+        <div className="px-4 pb-3 border-t border-jjl-border pt-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-jjl-muted pointer-events-none" />
+            <input
+              type="search"
+              value={busqueda}
+              onChange={(e) => setBusqueda(e.target.value)}
+              placeholder="¿Es de hace más de 2 semanas? Pegá el mail acá"
+              className="w-full h-9 pl-10 pr-3 bg-white/[0.03] border border-jjl-border rounded-lg text-[13px] text-white placeholder:text-jjl-muted/50 focus:outline-none focus:border-jjl-red"
+            />
+          </div>
+          {busqueda.trim() && !emailBuscado && (
+            <p className="mt-1.5 text-[11px] text-jjl-muted">Escribí el mail completo.</p>
+          )}
+          {emailBuscado && !buscando && items.length === 0 && (
+            <p className="mt-1.5 text-[11px] text-amber-300/80">
+              Esa persona no agendó nunca por Calendly. Creale el usuario desde el lead.
+            </p>
+          )}
+        </div>
+      )}
+
       {/* Alto máximo con scroll propio: el panel es lo primero de la página y
           si crece con cada consultoría empuja el Kanban fuera de la pantalla.
           Así ocupa siempre lo mismo y el resto queda a la vista. */}
       {abierto && (
         <div className="border-t border-jjl-border max-h-[22rem] overflow-y-auto">
-          {isLoading && !data ? (
+          {(isLoading && !data) || buscando ? (
             <div className="flex items-center justify-center py-8">
               <div className="w-5 h-5 border-2 border-jjl-red border-t-transparent rounded-full animate-spin" />
             </div>
@@ -272,7 +313,7 @@ export default function AgendaCalendly({ puedeCrear = false }: { puedeCrear?: bo
                       {/* Este es el atajo que evita tener que buscar al lead:
                           la consultoria ya trae nombre y mail reales, asi que
                           el alta arranca con todo cargado. */}
-                      {puedeCrear && pasadas && !it.cancelado && inv?.email && (
+                      {puedeCrear && (pasadas || emailBuscado) && !it.cancelado && inv?.email && (
                         <button
                           type="button"
                           onClick={() => setCreando({ nombre: inv.nombre, email: inv.email, telefono: inv.telefono })}

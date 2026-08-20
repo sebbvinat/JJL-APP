@@ -185,6 +185,45 @@ export async function invitadosDe(ids: string[]): Promise<Record<string, AgendaI
   return salida;
 }
 
+/**
+ * Consultorías de una persona, buscando por su mail. Sin límite de fecha.
+ *
+ * Es la salida para las ventas que se cerraron hace más de dos semanas: la
+ * lista de "pasadas" muestra una ventana corta para no traer cientos de
+ * eventos, pero Calendly filtra por invitado del lado del servidor, así que
+ * con el mail se llega a cualquiera sin importar cuándo fue la call.
+ *
+ * Devuelve con los datos del invitado ya cargados: son una o dos, no el
+ * problema de volumen que tiene el listado.
+ */
+export async function buscarPorEmail(email: string): Promise<AgendaItem[]> {
+  const org = await organizacion();
+  const qs = new URLSearchParams({
+    organization: org,
+    invitee_email: email.trim().toLowerCase(),
+    sort: 'start_time:desc',
+    count: '10',
+  });
+  const { collection } = await get<{ collection: RawEvent[] }>(`${API}/scheduled_events?${qs}`);
+  if (collection.length === 0) return [];
+
+  const items: AgendaItem[] = collection.map((ev) => ({
+    id: ev.uri.split('/').pop() || ev.uri,
+    evento: ev.name,
+    inicio: ev.start_time,
+    fin: ev.end_time,
+    cancelado: ev.status === 'canceled',
+    cancelacion: ev.cancellation
+      ? { por: ev.cancellation.canceled_by || 'alguien', motivo: ev.cancellation.reason ?? null }
+      : null,
+    joinUrl: joinUrlDe(ev),
+    invitado: null,
+  }));
+
+  const invitados = await invitadosDe(items.map((i) => i.id));
+  return items.map((i) => ({ ...i, invitado: invitados[i.id] ?? null }));
+}
+
 export function calendlyConfigurada(): boolean {
   return !!process.env.CALENDLY_TOKEN;
 }
