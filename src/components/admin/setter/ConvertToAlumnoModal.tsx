@@ -6,7 +6,14 @@ import { MONTH_RANGES } from '@/lib/crm';
 import type { LeadRowExt } from './Kanban';
 
 interface Props {
-  lead: LeadRowExt;
+  /**
+   * El lead del que sale la conversion. Es OPCIONAL: cuando el alta arranca
+   * desde una consultoria de Calendly no hay lead, porque los leads solo
+   * guardan el Instagram y no se los puede encontrar por mail.
+   */
+  lead?: LeadRowExt | null;
+  /** Datos ya conocidos (ej. nombre y mail que la persona puso en Calendly). */
+  prefill?: { nombre?: string | null; email?: string | null; telefono?: string | null };
   onClose: () => void;
   onConverted: (info: { user_id: string }) => void;
 }
@@ -18,10 +25,10 @@ const PLANILLAS = [
   { id: 'atleticos', label: 'Atléticos' },
 ];
 
-export default function ConvertToAlumnoModal({ lead, onClose, onConverted }: Props) {
-  const [nombre, setNombre] = useState(lead.nombre || '');
-  const [email, setEmail] = useState(lead.email || '');
-  const [telefono, setTelefono] = useState(lead.telefono || '');
+export default function ConvertToAlumnoModal({ lead, prefill, onClose, onConverted }: Props) {
+  const [nombre, setNombre] = useState(lead?.nombre || prefill?.nombre || '');
+  const [email, setEmail] = useState(lead?.email || prefill?.email || '');
+  const [telefono, setTelefono] = useState(lead?.telefono || prefill?.telefono || '');
   const [planillaId, setPlanillaId] = useState<string>('livianos');
   const [mesesSel, setMesesSel] = useState<number[]>([0, 1]); // Fundamentos + Mes 1
   const [password, setPassword] = useState('');
@@ -37,7 +44,11 @@ export default function ConvertToAlumnoModal({ lead, onClose, onConverted }: Pro
     setSaving(true);
     setErrorMsg(null);
     try {
-      const res = await fetch(`/api/admin/leads/${lead.id}/convert`, {
+      // Con lead se convierte ese lead (queda la atribucion de campana);
+      // sin lead se da de alta directo. Las dos rutas hacen lo mismo con la
+      // cuenta: planilla, modulos y programa activado.
+      const url = lead ? `/api/admin/leads/${lead.id}/convert` : '/api/admin/alumnos';
+      const res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

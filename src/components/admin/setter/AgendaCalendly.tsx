@@ -2,7 +2,9 @@
 
 import { useMemo, useState } from 'react';
 import useSWR from 'swr';
-import { CalendarDays, Video, Mail, Phone, ChevronDown, ChevronUp, XCircle } from 'lucide-react';
+import { CalendarDays, Video, Mail, Phone, ChevronDown, ChevronUp, XCircle, UserPlus } from 'lucide-react';
+import ConvertToAlumnoModal from './ConvertToAlumnoModal';
+import { useToast } from '@/components/ui/Toast';
 import { fetcher } from '@/lib/fetcher';
 import { APP_TZ } from '@/lib/dates';
 
@@ -56,10 +58,26 @@ function tituloDia(dia: string): string {
   }).format(new Date(y, m - 1, d));
 }
 
-export default function AgendaCalendly() {
+/**
+ * `puedeCrear`: solo los admin plenos dan de alta alumnos. El setter ve la
+ * agenda (le sirve para su trabajo) pero no el boton, porque /api/admin/alumnos
+ * no esta en su whitelist y crear una cuenta da acceso al programa. Mostrarle
+ * un boton que le va a devolver 403 es peor que no mostrarlo.
+ */
+export default function AgendaCalendly({ puedeCrear = false }: { puedeCrear?: boolean }) {
   const [abierto, setAbierto] = useState(true);
+  const [pasadas, setPasadas] = useState(false);
+  const [creando, setCreando] = useState<{ nombre: string | null; email: string | null; telefono: string | null } | null>(null);
+  const toast = useToast();
 
-  const { data, isLoading } = useSWR<Resp>('/api/admin/setter/agenda', fetcher, {
+  // "Pasadas" es lo que se mira para dar de alta a los que compraron: en la
+  // consultoria la persona figura con nombre y mail reales, que es justo lo
+  // que los leads no tienen (el quiz solo guarda el Instagram).
+  const url = pasadas
+    ? '/api/admin/setter/agenda?atras=21&dias=1'
+    : '/api/admin/setter/agenda';
+
+  const { data, isLoading } = useSWR<Resp>(url, fetcher, {
     revalidateOnFocus: true,
     refreshInterval: 300_000,
     dedupingInterval: 60_000,
@@ -78,7 +96,8 @@ export default function AgendaCalendly() {
   );
   const invitadoDe = (it: Item) => detalle?.invitados?.[it.id] ?? it.invitado;
 
-  // Agrupadas por día, respetando el orden que ya viene del server.
+  // Agrupadas por día. En "pasadas" se invierte: lo primero que se busca es
+  // la call de recién, no la de hace tres semanas.
   const porDia = useMemo(() => {
     const g = new Map<string, Item[]>();
     for (const it of items) {
@@ -86,8 +105,9 @@ export default function AgendaCalendly() {
       if (!g.has(d)) g.set(d, []);
       g.get(d)!.push(it);
     }
-    return [...g.entries()];
-  }, [items]);
+    const e = [...g.entries()];
+    return pasadas ? e.reverse() : e;
+  }, [items, pasadas]);
 
   const activas = items.filter((i) => !i.cancelado).length;
 
@@ -133,26 +153,52 @@ export default function AgendaCalendly() {
 
   return (
     <div className="rounded-xl border border-jjl-border bg-white/[0.02] overflow-hidden">
-      <button
-        type="button"
-        onClick={() => setAbierto((v) => !v)}
-        className="w-full flex items-center gap-2.5 px-4 py-3 text-left hover:bg-white/[0.02] transition-colors"
-      >
-        <CalendarDays className="h-4 w-4 text-jjl-red shrink-0" />
-        <div className="min-w-0">
-          <p className="text-[13px] font-bold text-white">Consultorías agendadas</p>
-          <p className="text-[11px] text-jjl-muted">
-            {isLoading && !data
-              ? 'Cargando…'
-              : activas === 0
-                ? 'No hay consultorías próximas'
-                : `${activas} próxima${activas === 1 ? '' : 's'} · directo de Calendly`}
-          </p>
+      <div className="flex items-center gap-2.5 px-4 py-3">
+        <button
+          type="button"
+          onClick={() => setAbierto((v) => !v)}
+          className="flex items-center gap-2.5 min-w-0 text-left"
+        >
+          <CalendarDays className="h-4 w-4 text-jjl-red shrink-0" />
+          <div className="min-w-0">
+            <p className="text-[13px] font-bold text-white">Consultorías</p>
+            <p className="text-[11px] text-jjl-muted">
+              {isLoading && !data
+                ? 'Cargando…'
+                : activas === 0
+                  ? pasadas ? 'Ninguna en las últimas 3 semanas' : 'No hay próximas'
+                  : `${activas} ${pasadas ? 'en las últimas 3 semanas' : 'próximas'}`}
+            </p>
+          </div>
+        </button>
+
+        <div className="ml-auto flex rounded-lg border border-jjl-border overflow-hidden shrink-0">
+          {[
+            { v: false, label: 'Próximas' },
+            { v: true, label: 'Pasadas' },
+          ].map((o) => (
+            <button
+              key={String(o.v)}
+              type="button"
+              onClick={() => { setPasadas(o.v); setAbierto(true); }}
+              className={`h-8 px-3 text-[11px] font-semibold transition-colors ${
+                pasadas === o.v ? 'bg-jjl-red text-white' : 'text-jjl-muted hover:text-white hover:bg-white/5'
+              }`}
+            >
+              {o.label}
+            </button>
+          ))}
         </div>
-        {abierto
-          ? <ChevronUp className="ml-auto h-4 w-4 text-jjl-muted shrink-0" />
-          : <ChevronDown className="ml-auto h-4 w-4 text-jjl-muted shrink-0" />}
-      </button>
+
+        <button
+          type="button"
+          onClick={() => setAbierto((v) => !v)}
+          aria-label={abierto ? 'Plegar' : 'Desplegar'}
+          className="shrink-0 text-jjl-muted hover:text-white"
+        >
+          {abierto ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+        </button>
+      </div>
 
       {/* Alto máximo con scroll propio: el panel es lo primero de la página y
           si crece con cada consultoría empuja el Kanban fuera de la pantalla.
@@ -165,7 +211,9 @@ export default function AgendaCalendly() {
             </div>
           ) : porDia.length === 0 ? (
             <p className="px-4 py-6 text-center text-[13px] text-jjl-muted">
-              No hay consultorías agendadas en los próximos 30 días.
+              {pasadas
+                ? 'No hubo consultorías en las últimas 3 semanas.'
+                : 'No hay consultorías agendadas en los próximos 30 días.'}
             </p>
           ) : (
             porDia.map(([dia, delDia]) => (
@@ -218,6 +266,19 @@ export default function AgendaCalendly() {
                           {inv.telefono}
                         </a>
                       )}
+                      {/* Este es el atajo que evita tener que buscar al lead:
+                          la consultoria ya trae nombre y mail reales, asi que
+                          el alta arranca con todo cargado. */}
+                      {puedeCrear && pasadas && !it.cancelado && inv?.email && (
+                        <button
+                          type="button"
+                          onClick={() => setCreando({ nombre: inv.nombre, email: inv.email, telefono: inv.telefono })}
+                          className="inline-flex items-center gap-1 h-7 px-2 rounded-lg bg-green-500/15 border border-green-500/40 text-[11px] font-bold text-green-300 hover:bg-green-500/25"
+                        >
+                          <UserPlus className="h-3 w-3" />
+                          Crear alumno
+                        </button>
+                      )}
                       {it.joinUrl && !it.cancelado && (
                         <a
                           href={it.joinUrl}
@@ -237,6 +298,18 @@ export default function AgendaCalendly() {
             ))
           )}
         </div>
+      )}
+
+      {creando && (
+        <ConvertToAlumnoModal
+          prefill={creando}
+          onClose={() => setCreando(null)}
+          onConverted={({ user_id }) => {
+            setCreando(null);
+            toast.success('Alumno creado. Redirigiendo…');
+            setTimeout(() => { window.location.href = `/admin/${user_id}`; }, 800);
+          }}
+        />
       )}
     </div>
   );

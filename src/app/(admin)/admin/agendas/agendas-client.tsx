@@ -151,7 +151,7 @@ export default function AgendasClient() {
 
       {/* Consultorías agendadas — se leen en vivo de Calendly. Va primero
           porque es lo más urgente: quién viene hoy y a qué hora. */}
-      <AgendaCalendly />
+      <AgendaCalendly puedeCrear={!isSetter} />
 
       {/* Follow-ups del bot que hay que seguir a mano (logs del CRM) */}
       <FollowupsPanel />
