@@ -24,6 +24,36 @@ interface MeResponse {
   user?: { id: string; nombre: string | null; tags?: string[] | null; setter_guide_seen_at?: string | null };
 }
 
+/** Minusculas, sin acentos y sin signos: "Iván M." y "ivanm" matchean igual. */
+function normalizar(s: string): string {
+  return s
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9]/g, '');
+}
+
+/**
+ * Claves con las que se busca un lead.
+ *
+ * NINGUN lead tiene email: el quiz solo guarda el Instagram. Pero cuando
+ * cerras en la call lo unico que te queda de la persona es el mail, y
+ * buscarlo no encontraba nada — parecia que el lead no existia.
+ *
+ * Asi que de un mail tambien probamos con lo de antes del @, sin los numeros
+ * del final, contra el handle: "robertadolf1987@gmail.com" encuentra a
+ * "robert_adolfo_dominguez_cuevas". Pedimos 5 caracteres minimo para que un
+ * mail tipo "ana@..." no traiga media lista.
+ */
+function clavesDeBusqueda(q: string): string[] {
+  const claves = [normalizar(q)];
+  if (q.includes('@')) {
+    const local = normalizar(q.split('@')[0]).replace(/[0-9]+$/, '');
+    if (local.length >= 5) claves.push(local);
+  }
+  return claves.filter(Boolean);
+}
+
 export default function AgendasClient() {
   const [q, setQ] = useState('');
   const [openId, setOpenId] = useState<string | null>(null);
@@ -63,10 +93,11 @@ export default function AgendasClient() {
   const leads: LeadRowExt[] = useMemo(() => {
     const ls = data?.leads || [];
     if (!q.trim()) return ls;
-    const qq = q.trim().toLowerCase();
-    return ls.filter((l) =>
-      `${l.nombre || ''} ${l.email || ''} ${l.instagram || ''} ${l.telefono || ''}`.toLowerCase().includes(qq)
-    );
+    const claves = clavesDeBusqueda(q);
+    return ls.filter((l) => {
+      const heno = normalizar(`${l.nombre || ''} ${l.email || ''} ${l.instagram || ''} ${l.telefono || ''}`);
+      return claves.some((k) => heno.includes(k));
+    });
   }, [data, q]);
 
   const openLead = leads.find((l) => l.id === openId) || null;
@@ -132,7 +163,7 @@ export default function AgendasClient() {
       <div className="flex items-center gap-2">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-jjl-muted pointer-events-none" />
-          <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar nombre / email / Instagram / teléfono…"
+          <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar por Instagram, mail, nombre o teléfono…"
             className="w-full h-10 pl-10 pr-4 bg-white/[0.03] border border-jjl-border rounded-lg text-[13px] text-white placeholder:text-jjl-muted/50 focus:outline-none focus:border-jjl-red focus:ring-2 focus:ring-jjl-red/25" />
         </div>
         <a
