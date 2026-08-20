@@ -32,9 +32,10 @@ export async function GET(request: NextRequest) {
     .split(',')
     .map((s) => s.trim())
     .filter((s) => /^[A-Za-z0-9-]{6,64}$/.test(s))
-    // 40 cubre un mes cargado (julio tuvo 33). Se piden de a 4 contra
-    // Calendly, así que ni siquiera a tope se le hace pesado.
-    .slice(0, 40);
+    // 60: dos semanas cargadas dieron 44 consultorías y con tope de 40
+    // quedaban 4 sin nombre, o sea sin poder darles de alta. Se piden de a 4
+    // contra Calendly, así que a tope son ~3s.
+    .slice(0, 60);
 
   if (idsParam.length > 0) {
     try {
