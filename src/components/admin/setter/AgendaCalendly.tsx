@@ -71,7 +71,7 @@ export default function AgendaCalendly({ puedeCrear = false }: { puedeCrear?: bo
   const toast = useToast();
 
   const [busqueda, setBusqueda] = useState('');
-  const emailBuscado = /^[^@s]+@[^@s]+.[^@s]+$/.test(busqueda.trim()) ? busqueda.trim().toLowerCase() : '';
+  const emailBuscado = /^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/i.test(busqueda.trim()) ? busqueda.trim().toLowerCase() : '';
 
   // Buscar por mail va contra Calendly, que filtra del lado del servidor y sin
   // limite de fecha. Es la salida para las ventas cerradas hace mas de dos

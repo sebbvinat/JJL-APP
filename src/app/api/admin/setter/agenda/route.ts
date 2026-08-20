@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
   // no entra en la ventana del listado.
   const emailParam = (request.nextUrl.searchParams.get('email') || '').trim().toLowerCase();
   if (emailParam) {
-    if (!/^[^@s]+@[^@s]+.[^@s]+$/.test(emailParam)) {
+    if (!/^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/i.test(emailParam)) {
       return NextResponse.json({ error: 'Email inválido', items: [] }, { status: 400 });
     }
     try {
