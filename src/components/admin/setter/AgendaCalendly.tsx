@@ -74,7 +74,10 @@ export default function AgendaCalendly({ puedeCrear = false }: { puedeCrear?: bo
   // consultoria la persona figura con nombre y mail reales, que es justo lo
   // que los leads no tienen (el quiz solo guarda el Instagram).
   const url = pasadas
-    ? '/api/admin/setter/agenda?atras=21&dias=1'
+    // 14 dias y no mas: los datos del invitado se piden de a 40 por request
+    // y 3 semanas daban 62 consultorias, asi que 22 quedaban sin nombre. Ademas
+    // es la ventana real de trabajo: quien compro esta semana.
+    ? '/api/admin/setter/agenda?atras=14&dias=1'
     : '/api/admin/setter/agenda';
 
   const { data, isLoading } = useSWR<Resp>(url, fetcher, {
@@ -166,8 +169,8 @@ export default function AgendaCalendly({ puedeCrear = false }: { puedeCrear?: bo
               {isLoading && !data
                 ? 'Cargando…'
                 : activas === 0
-                  ? pasadas ? 'Ninguna en las últimas 3 semanas' : 'No hay próximas'
-                  : `${activas} ${pasadas ? 'en las últimas 3 semanas' : 'próximas'}`}
+                  ? pasadas ? 'Ninguna en las últimas 2 semanas' : 'No hay próximas'
+                  : `${activas} ${pasadas ? 'en las últimas 2 semanas' : 'próximas'}`}
             </p>
           </div>
         </button>
@@ -212,7 +215,7 @@ export default function AgendaCalendly({ puedeCrear = false }: { puedeCrear?: bo
           ) : porDia.length === 0 ? (
             <p className="px-4 py-6 text-center text-[13px] text-jjl-muted">
               {pasadas
-                ? 'No hubo consultorías en las últimas 3 semanas.'
+                ? 'No hubo consultorías en las últimas 2 semanas.'
                 : 'No hay consultorías agendadas en los próximos 30 días.'}
             </p>
           ) : (

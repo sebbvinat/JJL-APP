@@ -112,9 +112,14 @@ export async function darDeAltaAlumno(admin: AdminClient, p: AltaParams): Promis
     if (!creado?.user?.id) return { error: 'No se pudo crear el usuario', status: 500 };
     userId = creado.user.id;
 
+    // upsert y no insert: la base tiene un trigger que crea el perfil sola
+    // apenas se crea la cuenta de login, asi que para cuando llegamos aca la
+    // fila YA existe y un insert choca con users_pkey. Con esto se completan
+    // los datos que el trigger deja vacios (nombre, email, planilla) en vez
+    // de fallar.
     const { error: insErr } = await admin
       .from('users')
-      .insert({ id: userId, nombre, email, rol: 'alumno', ...activacion });
+      .upsert({ id: userId, nombre, email, rol: 'alumno', ...activacion }, { onConflict: 'id' });
     if (insErr) return { error: insErr.message, status: 500 };
 
     if (!password) {
