@@ -8,30 +8,88 @@ import type {
 
 // Lecturas server-side del catálogo de JJL Cursos.
 
+export interface CatalogBundle extends CursosBundle {
+  /** Cursos incluidos en el bundle, en orden. */
+  courses: CursosCourse[];
+}
+
 export interface CatalogData {
-  bundles: CursosBundle[];
+  bundles: CatalogBundle[];
   /** Cursos publicados que NO forman parte de ningún bundle. */
   courses: CursosCourse[];
 }
 
-/** Catálogo público: bundles + cursos sueltos (excluye los cursos que son parte de un bundle). */
+/** Catálogo público: bundles (con sus cursos) + cursos sueltos. */
 export async function getCatalog(): Promise<CatalogData> {
   const supabase = await createServerSupabaseClient();
   const [coursesRes, bundlesRes, itemsRes] = await Promise.all([
     supabase.from('cursos_courses').select('*').eq('publicado', true).order('orden'),
     supabase.from('cursos_bundles').select('*').eq('publicado', true).order('orden'),
-    supabase.from('cursos_bundle_items').select('course_id'),
+    supabase.from('cursos_bundle_items').select('bundle_id, course_id, orden'),
   ]);
 
-  const bundledIds = new Set(
-    ((itemsRes.data ?? []) as { course_id: string }[]).map((r) => r.course_id)
-  );
+  const items = (itemsRes.data ?? []) as {
+    bundle_id: string;
+    course_id: string;
+    orden: number;
+  }[];
+  const bundledIds = new Set(items.map((r) => r.course_id));
   const allCourses = (coursesRes.data ?? []) as CursosCourse[];
 
+  const bundles = ((bundlesRes.data ?? []) as CursosBundle[]).map((b) => {
+    const ids = items
+      .filter((i) => i.bundle_id === b.id)
+      .sort((a, z) => a.orden - z.orden)
+      .map((i) => i.course_id);
+    return {
+      ...b,
+      courses: ids
+        .map((id) => allCourses.find((c) => c.id === id))
+        .filter((c): c is CursosCourse => Boolean(c)),
+    };
+  });
+
   return {
-    bundles: (bundlesRes.data ?? []) as CursosBundle[],
+    bundles,
     courses: allCourses.filter((c) => !bundledIds.has(c.id)),
   };
+}
+
+/** Bundle publicado al que pertenece un curso (para el upsell), o null. */
+export async function getBundleForCourse(
+  courseId: string
+): Promise<{ bundle: CursosBundle; courses: CursosCourse[] } | null> {
+  const supabase = await createServerSupabaseClient();
+  const { data: item } = await supabase
+    .from('cursos_bundle_items')
+    .select('bundle_id')
+    .eq('course_id', courseId)
+    .maybeSingle();
+  if (!item) return null;
+
+  const { data: bundle } = await supabase
+    .from('cursos_bundles')
+    .select('*')
+    .eq('id', (item as { bundle_id: string }).bundle_id)
+    .eq('publicado', true)
+    .maybeSingle();
+  if (!bundle) return null;
+
+  const { data: items } = await supabase
+    .from('cursos_bundle_items')
+    .select('course_id, orden')
+    .eq('bundle_id', (bundle as CursosBundle).id)
+    .order('orden');
+  const ids = ((items ?? []) as { course_id: string }[]).map((i) => i.course_id);
+  const { data: courses } = await supabase
+    .from('cursos_courses')
+    .select('*')
+    .in('id', ids);
+  const ordered = ((courses ?? []) as CursosCourse[]).sort(
+    (a, b) => ids.indexOf(a.id) - ids.indexOf(b.id)
+  );
+
+  return { bundle: bundle as CursosBundle, courses: ordered };
 }
 
 /** Un curso por slug (solo publicado, salvo que el lector sea admin vía RLS). */

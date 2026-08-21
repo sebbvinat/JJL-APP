@@ -34,6 +34,7 @@ export interface SalesCopy {
   problema?: SalesBlock[];
   solucion?: SalesBlock[];
   highlights?: string[];
+  para_quien?: string[];
   bonos?: SalesBonus[];
   garantia?: SalesBlock;
   faqs?: SalesFaq[];

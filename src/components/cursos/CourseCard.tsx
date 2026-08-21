@@ -1,15 +1,14 @@
 import Link from 'next/link';
 import CourseCover from './CourseCover';
 import type { CursosCourse } from '@/lib/cursos/types';
+import { countLessons, priceLabel } from '@/lib/cursos/format';
 
-function formatPrice(course: CursosCourse): string {
-  if (course.precio_label) return course.precio_label;
-  if (course.precio != null) return `$${course.precio}`;
-  return '';
-}
-
-// Tarjeta de curso del catálogo (tema claro, editorial).
+// Tarjeta de curso del catálogo (tema claro, editorial). Muestra los
+// números reales del curso: lecciones y módulos venden más que adjetivos.
 export default function CourseCard({ course }: { course: CursosCourse }) {
+  const lecciones = countLessons(course.curriculum_preview);
+  const modulos = (course.curriculum_preview ?? []).length;
+
   return (
     <Link
       href={`/curso/${course.slug}`}
@@ -28,7 +27,7 @@ export default function CourseCard({ course }: { course: CursosCourse }) {
       </div>
 
       <div className="flex flex-1 flex-col p-5">
-        <h3 className="text-lg font-bold leading-snug tracking-tight text-cursos-ink">
+        <h3 className="font-display text-lg font-extrabold leading-snug tracking-[-0.02em] text-cursos-ink">
           {course.titulo}
         </h3>
         {course.instructor && (
@@ -36,24 +35,32 @@ export default function CourseCard({ course }: { course: CursosCourse }) {
             con {course.instructor}
           </p>
         )}
-        {course.subtitulo && (
+        {(course.sales_copy?.subheadline || course.subtitulo) && (
           <p className="mt-3 line-clamp-2 text-[14px] leading-relaxed text-cursos-ink-soft">
-            {course.subtitulo}
+            {course.sales_copy?.subheadline || course.subtitulo}
+          </p>
+        )}
+
+        {lecciones > 1 && (
+          <p className="mt-3.5 flex items-center gap-2 text-[12.5px] font-semibold text-cursos-muted">
+            <span className="tabular-nums">{lecciones} lecciones</span>
+            <span className="h-1 w-1 rounded-full bg-cursos-line-strong" />
+            <span className="tabular-nums">{modulos} módulos</span>
           </p>
         )}
 
         <div className="mt-auto flex items-end justify-between pt-5">
           <div className="flex flex-col">
             <span className="text-[11px] font-semibold uppercase tracking-[0.1em] text-cursos-muted">
-              Precio
+              Pago único
             </span>
-            <span className="text-lg font-bold tracking-tight text-cursos-ink">
-              {formatPrice(course)}
+            <span className="font-display text-xl font-extrabold tracking-[-0.02em] text-cursos-ink">
+              {priceLabel(course.precio_label, course.precio)}
             </span>
           </div>
-          <span className="inline-flex items-center gap-1.5 rounded-lg bg-cursos-ink px-3.5 py-2 text-[13px] font-semibold text-white transition-transform group-hover:translate-x-0.5">
+          <span className="inline-flex items-center gap-1.5 rounded-lg bg-cursos-ink px-3.5 py-2 text-[13px] font-semibold text-white transition-all group-hover:bg-cursos-red">
             Ver curso
-            <span aria-hidden>→</span>
+            <span aria-hidden className="transition-transform group-hover:translate-x-0.5">→</span>
           </span>
         </div>
       </div>
