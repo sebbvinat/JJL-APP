@@ -50,6 +50,12 @@ interface Option {
   // calendario al final — recibe un mensaje pidiendo que vuelva cuando esté
   // listo. ADEMÁS queda marcado como `disqualified=true` en el panel del
   // setter (sale del pipeline activo).
+  //
+  // HOY NO LO USA NINGUNA OPCIÓN. Lo tenía "solo estoy viendo", pero
+  // curiosear no dice nada sobre si la persona puede comprar y le tapaba la
+  // agenda. El único filtro es la pregunta de si está dispuesto a invertir,
+  // que usa hidesCalendar. Se deja el mecanismo por si hace falta cortar
+  // alguna respuesta más adelante.
   disqualifies?: boolean;
   // hidesCalendar=true oculta el Calendly al final del quiz (se le muestra
   // una pantalla de "te contactamos pronto") pero NO descalifica el lead.
@@ -233,7 +239,12 @@ const QUESTIONS: QuizQuestion[] = [
         value: 'viendo',
         label: 'Solo estoy viendo / no busco nada puntual',
         Icon: Eye,
-        disqualifies: true,
+        // Antes descalificaba y le tapaba el Calendly. Ya no: estar
+        // curioseando no dice nada de si puede comprar, y el unico filtro
+        // real es la pregunta de si esta dispuesto a invertir. La respuesta
+        // se sigue guardando y el Kanban la marca en rojo ("Lead frio · solo
+        // curiosea"), asi que el setter conserva la señal sin perder la
+        // chance de que agende.
       },
     ],
   },
