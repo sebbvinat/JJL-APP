@@ -12,21 +12,31 @@ import { logger } from '@/lib/logger';
 // desconocido, mail faltante), avisamos por mail al dueño para dar el
 // acceso a mano — ninguna venta queda muda.
 //
-// El producto se identifica SIN configuración extra: la session trae el
-// payment_link (plink_...), le pedimos a Stripe su URL pública
-// (buy.stripe.com/...) y la matcheamos contra payment_url en
-// cursos_bundles / cursos_courses — la DB es la única fuente de verdad.
+// El producto se identifica por el payment_link (plink_...) que trae la
+// session, en este orden:
+//   1. PLINK_MAP (mapa fijo abajo) — no necesita clave API de Stripe.
+//      El plink ID se ve en la URL del dashboard al abrir el link de pago.
+//   2. Fallback: si hay STRIPE_SECRET_KEY, se resuelve la URL pública del
+//      link via API y se matchea contra payment_url en la DB.
 //
 // Env requeridas (Vercel):
-//   STRIPE_SECRET_KEY      — para resolver el payment link
 //   STRIPE_WEBHOOK_SECRET  — firma del endpoint (whsec_...)
 //   RESEND_API_KEY_CURSOS  — mails de bienvenida/alerta
+//   STRIPE_SECRET_KEY      — opcional (solo para el fallback 2)
 
 const CURSOS_HOST = 'https://jiujitsulatino.com';
 const FROM = 'Jiu Jitsu Latino <cursos@jiujitsulatino.com>';
 const REPLY_TO = 'cursos@jiujitsulatino.com';
 const ALERT_EMAIL = process.env.CURSOS_ALERT_EMAIL || 'sebastianvinat@gmail.com';
 const INSTAGRAM = 'jjl.oficial';
+
+// Payment links conocidos → producto. Al crear un link de pago nuevo en
+// Stripe, agregar acá su plink (visible en la URL del dashboard) y el
+// slug del curso o pack. Evita depender de STRIPE_SECRET_KEY.
+const PLINK_MAP: Record<string, { tipo: 'bundle' | 'curso'; slug: string }> = {
+  // ADN — https://buy.stripe.com/dRm4gy8mD3br0Hw5RpcfK08
+  plink_1U7wpMCl9ClSszOM8LnWZaKv: { tipo: 'bundle', slug: 'el-adn-del-jiu-jitsu' },
+};
 
 // ---------- firma ----------
 
@@ -181,22 +191,59 @@ async function fulfill(session: StripeSession): Promise<
   if (!session.payment_link)
     return { ok: false, retry: false, motivo: 'La session no viene de un Payment Link' };
 
-  const linkUrl = await getPaymentLinkUrl(session.payment_link);
-  if (!linkUrl)
-    return {
-      ok: false,
-      retry: false,
-      motivo: `No se pudo resolver el payment link ${session.payment_link} (¿falta STRIPE_SECRET_KEY?)`,
-    };
-
   const admin = createAdminSupabaseClient();
 
-  // Producto: bundle primero, curso después
-  const { data: bundle } = await admin
-    .from('cursos_bundles')
-    .select('id, titulo, duracion_acceso_meses')
-    .eq('payment_url', linkUrl)
-    .maybeSingle<{ id: string; titulo: string; duracion_acceso_meses: number | null }>();
+  // Resolver producto: primero el mapa fijo, después la API de Stripe.
+  const mapped = PLINK_MAP[session.payment_link] ?? null;
+
+  type ProductRow = { id: string; titulo: string; duracion_acceso_meses: number | null };
+  let bundle: ProductRow | null = null;
+  let course: ProductRow | null = null;
+
+  if (mapped) {
+    const table = mapped.tipo === 'bundle' ? 'cursos_bundles' : 'cursos_courses';
+    const { data } = await admin
+      .from(table)
+      .select('id, titulo, duracion_acceso_meses')
+      .eq('slug', mapped.slug)
+      .maybeSingle<ProductRow>();
+    if (mapped.tipo === 'bundle') bundle = data;
+    else course = data;
+    if (!data)
+      return {
+        ok: false,
+        retry: false,
+        motivo: `PLINK_MAP apunta a slug inexistente: ${mapped.slug}`,
+      };
+  } else {
+    const linkUrl = await getPaymentLinkUrl(session.payment_link);
+    if (!linkUrl)
+      return {
+        ok: false,
+        retry: false,
+        motivo: `Payment link ${session.payment_link} no está en PLINK_MAP y no se pudo resolver por API (¿falta STRIPE_SECRET_KEY?)`,
+      };
+    const { data: b } = await admin
+      .from('cursos_bundles')
+      .select('id, titulo, duracion_acceso_meses')
+      .eq('payment_url', linkUrl)
+      .maybeSingle<ProductRow>();
+    bundle = b;
+    if (!bundle) {
+      const { data: c } = await admin
+        .from('cursos_courses')
+        .select('id, titulo, duracion_acceso_meses')
+        .eq('payment_url', linkUrl)
+        .maybeSingle<ProductRow>();
+      course = c;
+    }
+    if (!bundle && !course)
+      return {
+        ok: false,
+        retry: false,
+        motivo: `Ningún curso/pack tiene payment_url = ${linkUrl}`,
+      };
+  }
 
   let productTitle: string;
   let courseIds: string[] = [];
@@ -213,20 +260,9 @@ async function fulfill(session: StripeSession): Promise<
       .eq('bundle_id', bundle.id);
     courseIds = ((items ?? []) as { course_id: string }[]).map((i) => i.course_id);
   } else {
-    const { data: course } = await admin
-      .from('cursos_courses')
-      .select('id, titulo, duracion_acceso_meses')
-      .eq('payment_url', linkUrl)
-      .maybeSingle<{ id: string; titulo: string; duracion_acceso_meses: number | null }>();
-    if (!course)
-      return {
-        ok: false,
-        retry: false,
-        motivo: `Ningún curso/pack tiene payment_url = ${linkUrl}`,
-      };
-    productTitle = course.titulo;
-    accesoMeses = course.duracion_acceso_meses;
-    courseIds = [course.id];
+    productTitle = course!.titulo;
+    accesoMeses = course!.duracion_acceso_meses;
+    courseIds = [course!.id];
   }
   if (courseIds.length === 0)
     return { ok: false, retry: false, motivo: `El pack ${productTitle} no tiene cursos` };
