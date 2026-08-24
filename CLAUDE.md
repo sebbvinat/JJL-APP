@@ -128,6 +128,10 @@ Todos comparten: Fundamentos + Mes 1 (Guardia Cerrada + Toreos) + Mes 2 (100KG, 
 - NEXT_PUBLIC_VAPID_PUBLIC_KEY
 - VAPID_PRIVATE_KEY
 - RESEND_API_KEY (para email reminders de eventos)
+- RESEND_API_KEY_CURSOS (mails de JJL Cursos: reset password, bienvenida, alertas — from cursos@jiujitsulatino.com)
+- STRIPE_SECRET_KEY (para resolver payment links en el webhook de cursos)
+- STRIPE_WEBHOOK_SECRET (firma del webhook /api/cursos/stripe/webhook)
+- CURSOS_ALERT_EMAIL (opcional, destino de alertas de fulfillment; default sebastianvinat@gmail.com)
 - CRON_SECRET (opcional, para proteger endpoints de cron)
 
 ## Notas importantes
