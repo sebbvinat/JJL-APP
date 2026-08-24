@@ -38,6 +38,13 @@ const PLINK_MAP: Record<string, { tipo: 'bundle' | 'curso'; slug: string }> = {
   plink_1U7wpMCl9ClSszOM8LnWZaKv: { tipo: 'bundle', slug: 'el-adn-del-jiu-jitsu' },
 };
 
+// Payment links que NO son de cursos (cobros manuales del programa high
+// ticket, etc). Se ignoran en silencio: sin grants, sin mail de alerta.
+const IGNORED_PLINKS = new Set<string>([
+  // Link de monto variable usado para cobros manuales del programa
+  'plink_1TBgSACl9ClSszOMuuQgiNX4',
+]);
+
 // ---------- firma ----------
 
 function verifyStripeSignature(
@@ -190,6 +197,17 @@ async function fulfill(session: StripeSession): Promise<
   if (!email) return { ok: false, retry: false, motivo: 'La session no trae email del comprador' };
   if (!session.payment_link)
     return { ok: false, retry: false, motivo: 'La session no viene de un Payment Link' };
+
+  // Cobros que no son de cursos (p.ej. pagos manuales del programa):
+  // se ignoran en silencio, sin alertar.
+  if (IGNORED_PLINKS.has(session.payment_link)) {
+    logger.info('stripe.webhook.ignored_plink', {
+      session: session.id,
+      plink: session.payment_link,
+      email,
+    });
+    return { ok: true };
+  }
 
   const admin = createAdminSupabaseClient();
 
