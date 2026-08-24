@@ -1,0 +1,112 @@
+{
+  "courses": [
+    {
+      "slug": "fundamento-adn-guardia",
+      "sales_copy": {
+        "subheadline": "Una guardia que genera dilemas, no que solo aguanta."
+      }
+    },
+    {
+      "slug": "fundamento-adn-escapes",
+      "sales_copy": {
+        "subheadline": "Dejá de quedar aplastado: un mapa para escapar y recuperar."
+      }
+    },
+    {
+      "slug": "front-headlock",
+      "sales_copy": {
+        "faqs": [
+          {
+            "pregunta": "¿Por cuánto tiempo tengo acceso?",
+            "respuesta": "Tenés acceso a la plataforma durante 2 años desde la compra."
+          },
+          {
+            "pregunta": "¿Sirve si entreno con kimono?",
+            "respuesta": "Sí. Los conceptos son de No Gi pero se trasladan al juego con kimono."
+          }
+        ],
+        "garantia": {
+          "cuerpo": "Probá el curso 7 días. Si no es para vos, te devolvemos el 100%.",
+          "titulo": "Garantía de 7 días"
+        },
+        "solucion": [
+          {
+            "cuerpo": "Aprendés a controlar a tu oponente con un sistema de agarres que limita cada una de sus salidas.",
+            "titulo": "Los 3 puntos de contacto"
+          },
+          {
+            "cuerpo": "Cómo encadenar amenazas para finalizar o llegar a la espalda desde la posición.",
+            "titulo": "Estrangulaciones y toma de espalda"
+          }
+        ],
+        "highlights": [
+          "3 puntos de contacto",
+          "Estrangulaciones",
+          "Toma de espalda",
+          "Juegos ecológicos"
+        ],
+        "subheadline": "Del desgaste a la finalización: un sistema completo de Front Headlock."
+      }
+    },
+    {
+      "slug": "escapes-de-la-espalda",
+      "sales_copy": {
+        "garantia": {
+          "cuerpo": "Probá el curso 7 días. Si no es para vos, te devolvemos el 100%.",
+          "titulo": "Garantía de 7 días"
+        },
+        "highlights": [
+          "Defensa del cuello",
+          "Escape y recuperación",
+          "Contraataques"
+        ],
+        "subheadline": "Un sistema claro para salir de la espalda antes de que sea tarde."
+      }
+    },
+    {
+      "slug": "fundamento-adn-control-finalizacion",
+      "sales_copy": {
+        "subheadline": "Del control a la finalización, sin coleccionar técnicas que se olvidan."
+      }
+    },
+    {
+      "slug": "fundamento-adn-pasaje-de-guardia",
+      "sales_copy": {
+        "subheadline": "Pasar la guardia con presión y un plan, no a la fuerza."
+      }
+    },
+    {
+      "slug": "retencion-de-guardia",
+      "sales_copy": {
+        "garantia": {
+          "cuerpo": "Probá el curso 7 días. Si no es para vos, te devolvemos el 100%.",
+          "titulo": "Garantía de 7 días"
+        },
+        "highlights": [
+          "Marcos y distancia",
+          "Recuperación de guardia",
+          "Contraataques"
+        ],
+        "subheadline": "Dejá de que te pasen la guardia: retené, recuperá y contraatacá."
+      }
+    }
+  ],
+  "bundles": [
+    {
+      "slug": "el-adn-del-jiu-jitsu",
+      "sales_copy": {
+        "garantia": {
+          "cuerpo": "Probá el programa 7 días. Si no es para vos, te devolvemos el 100%.",
+          "titulo": "Garantía de 7 días"
+        },
+        "highlights": [
+          "Control y Finalización",
+          "Guardia",
+          "Escapes",
+          "Pasaje de Guardia"
+        ],
+        "subheadline": "4 instruccionales fundamentales en un solo pack, con el Sistema Híbrido de entrenamiento."
+      }
+    }
+  ]
+}

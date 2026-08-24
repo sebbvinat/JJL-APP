@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminSupabaseClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/logger';
-import { ARQUETIPOS, calculateMatch, type ArquetipoId, type QuizAnswers } from '@/lib/match-arquetipos';
+import { ARQUETIPOS, calculateMatch, construirBrecha, type ArquetipoId, type QuizAnswers } from '@/lib/match-arquetipos';
 
 export const runtime = 'nodejs';
 
@@ -38,6 +38,8 @@ export async function POST(request: NextRequest) {
   };
 
   const answers: Partial<QuizAnswers> = {
+    frecuencia: pick('frecuencia') || '',
+    antiguedad: pick('antiguedad') || '',
     peso: pick('peso') || '',
     fisico: pick('fisico') || '',
     estilo: pick('estilo') || '',
@@ -48,10 +50,10 @@ export async function POST(request: NextRequest) {
   };
 
   // Mínimo necesario: 5 de las 6 preguntas con score (todas menos visión).
-  const scoring = ['peso', 'fisico', 'estilo', 'posicion', 'finalizacion', 'dolor'] as const;
+  const scoring = ['frecuencia', 'antiguedad', 'peso', 'fisico', 'estilo', 'posicion', 'finalizacion', 'dolor'] as const;
   const answered = scoring.filter((k) => answers[k]).length;
-  if (answered < 4) {
-    return NextResponse.json({ error: 'Faltan respuestas (mínimo 4 de 6)' }, { status: 400 });
+  if (answered < 5) {
+    return NextResponse.json({ error: 'Faltan respuestas (mínimo 5 de 8)' }, { status: 400 });
   }
 
   const match = calculateMatch(answers);
@@ -71,8 +73,22 @@ export async function POST(request: NextRequest) {
       .from('match_quiz_responses')
       .upsert(row, { onConflict: 'session_id' });
     if (error) {
-      logger.error('match-quiz.upsert.failed', { err: error });
-      // No bloqueamos la respuesta: el match igual se devuelve para mostrar al lead.
+      // Las columnas frecuencia/antiguedad son nuevas. Si todavia no existen en
+      // la tabla, Supabase tira PGRST204 y se perderia TODA la respuesta.
+      // Reintentamos sin ellas para no perder el lead, y dejamos aviso en el log.
+      const faltanColumnas = /frecuencia|antiguedad|column/i.test(error.message || '');
+      if (faltanColumnas) {
+        const { frecuencia: _f, antiguedad: _a, ...legacy } = row;
+        const retry = await admin
+          .from('match_quiz_responses')
+          .upsert(legacy, { onConflict: 'session_id' });
+        logger.warn('match-quiz.upsert.sin-columnas-nuevas', {
+          hint: 'ALTER TABLE match_quiz_responses ADD COLUMN frecuencia text, ADD COLUMN antiguedad text;',
+          retryError: retry.error,
+        });
+      } else {
+        logger.error('match-quiz.upsert.failed', { err: error });
+      }
     }
   } catch (err) {
     logger.error('match-quiz.unhandled', { err });
@@ -83,6 +99,10 @@ export async function POST(request: NextRequest) {
     match: {
       arquetipo,
       matchPct: match.matchPct,
+      // "Lo que te separa": la mitad que faltaba. Sin esto el resultado es
+      // solo un halago y el lead no tiene motivo para escribir.
+      brecha: construirBrecha(arquetipo, answers),
+      dolor: answers.dolor || null,
     },
   });
 }

@@ -1,6 +1,6 @@
 // Data de los arquetipos del quiz "¿A qué luchador te parecés?".
 // La data técnica (fortaleza/guardia/pasaje/dolor típico) fue dictada por
-// Ignacio (coach JJL) — no inventar. Si querés cambiarla, este es el lugar.
+// Guido (coach JJL) — no inventar. Si querés cambiarla, este es el lugar.
 //
 // Cada arquetipo tiene asignada una planilla del programa de 6 meses para
 // el matching interno (el lead no la ve en la ficha, la usa el setter cuando
@@ -18,6 +18,9 @@ export interface Arquetipo {
   mejorGuardia: string;    // "X-Guard"
   mejorPasaje: string;     // "Toreo + control de manga"
   loQueCuesta: string;     // "Defender contra pesados que lo aplastan"
+  /** Avatar circular en /public/arquetipos/<id>.png. Si no existe, la ficha
+   *  cae a las iniciales — nunca se rompe. Generar con scripts/avatar-arquetipo.py */
+  foto?: string;
 }
 
 export const ARQUETIPOS: Record<ArquetipoId, Arquetipo> = {
@@ -40,6 +43,7 @@ export const ARQUETIPOS: Record<ArquetipoId, Arquetipo> = {
     mejorGuardia: 'Ashi Garami / Mariposa',
     mejorPasaje: 'Media guardia con presion',
     loQueCuesta: 'Rivales explosivos que fuerzan scrambles',
+    foto: '/arquetipos/gordon.png',
   },
   buchecha: {
     id: 'buchecha',
@@ -92,6 +96,27 @@ export interface QuizQuestion {
 }
 
 export const QUIZ_QUESTIONS: QuizQuestion[] = [
+  {
+    id: 'frecuencia',
+    pregunta: '¿Cuántas veces por semana entrenás?',
+    subtitulo: 'De esto depende qué juego te conviene, mucho más que tu biotipo',
+    options: [
+      { value: '1-2', label: '1 o 2 veces',   scores: { bernardo: 3, cobrinha: 1 } },
+      { value: '3',   label: '3 veces',        scores: { bernardo: 2, marcelo: 1, cobrinha: 1 } },
+      { value: '4-5', label: '4 o 5 veces',    scores: { marcelo: 2, gordon: 1, cobrinha: 1 } },
+      { value: '6+',  label: '6 o más',        scores: { gordon: 3, buchecha: 2, marcelo: 1 } },
+    ],
+  },
+  {
+    id: 'antiguedad',
+    pregunta: '¿Hace cuánto entrenás jiu-jitsu?',
+    options: [
+      { value: '-1',  label: 'Menos de un año',  scores: { bernardo: 2 } },
+      { value: '1-3', label: 'Entre 1 y 3 años', scores: { bernardo: 1, buchecha: 1 } },
+      { value: '3-7', label: 'Entre 3 y 7 años', scores: { marcelo: 1, cobrinha: 1, gordon: 1 } },
+      { value: '7+',  label: 'Más de 7 años',    scores: { marcelo: 2, cobrinha: 2, gordon: 1 } },
+    ],
+  },
   {
     id: 'peso',
     pregunta: 'Tu peso aproximado',
@@ -167,6 +192,8 @@ export const QUIZ_QUESTIONS: QuizQuestion[] = [
 // ── Scoring ──────────────────────────────────────────────────────────────
 
 export interface QuizAnswers {
+  frecuencia: string;
+  antiguedad: string;
   peso: string;
   fisico: string;
   estilo: string;
@@ -216,4 +243,94 @@ export function calculateMatch(answers: Partial<QuizAnswers>): MatchResult {
   const matchPct = Math.max(75, Math.min(95, Math.round(raw)));
 
   return { winner, matchPct, scores };
+}
+
+// ── LA BRECHA — "lo que te separa" ───────────────────────────────────────
+// El resultado solo con el arquetipo es un halago: el lead sale contento y
+// no pasa nada. Esta parte cruza lo que el lead DIJO (dolor, frecuencia,
+// antigüedad) con la debilidad conocida del arquetipo.
+//
+// REGLA: nada de biomecánica inventada. La brecha se explica por VOLUMEN de
+// entrenamiento y por DISEÑO de juego — que es la tesis de JJL y es honesta.
+
+export const DOLOR_LABEL: Record<string, string> = {
+  'me-aplastan': 'te agarran abajo y no podés salir',
+  'no-paso': 'no lográs pasar la guardia',
+  'no-defiendo': 'te cuesta defender posiciones',
+  'no-finalizo': 'intentás finalizar y no la cerrás',
+};
+
+const FRECUENCIA_LABEL: Record<string, string> = {
+  '1-2': '1 o 2 veces por semana',
+  '3': '3 veces por semana',
+  '4-5': '4 o 5 veces por semana',
+  '6+': '6 o más veces por semana',
+};
+
+/** Entrenos semanales aproximados de un profesional a tiempo completo. */
+const VOLUMEN_PRO = '8 a 12 veces por semana';
+
+export interface BrechaBloque {
+  titulo: string;
+  texto: string;
+}
+
+/**
+ * Devuelve los 2 bloques de "lo que te separa".
+ * Bloque 1 = el problema (el suyo vs el del arquetipo).
+ * Bloque 2 = por qué copiarle el juego entero no funciona.
+ */
+export function construirBrecha(
+  arq: Arquetipo,
+  answers: Partial<QuizAnswers>,
+): BrechaBloque[] {
+  const bloques: BrechaBloque[] = [];
+
+  // ── 1 · Mismo problema, distinta respuesta ─────────────────────────────
+  const dolor = DOLOR_LABEL[answers.dolor ?? ''] ?? '';
+  if (dolor) {
+    bloques.push({
+      titulo: 'No es que él no tenga tu problema',
+      texto:
+        `A ${arq.nombre} también le cuesta ${arq.loQueCuesta.toLowerCase()}. ` +
+        `Y vos dijiste que hoy ${dolor}. ` +
+        `La diferencia no es el problema: es que él tiene una respuesta armada y entrenada para cuando aparece. Vos todavía no.`,
+    });
+  }
+
+  // ── 2 · La brecha de volumen ───────────────────────────────────────────
+  const frec = answers.frecuencia ?? '';
+  const frecLabel = FRECUENCIA_LABEL[frec] ?? '';
+  if (frecLabel) {
+    const pocas = frec === '1-2' || frec === '3';
+    bloques.push({
+      titulo: pocas ? 'Su juego no está hecho para tu semana' : 'El volumen igual no alcanza',
+      texto: pocas
+        ? `${arq.nombre} entrena ${VOLUMEN_PRO}. Vos, ${frecLabel}. ` +
+          `Su juego está diseñado para ese volumen: necesita repeticiones que vos no tenés cuándo hacer. ` +
+          `Copiarlo entero es la forma más rápida de estancarte. Lo que sirve es la versión de ese juego que entra en tu semana.`
+        : `${arq.nombre} entrena ${VOLUMEN_PRO}. Vos, ${frecLabel}. ` +
+          `Estás cerca en horas, pero la diferencia no es cuánto entrena: es que cada entrenamiento suyo tiene un objetivo. ` +
+          `El volumen sin dirección no cierra esa brecha.`,
+    });
+  }
+
+  // ── 3 · Antigüedad: cambia CUÁL es el cuello de botella ────────────────
+  const ant = answers.antiguedad ?? '';
+  if (ant === '3-7' || ant === '7+') {
+    bloques.push({
+      titulo: 'Probablemente no te falten técnicas',
+      texto:
+        `Con los años que llevás, lo más común no es que te falte conocimiento: es que tengas técnicas sueltas que nunca se conectaron entre sí. ` +
+        `El próximo salto casi nunca viene de aprender la número veintiuno.`,
+    });
+  } else if (ant === '-1') {
+    bloques.push({
+      titulo: 'Estás en el mejor momento para elegir',
+      texto:
+        `Todavía no acumulaste técnicas que no vas a usar. Si elegís bien ahora, te ahorrás años de dar vueltas.`,
+    });
+  }
+
+  return bloques;
 }

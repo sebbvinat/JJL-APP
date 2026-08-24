@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import useSWR from 'swr';
-import { Search, BookOpen } from 'lucide-react';
+import { Search, BookOpen, UserPlus } from 'lucide-react';
 import { fetcher } from '@/lib/fetcher';
 import Kanban, { type LeadRowExt, type SaleSummary } from '@/components/admin/setter/Kanban';
 import LeadDrawer from '@/components/admin/setter/LeadDrawer';
@@ -60,6 +60,7 @@ export default function AgendasClient() {
   const [convertingId, setConvertingId] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [guideDismissed, setGuideDismissed] = useState(false);
+  const [altaLibre, setAltaLibre] = useState(false);
 
   // Polling moderado: cada 5 min para no quemar egress del plan Free de
   // Supabase. Las notifs auto (in-app + push) ya cubren el tiempo real;
@@ -166,6 +167,25 @@ export default function AgendasClient() {
           <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar por Instagram, mail, nombre o teléfono…"
             className="w-full h-10 pl-10 pr-4 bg-white/[0.03] border border-jjl-border rounded-lg text-[13px] text-white placeholder:text-jjl-muted/50 focus:outline-none focus:border-jjl-red focus:ring-2 focus:ring-jjl-red/25" />
         </div>
+        {/* Alta sin depender de encontrar a nadie.
+            Los otros dos caminos (convertir un lead, o crear desde una
+            consultoria de Calendly) piden ubicar a la persona primero, y hay
+            gente que no esta en ninguno de los dos: no hizo el quiz y no
+            agendo por Calendly. Para esos no habia forma de darles el alta
+            completa — "Crear alumno" del panel de alumnos abre la cuenta pero
+            no asigna planilla ni desbloquea modulos. */}
+        {!isSetter && (
+          <button
+            type="button"
+            onClick={() => setAltaLibre(true)}
+            title="Crear un alumno escribiendo su nombre y mail, sin buscarlo"
+            className="shrink-0 inline-flex items-center gap-1.5 h-10 px-3.5 rounded-lg bg-green-500 text-white text-[13px] font-bold hover:bg-green-600 transition-colors"
+          >
+            <UserPlus className="h-4 w-4" />
+            <span className="hidden sm:inline">Crear alumno</span>
+            <span className="sm:hidden">Crear</span>
+          </button>
+        )}
         <a
           href="/guion-setting.html"
           target="_blank"
@@ -216,6 +236,18 @@ export default function AgendasClient() {
           onClose={() => setOpenId(null)}
           onChanged={() => void mutate()}
           onConvertClick={() => { setConvertingId(openLead.id); setOpenId(null); }}
+        />
+      )}
+
+      {/* Alta libre: sin lead y sin consultoria, solo nombre y mail */}
+      {altaLibre && (
+        <ConvertToAlumnoModal
+          onClose={() => setAltaLibre(false)}
+          onConverted={({ user_id }) => {
+            setAltaLibre(false);
+            showToast('Alumno creado. Redirigiendo…');
+            setTimeout(() => { window.location.href = `/admin/${user_id}`; }, 800);
+          }}
         />
       )}
 

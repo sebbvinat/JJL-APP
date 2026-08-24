@@ -101,7 +101,7 @@ interface LeadRow {
 }
 
 /**
- * Mensaje al setter (vos / Ignacio). Lleva el contexto + el link directo
+ * Mensaje al setter (vos / Guido). Lleva el contexto + el link directo
  * de WhatsApp del lead con un texto soft ya armado — abrir y enviar.
  *
  * Si no hay teléfono, ofrecemos el link de Instagram (DM) como fallback.
@@ -141,7 +141,7 @@ function buildSetterAlert(lead: LeadRow, kind: 'slot' | 'quiz'): string {
 }
 
 /**
- * Mensaje soft firmando Ignacio. Abre conversación, no presiona. Si
+ * Mensaje soft firmando Guido. Abre conversación, no presiona. Si
  * conocemos el nombre lo personalizamos; si no, queda genérico pero humano.
  *
  * `slot` (casi-agendó): implica que estuvo a un click — "estabas a punto".
@@ -153,12 +153,12 @@ function buildSoftMessage(lead: LeadRow, kind: 'slot' | 'quiz'): string {
   const link = 'https://alumno.jiujitsulatino.com/consultoria-gratuita';
   if (kind === 'quiz') {
     return (
-      `${hello} Soy Ignacio de JJL. Vi que acabás de completar la evaluación de juego y no llegaste a agendar la consultoría. ` +
+      `${hello} Soy Guido de JJL. Vi que acabás de completar la evaluación de juego y no llegaste a agendar la consultoría. ` +
       `Si te quedó alguna duda o querés que te ayude a elegir un horario, decime por acá. Te dejo el link igual: ${link}`
     );
   }
   return (
-    `${hello} Soy Ignacio de JJL. Vi que estabas a punto de agendar la consultoría gratuita y te quedaste cerca. ` +
+    `${hello} Soy Guido de JJL. Vi que estabas a punto de agendar la consultoría gratuita y te quedaste cerca. ` +
     `Si tenés alguna duda antes de elegir el horario me decís y la respondo. Si no, te dejo el link de nuevo: ${link}`
   );
 }

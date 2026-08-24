@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { ArrowLeft, ArrowRight, Trophy, Loader2 } from 'lucide-react';
-import { QUIZ_QUESTIONS, type QuizAnswers, type Arquetipo } from '@/lib/match-arquetipos';
+import { QUIZ_QUESTIONS, type QuizAnswers, type Arquetipo, type BrechaBloque } from '@/lib/match-arquetipos';
 import MatchResult from './MatchResult';
 
 type QuizState = 'intro' | 'questions' | 'submitting' | 'result';
@@ -23,7 +23,7 @@ export default function MatchQuiz() {
   const [step, setStep] = useState(0); // índice de pregunta actual
   const [answers, setAnswers] = useState<Partial<QuizAnswers>>({});
   const [visionText, setVisionText] = useState('');
-  const [result, setResult] = useState<{ arquetipo: Arquetipo; matchPct: number } | null>(null);
+  const [result, setResult] = useState<{ arquetipo: Arquetipo; matchPct: number; brecha?: BrechaBloque[] } | null>(null);
   const [error, setError] = useState('');
 
   const totalSteps = QUIZ_QUESTIONS.length;
@@ -80,7 +80,7 @@ export default function MatchQuiz() {
           ¿A qué luchador<br />te parecés?
         </h1>
         <p className="mt-5 text-[15px] text-white/70 leading-relaxed">
-          Un test de 60 segundos basado en tu biotipo y tu estilo.
+          Un test de 90 segundos basado en tu cuerpo, tu estilo y las veces que entrenás.
           Al final te decimos a qué leyenda del jiu-jitsu se parece tu juego —
           y dónde está tu próximo salto.
         </p>
@@ -99,7 +99,7 @@ export default function MatchQuiz() {
           <ArrowRight className="h-5 w-5" />
         </button>
         <p className="mt-4 text-[11px] text-jjl-muted">
-          7 preguntas · sin email para empezar
+          9 preguntas · sin email para empezar
         </p>
       </div>
     );
@@ -123,6 +123,7 @@ export default function MatchQuiz() {
         sessionId={sessionId}
         arquetipo={result.arquetipo}
         matchPct={result.matchPct}
+        brecha={result.brecha}
       />
     );
   }
