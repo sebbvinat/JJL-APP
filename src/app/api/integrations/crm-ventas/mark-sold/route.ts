@@ -52,9 +52,20 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'JSON inválido' }, { status: 400 });
   }
 
+  // El quiz guarda SOLO el instagram: nombre y email los completa el webhook de
+  // Calendly, y si ese webhook no llegó el lead queda sin email. Buscar unicamente
+  // por email hacia que ninguna venta se marcara. Ahora aceptamos tres llaves y
+  // probamos en orden de precision: evento de Calendly > email > instagram.
   const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
-  if (!email || !email.includes('@')) {
-    return NextResponse.json({ error: 'email es obligatorio' }, { status: 400 });
+  const eventUri = typeof body.calendly_event_uri === 'string' ? body.calendly_event_uri.trim() : '';
+  const instagram = typeof body.instagram === 'string'
+    ? body.instagram.trim().toLowerCase().replace(/^@+/, '')
+    : '';
+  if (!email && !eventUri && !instagram) {
+    return NextResponse.json(
+      { error: 'Hace falta al menos email, calendly_event_uri o instagram' },
+      { status: 400 },
+    );
   }
   const monto = typeof body.monto === 'number' ? body.monto : null;
   const moneda = typeof body.moneda === 'string' ? body.moneda : null;
@@ -66,30 +77,49 @@ export async function POST(request: NextRequest) {
 
   // Buscar el lead por email (matching case-insensitive — ilike es exact-match
   // con el filtro 'email' bajo). Tomamos el más reciente si hay varios.
-  const { data: leads, error: selErr } = await admin
-    .from('lead_quiz_responses')
-    .select('id, session_id, email, stage, converted_user_id, nombre, assigned_to')
-    .ilike('email', email)
-    .order('created_at', { ascending: false })
-    .limit(1);
-
-  if (selErr) {
-    logger.error('mark-sold.select.failed', { err: selErr, email });
-    return NextResponse.json({ error: selErr.message }, { status: 500 });
+  const COLS = 'id, session_id, email, stage, converted_user_id, nombre, assigned_to';
+  // Si hay varios leads del mismo lead (llenó el quiz mas de una vez) tomamos el
+  // mas reciente, que es el que corresponde a la venta.
+  async function buscarPor(columna: string, valor: string) {
+    const { data, error } = await admin
+      .from('lead_quiz_responses')
+      .select(COLS)
+      .ilike(columna, valor)
+      .order('created_at', { ascending: false })
+      .limit(1);
+    if (error) throw error;
+    return data?.[0];
   }
 
-  const lead = leads?.[0];
+  let lead;
+  let matchedBy = '';
+  try {
+    if (eventUri) { lead = await buscarPor('calendly_event_uri', eventUri); if (lead) matchedBy = 'calendly_event_uri'; }
+    if (!lead && email && email.includes('@')) { lead = await buscarPor('email', email); if (lead) matchedBy = 'email'; }
+    if (!lead && instagram) { lead = await buscarPor('instagram', instagram); if (lead) matchedBy = 'instagram'; }
+  } catch (selErr) {
+    logger.error('mark-sold.select.failed', { err: selErr, email, eventUri, instagram });
+    return NextResponse.json({ error: (selErr as Error).message }, { status: 500 });
+  }
   if (!lead) {
     // No encontrar el lead NO es un error fatal — puede ser que el cliente
     // se haya inscripto sin pasar por el quiz. El CRM lo registra igual.
-    logger.warn('mark-sold.lead_not_found', { email });
-    return NextResponse.json({ found: false, updated: false, message: 'Lead no encontrado por email' }, { status: 200 });
+    logger.warn('mark-sold.lead_not_found', { email, eventUri, instagram });
+    return NextResponse.json({ found: false, updated: false, message: 'Lead no encontrado (se probó por evento de Calendly, email e instagram)' }, { status: 200 });
   }
 
-  // Si ya está convertido, no hacemos nada — pero igual registramos la
-  // venta y el contacto (puede ser un upgrade / cuota nueva).
+  // Fee/reserva vs venta real. Regla espejada del CRM externo (actualizar_venta.js):
+  //   situacion='Fee' OR concepto contiene fee/reserva.
+  // Se calcula ANTES de tocar el stage: una seña NO da acceso a la plataforma,
+  // así que no puede mover el lead a "convertido". Igual se registra la fila en
+  // lead_sales y suma comisión.
+  const isFee =
+    (situacion ?? '').toLowerCase() === 'fee' ||
+    /fee|reserva/i.test(notas ?? '');
+
+  // Solo las ventas reales (1ra cuota / PIF) convierten el lead.
   const alreadyConverted = lead.stage === 'convertido';
-  if (!alreadyConverted) {
+  if (!alreadyConverted && !isFee) {
     const { error: updErr } = await admin
       .from('lead_quiz_responses')
       .update({ stage: 'convertido' })
@@ -99,13 +129,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: updErr.message }, { status: 500 });
     }
   }
-
-  // Determinar si es fee/reserva — esos NO suman comisión al setter.
-  // Regla espejada del CRM externo (actualizar_venta.js):
-  //   situacion='Fee' OR concepto contiene fee/reserva.
-  const isFee =
-    (situacion ?? '').toLowerCase() === 'fee' ||
-    /fee|reserva/i.test(notas ?? '');
 
   // Insertar la venta (cada llamada = una fila — cuotas se acumulan).
   try {
@@ -128,7 +151,8 @@ export async function POST(request: NextRequest) {
     // Sin monto bruto en la nota: el historial de contactos lo leen también
     // los setters (ver mark-sale). El monto queda en lead_sales.
     const assignedSetter = (lead as { assigned_to?: string | null }).assigned_to ?? null;
-    const comision = !isFee && monto != null ? commissionFor(monto, assignedSetter) : null;
+    // Las señas también suman comisión al setter (decisión del dueño, ago 2026).
+    const comision = monto != null ? commissionFor(monto, assignedSetter) : null;
     const nota = [
       `💰 ${isFee ? 'Fee/reserva' : 'Venta'} registrada en CRM`,
       comision != null && `Comisión setter (${ratePct(assignedSetter)}%): $${comision.toLocaleString('es-AR')}`,
@@ -149,10 +173,11 @@ export async function POST(request: NextRequest) {
 
   return NextResponse.json({
     found: true,
-    updated: !alreadyConverted,
+    updated: !alreadyConverted && !isFee, // una seña no convierte
     lead_id: lead.id,
     session_id: lead.session_id,
     already_converted: alreadyConverted,
     is_fee: isFee,
+    matched_by: matchedBy, // por que llave se encontro el lead (util para diagnosticar)
   });
 }

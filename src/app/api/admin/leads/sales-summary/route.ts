@@ -83,6 +83,14 @@ export async function GET(request: NextRequest) {
     total_comision: number;
     cuotas: number;
     has_fee: boolean;
+    /**
+     * Solo hubo fee/reserva, sin venta real.
+     *
+     * Va explicito y no se deduce de total_monto===0 en el cliente: al setter
+     * le zeroeamos el bruto, asi que un cliente que SI pago le aparecia como
+     * "fee, no suma comision".
+     */
+    solo_fee: boolean;
     moneda: string | null;
     last_sale_at: string | null;
   }> = {};
@@ -94,6 +102,7 @@ export async function GET(request: NextRequest) {
         total_comision: 0,
         cuotas: 0,
         has_fee: false,
+        solo_fee: false,
         moneda: row.moneda ?? null,
         last_sale_at: row.fecha_venta,
       };
@@ -117,6 +126,7 @@ export async function GET(request: NextRequest) {
   let leads_convertidos = 0;
   for (const k of Object.keys(by_lead)) {
     const s = by_lead[k];
+    s.solo_fee = s.has_fee && s.total_monto === 0;
     total_monto += s.total_monto;
     total_comision += s.total_comision;
     if (s.total_monto > 0 || s.has_fee) leads_convertidos += 1;

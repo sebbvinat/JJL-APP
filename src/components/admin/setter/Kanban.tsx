@@ -15,6 +15,7 @@ export type LeadRowExt = LeadRow & {
 
 export interface SaleSummary {
   total_monto: number;
+  solo_fee?: boolean;
   total_comision: number;
   cuotas: number;
   has_fee: boolean;
@@ -255,14 +256,16 @@ export default function Kanban({ leads, admins, onOpenLead, salesByLead, onQuick
 /**
  * Bloque que se muestra en las cards de la columna "Convertido".
  *
- * - Admin (coach): ve el monto cobrado total + comisión 5% en verde.
+ * - Admin (coach): ve el monto cobrado total + la comisión del setter en verde.
  * - Setter (hideAmount=true): solo ve "+$X comisión" + cantidad de cuotas.
  *   No queremos exponer el ticket bruto a los setters contratados.
  *
  * Si es solo fee/reserva → "fee/reserva (no suma)" en gris (igual para todos).
  */
 function SaleSummaryBlock({ sale, hideAmount }: { sale: SaleSummary; hideAmount: boolean }) {
-  const onlyFee = sale.has_fee && sale.total_monto === 0;
+  // Bandera del server: al setter el bruto le llega en cero, asi que
+  // deducirlo de total_monto le mostraba "fee" a clientes que si pagaron.
+  const onlyFee = sale.solo_fee ?? (sale.has_fee && sale.total_monto === 0);
   if (onlyFee) {
     return (
       <div className="my-1 px-2 py-1.5 rounded border border-jjl-border/40 bg-white/[0.02]">

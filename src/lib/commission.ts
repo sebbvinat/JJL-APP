@@ -16,8 +16,15 @@
  * cambia.
  */
 
-/** Tasa por defecto: 5%. */
-export const DEFAULT_COMMISSION_RATE = 0.05;
+/**
+ * Tasa por defecto: 8%.
+ *
+ * Hoy hay un solo setter y cobra 8%, asi que va como default en vez de como
+ * override por id. Es a proposito: los overrides se cargan por user id y las
+ * cuentas se reutilizan, con lo cual un id viejo puede terminar apuntando a
+ * otra persona — es lo que paso con el 8% de Agustin Coronel.
+ */
+export const DEFAULT_COMMISSION_RATE = 0.08;
 
 /**
  * Overrides por user id. Cargar acá los setters con tasa distinta a la
