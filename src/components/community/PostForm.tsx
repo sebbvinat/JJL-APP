@@ -19,7 +19,9 @@ interface PostFormProps {
 
 const CATEGORIES = [
   { value: 'question', label: 'Pregunta' },
-  { value: 'technique', label: 'Tecnica' },
+  // Solo cambia la etiqueta: por dentro sigue siendo 'technique' para no
+  // dejar huerfanos los posts ya publicados con esa categoria.
+  { value: 'technique', label: 'Subí tu treino' },
   { value: 'progress', label: 'Progreso' },
   { value: 'discussion', label: 'Discusion' },
   { value: 'competition', label: 'Competencia' },

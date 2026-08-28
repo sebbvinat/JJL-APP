@@ -42,7 +42,7 @@ interface Post {
 
 const CATEGORY_LABELS: Record<string, string> = {
   question: 'Pregunta',
-  technique: 'Tecnica',
+  technique: 'Subí tu treino',
   progress: 'Progreso',
   discussion: 'Discusion',
   competition: 'Competencia',
@@ -63,7 +63,7 @@ const CATEGORIES = [
 const CATEGORY_DISPLAY = [
   'Todos',
   'Preguntas',
-  'Tecnicas',
+  'Subí tu treino',
   'Progreso',
   'Discusion',
   'Competencia',
