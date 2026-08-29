@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import useSWR from 'swr';
-import { CalendarDays, Video, Mail, Phone, ChevronDown, ChevronUp, XCircle, UserPlus, Search } from 'lucide-react';
+import { CalendarDays, Video, Mail, Phone, ChevronDown, ChevronUp, XCircle, UserPlus, Search, AtSign } from 'lucide-react';
 import ConvertToAlumnoModal from './ConvertToAlumnoModal';
 import { useToast } from '@/components/ui/Toast';
 import { fetcher } from '@/lib/fetcher';
@@ -16,7 +16,7 @@ interface Item {
   cancelado: boolean;
   cancelacion: { por: string; motivo: string | null } | null;
   joinUrl: string | null;
-  invitado: { nombre: string | null; email: string | null; telefono: string | null } | null;
+  invitado: { nombre: string | null; email: string | null; telefono: string | null; instagram?: string | null } | null;
 }
 
 interface Resp {
@@ -297,6 +297,17 @@ export default function AgendaCalendly({ puedeCrear = false }: { puedeCrear?: bo
                         >
                           <Mail className="h-3 w-3 shrink-0" />
                           <span className="truncate max-w-[15rem]">{inv.email}</span>
+                        </a>
+                      )}
+                      {inv?.instagram && (
+                        <a
+                          href={`https://www.instagram.com/${encodeURIComponent(inv.instagram)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-jjl-muted hover:text-white transition-colors"
+                        >
+                          <AtSign className="h-3 w-3 shrink-0" />
+                          {inv.instagram}
                         </a>
                       )}
                       {inv?.telefono && (

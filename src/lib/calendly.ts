@@ -34,6 +34,8 @@ export interface AgendaItem {
     nombre: string | null;
     email: string | null;
     telefono: string | null;
+    /** Usuario de Instagram con el que entro, si el quiz lo mando. */
+    instagram: string | null;
   } | null;
 }
 
@@ -102,6 +104,17 @@ interface RawInvitee {
   email?: string | null;
   text_reminder_number?: string | null;
   questions_and_answers?: { question: string; answer: string }[] | null;
+}
+
+/**
+ * El Instagram viaja en la pregunta "REF (no llenar)" del formulario de
+ * Calendly, que el quiz prellena con el handle. Es lo unico que permite atar
+ * la consultoria al lead, porque los leads no guardan ni nombre ni mail.
+ */
+function instagramDe(inv: RawInvitee): string | null {
+  const qa = (inv.questions_and_answers || []).find((q) => /^\s*ref\b/i.test(q.question));
+  const v = (qa?.answer || '').trim().replace(/^@/, '');
+  return /^[A-Za-z0-9._]{1,30}$/.test(v) ? v : null;
 }
 
 /** El teléfono puede venir en el recordatorio por SMS o en una pregunta del form. */
@@ -174,6 +187,7 @@ export async function invitadosDe(ids: string[]): Promise<Record<string, AgendaI
               nombre: inv.name?.trim() || null,
               email: inv.email?.trim() || null,
               telefono: telefonoDe(inv),
+              instagram: instagramDe(inv),
             };
           }
         } catch {

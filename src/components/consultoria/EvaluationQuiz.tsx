@@ -666,14 +666,28 @@ const VISION_HOOK: Record<string, string> = {
  * propaga ese valor al webhook `invitee.created`, lo que nos permite asociar
  * la reserva con la fila del lead en `lead_quiz_responses`.
  */
-function withSession(url: string, sessionId: string): string {
+/**
+ * Arma la URL del Calendly con lo que ya sabemos de la persona.
+ *
+ * - utm_content: el id de sesion, para poder cruzar la agenda con el lead.
+ * - a4: el usuario de Instagram con el que entro. En Calendly esa es la
+ *   pregunta "REF (no llenar)", que existe justamente para esto y no es
+ *   obligatoria, asi que el que agenda ni la ve.
+ *
+ * Sin esto la consultoria llega con nombre y mail pero sin forma de saber de
+ * que cuenta de Instagram salio, que es lo unico que guarda el lead.
+ */
+function withSession(url: string, sessionId: string, instagram?: string | null): string {
+  const handle = (instagram || '').trim().replace(/^@/, '');
   try {
     const u = new URL(url);
     u.searchParams.set('utm_content', sessionId);
+    if (handle) u.searchParams.set('a4', `@${handle}`);
     return u.toString();
   } catch {
     const sep = url.includes('?') ? '&' : '?';
-    return `${url}${sep}utm_content=${encodeURIComponent(sessionId)}`;
+    const extra = handle ? `&a4=${encodeURIComponent('@' + handle)}` : '';
+    return `${url}${sep}utm_content=${encodeURIComponent(sessionId)}${extra}`;
   }
 }
 
@@ -900,7 +914,7 @@ function QuizResult({
       </div>
 
       <div className="mt-5">
-        <CalendlyEmbed url={withSession(calendlyUrl, sessionId)} />
+        <CalendlyEmbed url={withSession(calendlyUrl, sessionId, answers.instagram)} />
       </div>
 
       <p className="mt-3 text-[11px] text-jjl-muted text-center">
