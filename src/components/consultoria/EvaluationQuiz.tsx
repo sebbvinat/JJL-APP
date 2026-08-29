@@ -276,9 +276,32 @@ interface EvaluationQuizProps {
   calendlyUrl: string;
 }
 
+/**
+ * Usuario de Instagram que viene en el link, ej:
+ *   alumno.jiujitsulatino.com/consultoria-gratuita?ig=nico.d
+ *
+ * ManyChat conoce el handle REAL de la persona con la que esta chateando, asi
+ * que puede armar el link con el adentro. Cuando llega asi no le preguntamos
+ * el Instagram: escrito a mano la gente inventa o se equivoca, y despues no
+ * hay forma de encontrarla para el follow-up.
+ *
+ * Se aceptan tambien ?instagram= y ?handle= por si el flujo usa otro nombre.
+ */
+function instagramDeLaUrl(): string | null {
+  if (typeof window === 'undefined') return null;
+  const q = new URLSearchParams(window.location.search);
+  const crudo = q.get('ig') || q.get('instagram') || q.get('handle') || '';
+  const v = crudo.trim().replace(/^@+/, '').replace(/s+/g, '');
+  return /^[A-Za-z0-9._]{1,30}$/.test(v) ? v : null;
+}
+
 export default function EvaluationQuiz({ calendlyUrl }: EvaluationQuizProps) {
-  const [step, setStep] = useState(0); // 0..QUESTIONS.length, last = done
-  const [answers, setAnswers] = useState<Partial<Record<AnswerKey, string>>>({});
+  const [step, setStep] = useState(0); // 0..PREGUNTAS.length, last = done
+  // Si el link ya trae el Instagram, ese gana y la pregunta no se muestra.
+  const [igDeLink] = useState<string | null>(() => instagramDeLaUrl());
+  const [answers, setAnswers] = useState<Partial<Record<AnswerKey, string>>>(
+    () => (igDeLink ? { instagram: igDeLink } : {}),
+  );
   const [pickedValue, setPickedValue] = useState<string | null>(null);
   const advanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   // useState con lazy initializer: React permite que la función impura
@@ -290,9 +313,16 @@ export default function EvaluationQuiz({ calendlyUrl }: EvaluationQuizProps) {
     return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
   });
 
-  const total = QUESTIONS.length;
+  // Cuando el handle viene en el link, esa pregunta se saca de la lista: asi
+  // el contador y la barra de progreso siguen siendo honestos.
+  const PREGUNTAS = useMemo(
+    () => (igDeLink ? QUESTIONS.filter((q) => q.key !== 'instagram') : QUESTIONS),
+    [igDeLink],
+  );
+
+  const total = PREGUNTAS.length;
   const isDone = step >= total;
-  const currentQuestion = !isDone ? QUESTIONS[step] : null;
+  const currentQuestion = !isDone ? PREGUNTAS[step] : null;
   const progressPct = isDone ? 100 : Math.round((step / total) * 100);
 
   // ¿El lead se autoexcluyó en alguna respuesta?
@@ -386,7 +416,7 @@ export default function EvaluationQuiz({ calendlyUrl }: EvaluationQuizProps) {
   }
 
   function reset() {
-    setAnswers({});
+    setAnswers(igDeLink ? { instagram: igDeLink } : {});
     setStep(0);
     setPickedValue(null);
   }
@@ -914,7 +944,10 @@ function QuizResult({
       </div>
 
       <div className="mt-5">
-        <CalendlyEmbed url={withSession(calendlyUrl, sessionId, answers.instagram)} />
+        <CalendlyEmbed
+          url={withSession(calendlyUrl, sessionId, answers.instagram)}
+          sessionId={sessionId}
+        />
       </div>
 
       <p className="mt-3 text-[11px] text-jjl-muted text-center">
