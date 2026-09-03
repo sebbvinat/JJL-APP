@@ -74,17 +74,33 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    // Se descarta lo que ya esta cargado leyendo las claves existentes, en
+    // vez de dejarselo a ON CONFLICT: el indice unico es PARCIAL (solo aplica
+    // cuando crm_nombre no es null) y Postgres no acepta un indice parcial
+    // como destino de ON CONFLICT. El indice igual queda como red de
+    // seguridad ante dos corridas simultaneas.
+    const { data: yaEstan } = await admin
+      .from('lead_sales')
+      .select('crm_nombre, fecha_venta, monto')
+      .not('crm_nombre', 'is', null);
+
+    const clave = (n: unknown, f: unknown, m: unknown) =>
+      `${n}|${new Date(String(f)).toISOString()}|${Number(m)}`;
+    const existentes = new Set(
+      ((yaEstan as { crm_nombre: string; fecha_venta: string; monto: number }[] | null) || []).map((r) =>
+        clave(r.crm_nombre, r.fecha_venta, r.monto),
+      ),
+    );
+    const nuevas = aCargar.filter((v) => !existentes.has(clave(v.crm_nombre, v.fecha_venta, v.monto)));
+
     let cargadas = 0;
-    if (!dry && aCargar.length > 0) {
-      // ignoreDuplicates: las que ya estaban se saltean en vez de fallar.
-      const { error, count } = await admin
-        .from('lead_sales')
-        .upsert(aCargar, { onConflict: 'crm_nombre,fecha_venta,monto', ignoreDuplicates: true, count: 'exact' });
+    if (!dry && nuevas.length > 0) {
+      const { error } = await admin.from('lead_sales').insert(nuevas);
       if (error) {
-        logger.error('ventas.sync.upsert.failed', { err: error });
+        logger.error('ventas.sync.insert.failed', { err: error });
         return NextResponse.json({ error: error.message }, { status: 500 });
       }
-      cargadas = count ?? 0;
+      cargadas = nuevas.length;
     }
 
     const totalMonto = aCargar.reduce((a, v) => a + Number(v.monto), 0);
@@ -94,7 +110,8 @@ export async function POST(request: NextRequest) {
       dry,
       encontradas_en_crm: ventas.length,
       con_alumno: aCargar.length,
-      cargadas,
+      ya_estaban: aCargar.length - nuevas.length,
+      cargadas: dry ? nuevas.length : cargadas,
       sin_dueno: sinDueno,
       totales: { monto: totalMonto, comision: totalComision },
     });
