@@ -2,8 +2,9 @@
 
 import { useState, useEffect, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Key, LogOut, Eye, EyeOff, Camera, User, Bell, BellOff, ZoomIn, ZoomOut, X as XIcon } from 'lucide-react';
+import { Key, LogOut, Eye, EyeOff, Camera, User, Bell, BellOff, ZoomIn, ZoomOut, X as XIcon, Award } from 'lucide-react';
 import Card from '@/components/ui/Card';
+import ElegirCinturon from '@/components/gamification/ElegirCinturon';
 import Avatar from '@/components/ui/Avatar';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
@@ -182,7 +183,11 @@ function ProfileContent() {
     setSavingName(false);
   }
 
-  const displayBelt = profile?.rol === 'admin' ? 'black' : (profile?.cinturon_actual || 'white');
+  // El provider no expone un refresh, asi que el cinturon recien elegido se
+  // refleja con estado local. El valor real ya quedo guardado en el server.
+  const [cinturonLocal, setCinturonLocal] = useState<string | null>(null);
+  const displayBelt =
+    profile?.rol === 'admin' ? 'black' : (cinturonLocal || profile?.cinturon_actual || 'white');
 
   function handleAvatarSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -442,6 +447,24 @@ function ProfileContent() {
       <Card>
         <h2 className="text-lg font-semibold mb-4">Configuracion</h2>
         <div className="space-y-3 divide-y divide-jjl-border/50 [&>*:not(:first-child)]:pt-3">
+          {/* Cinturon — lo declara el alumno. La app ya no lo calcula por
+              progreso: es un grado que se da en el tatami. */}
+          {profile?.rol !== 'admin' && (
+            <div className="px-4 py-3 rounded-lg bg-jjl-gray-light/50">
+              <div className="flex items-center gap-3 mb-3">
+                <Award className="h-5 w-5 text-jjl-muted" />
+                <div>
+                  <p className="text-sm font-medium">Tu cinturón</p>
+                  <p className="text-xs text-jjl-muted">El que tenés hoy en tu academia</p>
+                </div>
+              </div>
+              <ElegirCinturon
+                actual={cinturonLocal || profile?.cinturon_actual}
+                onGuardado={(c) => setCinturonLocal(c)}
+              />
+            </div>
+          )}
+
           {/* Change Name */}
           <button
             onClick={() => setShowNameForm(!showNameForm)}

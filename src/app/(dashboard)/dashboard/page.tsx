@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import useSWR from 'swr';
 import Link from 'next/link';
 import { format } from 'date-fns';
@@ -10,6 +11,7 @@ import StatCard from '@/components/dashboard/StatCard';
 import TaskDashboard from '@/components/dashboard/TaskDashboard';
 import TrainingCalendar from '@/components/dashboard/TrainingCalendar';
 import BeltProgress from '@/components/gamification/BeltProgress';
+import { CartelCinturon } from '@/components/gamification/ElegirCinturon';
 import { DashboardSkeleton } from '@/components/ui/Skeleton';
 import { calculateGamification } from '@/lib/gamification';
 import { fetcher } from '@/lib/fetcher';
@@ -18,6 +20,7 @@ import type { BeltLevel } from '@/lib/supabase/types';
 interface DashboardData {
   profile: {
     cinturon_actual: string;
+    cinturon_confirmado_at?: string | null;
     puntos: number;
     nombre: string;
     rol?: string;
@@ -50,7 +53,7 @@ export default function DashboardPage() {
   // El server calcula "hoy" en hora argentina (lib/dates). Ya no le mandamos
   // la fecha del dispositivo: era el único de los tres cálculos de fecha de la
   // app que dependía del cliente.
-  const { data, isLoading: loading } = useSWR<DashboardData>(
+  const { data, isLoading: loading, mutate } = useSWR<DashboardData>(
     '/api/dashboard-stats',
     fetcher,
     {
@@ -77,6 +80,10 @@ export default function DashboardPage() {
     { revalidateOnFocus: false, dedupingInterval: 120_000 }
   );
 
+  // El cartel del cinturon se cierra a mano; mientras tanto no molesta al
+  // resto de la pantalla, que se ve detras.
+  const [cinturonListo, setCinturonListo] = useState(false);
+
   if (loading && !data) {
     return <DashboardSkeleton />;
   }
@@ -90,8 +97,12 @@ export default function DashboardPage() {
   const totalTrainingDays = data?.totalTrainingDays || 0;
   const isAdmin = profile.rol === 'admin';
 
-  // Belt and points come from API (already resolved: max of calculated vs admin-set)
+  // El cinturon es el que declaro el alumno. Antes lo calculaba la app por
+  // progreso y pisaba lo que hubiera puesto; ahora se pregunta una vez y se
+  // edita desde el perfil.
   const currentBelt = (profile.cinturon_actual || 'white') as BeltLevel;
+  const faltaElegirCinturon =
+    !isAdmin && !cinturonListo && data?.profile != null && !profile.cinturon_confirmado_at;
   const points = profile.puntos || 0;
   const totalModules = data?.totalWeeks ?? 0;
 
@@ -116,6 +127,12 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6 max-w-5xl xl:max-w-6xl">
+      {faltaElegirCinturon && (
+        <CartelCinturon
+          actual={profile.cinturon_actual}
+          onListo={() => { setCinturonListo(true); void mutate(); }}
+        />
+      )}
       {/* Welcome */}
       <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-jjl-red/15 via-jjl-gray/40 to-transparent p-6">
         <div

@@ -2,13 +2,13 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { format, subDays } from 'date-fns';
 import { getAuthedUser } from '@/lib/supabase/server';
 import { calculateGamification } from '@/lib/gamification';
-import { BELT_PROGRESSION } from '@/lib/constants';
-import { createNotification, BELT_NAMES } from '@/lib/notifications';
 import { logger } from '@/lib/logger';
 import { todayInAppTz } from '@/lib/dates';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 interface ProfileRow {
+  /** NULL = el alumno todavia no eligio su cinturon. */
+  cinturon_confirmado_at?: string | null;
   cinturon_actual: string;
   puntos: number;
   nombre: string;
@@ -27,7 +27,7 @@ async function fetchCore(supabase: SupabaseClient, userId: string, today: string
     await Promise.all([
       supabase
         .from('users')
-        .select('cinturon_actual, puntos, nombre, rol, created_at, onboarding_completed_at')
+        .select('cinturon_actual, puntos, nombre, rol, created_at, onboarding_completed_at, cinturon_confirmado_at')
         .eq('id', userId)
         .single<ProfileRow>(),
       supabase
@@ -137,41 +137,27 @@ function computeStreak(trainedDates: string[], todayStr: string): number {
  * Persist belt/points if calculated values advanced beyond what's stored.
  * Fire-and-forget notification on belt advancement.
  */
-async function maybeAdvanceBelt(
+/**
+ * Guarda los puntos cuando suben.
+ *
+ * Antes esta funcion tambien subia el cinturon segun el progreso (semana 4 →
+ * azul, 8 → purpura...) y pisaba lo que el alumno o el admin hubieran puesto.
+ * Se saco: el cinturon es un grado que se da en el tatami, no algo que se
+ * gane completando videos, asi que ahora lo declara el alumno. Los puntos si
+ * son de la app y siguen calculandose.
+ */
+async function maybeAdvancePoints(
   supabase: SupabaseClient,
   userId: string,
   profile: ProfileRow,
-  gamification: { newBelt: string; puntos: number },
-  profileBeltIdx: number,
-  calculatedBeltIdx: number
+  gamification: { puntos: number },
 ) {
-  const advancedBelt = calculatedBeltIdx > profileBeltIdx;
-  const advancedPoints = gamification.puntos > (profile.puntos || 0);
-  if (!advancedBelt && !advancedPoints) return;
-
-  const updates: Record<string, unknown> = {};
-  if (advancedBelt) updates.cinturon_actual = gamification.newBelt;
-  if (advancedPoints) updates.puntos = gamification.puntos;
-
-  const { error } = await supabase.from('users').update(updates).eq('id', userId);
-  if (error) {
-    logger.error('dashboard.belt.update.failed', { userId, err: error });
-    return;
-  }
-
-  if (advancedBelt) {
-    try {
-      const beltName = BELT_NAMES[gamification.newBelt] || gamification.newBelt;
-      await createNotification(
-        userId,
-        'belt',
-        `Nuevo cinturon: ${beltName}`,
-        `Felicitaciones! Avanzaste al cinturon ${beltName}. Segui entrenando!`
-      );
-    } catch (err) {
-      logger.error('dashboard.belt.notify.failed', { userId, err });
-    }
-  }
+  if (gamification.puntos <= (profile.puntos || 0)) return;
+  const { error } = await supabase
+    .from('users')
+    .update({ puntos: gamification.puntos })
+    .eq('id', userId);
+  if (error) logger.error('dashboard.puntos.update.failed', { userId, err: error });
 }
 
 export async function GET(request: NextRequest) {
@@ -249,18 +235,13 @@ export async function GET(request: NextRequest) {
     totalLessonsCompleted: actualLessonsCompleted,
   });
 
-  // Belt resolution: max(stored, calculated). Admins always = black.
-  const beltOrder = BELT_PROGRESSION.map((b) => b.key);
-  const profileBeltIdx = beltOrder.indexOf((profile?.cinturon_actual as typeof beltOrder[number]) || 'white');
-  const calculatedBeltIdx = beltOrder.indexOf(gamification.newBelt);
+  // El cinturon es el que declaro el alumno, sin mezclarlo con el progreso.
   const isAdmin = profile?.rol === 'admin';
-  const effectiveBelt = isAdmin
-    ? 'black'
-    : beltOrder[Math.max(profileBeltIdx, calculatedBeltIdx)] || gamification.newBelt;
+  const effectiveBelt = isAdmin ? 'black' : (profile?.cinturon_actual || 'white');
   const effectivePuntos = Math.max(profile?.puntos || 0, gamification.puntos);
 
   if (profile && !isAdmin) {
-    await maybeAdvanceBelt(supabase, user.id, profile, gamification, profileBeltIdx, calculatedBeltIdx);
+    await maybeAdvancePoints(supabase, user.id, profile, gamification);
   }
 
   const overallProgress =
