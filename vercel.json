@@ -3,37 +3,95 @@
     {
       "source": "/(.*)",
       "headers": [
-        { "key": "X-Content-Type-Options", "value": "nosniff" },
-        { "key": "X-Frame-Options", "value": "DENY" },
-        { "key": "X-XSS-Protection", "value": "1; mode=block" },
-        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
-        { "key": "Permissions-Policy", "value": "camera=(), geolocation=(), microphone=(self)" },
-        { "key": "Strict-Transport-Security", "value": "max-age=63072000; includeSubDomains; preload" }
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "X-XSS-Protection",
+          "value": "1; mode=block"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "key": "Permissions-Policy",
+          "value": "camera=(), geolocation=(), microphone=(self)"
+        },
+        {
+          "key": "Strict-Transport-Security",
+          "value": "max-age=63072000; includeSubDomains; preload"
+        }
       ]
     },
     {
       "source": "/sw.js",
       "headers": [
-        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" },
-        { "key": "Content-Type", "value": "application/javascript; charset=utf-8" }
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        },
+        {
+          "key": "Content-Type",
+          "value": "application/javascript; charset=utf-8"
+        }
       ]
     },
     {
       "source": "/manifest.json",
       "headers": [
-        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        }
       ]
     }
   ],
   "crons": [
-    { "path": "/api/cron/daily-reminder", "schedule": "0 0 * * *" },
-    { "path": "/api/cron/weekly-insight", "schedule": "0 23 * * 0" },
-    { "path": "/api/events/remind", "schedule": "0 8 * * *" },
-    { "path": "/api/cron/leads-followup", "schedule": "0 13 * * *" },
-    { "path": "/api/admin/sync-drive-videos", "schedule": "0 9 * * *" },
-    { "path": "/api/admin/sync-drive-videos", "schedule": "0 14 * * *" },
-    { "path": "/api/admin/sync-drive-videos", "schedule": "0 18 * * *" },
-    { "path": "/api/admin/sync-drive-videos", "schedule": "0 23 * * *" },
-    { "path": "/api/cron/students-ready-1on1", "schedule": "0 12 * * *" }
+    {
+      "path": "/api/cron/daily-reminder",
+      "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/cron/weekly-insight",
+      "schedule": "0 23 * * 0"
+    },
+    {
+      "path": "/api/events/remind",
+      "schedule": "0 8 * * *"
+    },
+    {
+      "path": "/api/cron/leads-followup",
+      "schedule": "0 13 * * *"
+    },
+    {
+      "path": "/api/admin/sync-drive-videos",
+      "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/admin/sync-drive-videos",
+      "schedule": "0 14 * * *"
+    },
+    {
+      "path": "/api/admin/sync-drive-videos",
+      "schedule": "0 18 * * *"
+    },
+    {
+      "path": "/api/admin/sync-drive-videos",
+      "schedule": "0 23 * * *"
+    },
+    {
+      "path": "/api/cron/students-ready-1on1",
+      "schedule": "0 12 * * *"
+    },
+    {
+      "path": "/api/admin/ventas/sync",
+      "schedule": "0 11 * * *"
+    }
   ]
 }
