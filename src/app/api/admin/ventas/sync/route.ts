@@ -91,7 +91,17 @@ export async function POST(request: NextRequest) {
         clave(r.crm_nombre, r.fecha_venta, r.monto),
       ),
     );
-    const nuevas = aCargar.filter((v) => !existentes.has(clave(v.crm_nombre, v.fecha_venta, v.monto)));
+    // El CRM repite filas: cuando alguien reagenda queda una consultoria por
+    // cada horario y las dos con el mismo cash. Erick Hennings, por ejemplo,
+    // aparece el 29/7 y el 30/7 con $900 — es UN pago, no dos. Si no se
+    // deduplica, el lote entero falla contra el indice unico.
+    const vistas = new Set<string>();
+    const nuevas = aCargar.filter((v) => {
+      const k = clave(v.crm_nombre, v.fecha_venta, v.monto);
+      if (existentes.has(k) || vistas.has(k)) return false;
+      vistas.add(k);
+      return true;
+    });
 
     let cargadas = 0;
     if (!dry && nuevas.length > 0) {
@@ -111,6 +121,7 @@ export async function POST(request: NextRequest) {
       encontradas_en_crm: ventas.length,
       con_alumno: aCargar.length,
       ya_estaban: aCargar.length - nuevas.length,
+      repetidas_en_crm: aCargar.length - new Set(aCargar.map((v) => clave(v.crm_nombre, v.fecha_venta, v.monto))).size,
       cargadas: dry ? nuevas.length : cargadas,
       sin_dueno: sinDueno,
       totales: { monto: totalMonto, comision: totalComision },

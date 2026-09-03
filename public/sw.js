@@ -1,6 +1,6 @@
 // NOTE: CACHE_NAME is bumped on every build by scripts/build-sw.mjs so the
 // browser detects an update → skipWaiting → controllerchange → client reload.
-const CACHE_NAME = 'jjl-1788471818460';
+const CACHE_NAME = 'jjl-1788472060196';
 // STATIC_CACHE tiene nombre FIJO a propósito. Los archivos de /_next/static/
 // llevan un hash en el nombre: su contenido nunca cambia, así que no hace falta
 // tirarlos en cada deploy. Cuando derivaba de CACHE_NAME, cada deploy vaciaba
