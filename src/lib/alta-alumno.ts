@@ -93,12 +93,26 @@ export async function darDeAltaAlumno(admin: AdminClient, p: AltaParams): Promis
   };
 
   if (userId) {
-    const { data: perfil } = await admin.from('users').select('id').eq('id', userId).maybeSingle();
-    // Si el perfil YA existe no se le toca el `rol`: puede ser un admin o un
-    // profe al que también se le da acceso, y pisarlo con 'alumno' le sacaría
-    // los permisos.
+    const { data: perfil } = (await admin
+      .from('users')
+      .select('id, rol')
+      .eq('id', userId)
+      .maybeSingle()) as { data: { id: string; rol: string | null } | null };
+
+    // Al perfil que ya existe NO se le pisa el rol: puede ser un admin o un
+    // profe al que tambien se le da acceso, y ponerle 'alumno' le sacaria los
+    // permisos.
+    //
+    // La excepcion es `cliente_cursos`, que hay que promover. Ese rol lo tiene
+    // el que compro cursos sueltos, y el middleware lo EXPULSA de la
+    // plataforma hacia jiujitsulatino.com/mis-cursos. Si alguien asi paga el
+    // programa y le dejamos el rol, entra con su clave y lo saca para afuera:
+    // desde su lado se ve como "no me deja entrar". Le paso a Santiago Ibarra.
+    const promover = perfil && perfil.rol === 'cliente_cursos';
+    const datos = promover ? { ...activacion, email, rol: 'alumno' } : { ...activacion, email };
+
     const { error } = perfil
-      ? await admin.from('users').update({ ...activacion, email }).eq('id', userId)
+      ? await admin.from('users').update(datos).eq('id', userId)
       : await admin.from('users').insert({ id: userId, nombre, email, rol: 'alumno', ...activacion });
     if (error) return { error: error.message, status: 500 };
   } else {
