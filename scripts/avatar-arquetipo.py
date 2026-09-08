@@ -4,11 +4,14 @@ Recorta una foto a un avatar circular para el quiz "¿A qué luchador te parecé
 
     python scripts/avatar-arquetipo.py <foto.jpg> <id> [--x 0.5] [--y 0.35] [--zoom 1.0]
 
-<id> = marcelo | gordon | buchecha | bernardo | cobrinha
+<id> = marcelo | gordon | buchecha | bernardo | cobrinha | roger | adam
 --x/--y  = donde esta la CARA en la foto, en proporcion (0.5 = centro).
 --zoom   = 1.0 encuadre normal, 1.5 mas cerca.
 
-Sale en public/arquetipos/<id>.png (400x400, fondo transparente).
+Sale en public/arquetipos/<id>.webp (400x400, fondo transparente).
+WebP y no PNG: la misma imagen pesa 37 KB en vez de 280, y el avatar se
+muestra a 84 px, asi que no se nota nada. En un quiz que se comparte por
+Instagram desde el celular, 240 KB de mas en el elemento principal duelen.
 """
 import sys, argparse
 from pathlib import Path
@@ -35,7 +38,7 @@ ImageDraw.Draw(mask).ellipse((0, 0, S - 1, S - 1), fill=255)
 out = Image.new("RGBA", (S, S), (0, 0, 0, 0))
 out.paste(im, (0, 0), mask)
 
-dest = Path(__file__).resolve().parent.parent / "public" / "arquetipos" / (a.id + ".png")
+dest = Path(__file__).resolve().parent.parent / "public" / "arquetipos" / (a.id + ".webp")
 dest.parent.mkdir(parents=True, exist_ok=True)
-out.save(dest, "PNG")
+out.save(dest, "WEBP", quality=88, method=6)
 print("listo:", dest)

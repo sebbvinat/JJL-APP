@@ -109,11 +109,17 @@ export async function POST(request: NextRequest) {
 
 /**
  * PATCH /api/leads/match-quiz
- * Track de clicks: shared_to_ig (compartió) o clicked_dm (apretó "Abrir DM").
- * Body: { session_id, action: 'shared' | 'dm' }
+ *
+ * Dos usos sobre la misma fila, identificada por session_id:
+ *   - contacto: { nombre?, instagram?, ocupacion? } - la ficha de resultado
+ *     los pide y los guarda a medida que la persona escribe. Sin esto el
+ *     quiz no capturaba a nadie: el que no mandaba el WhatsApp se perdia.
+ *   - tracking: { action: 'shared' | 'dm' }
+ *
+ * Los dos pueden venir juntos (el boton de WhatsApp manda contacto + accion).
  */
 export async function PATCH(request: NextRequest) {
-  let body: { session_id?: unknown; action?: unknown } | null = null;
+  let body: Record<string, unknown> | null = null;
   try {
     const raw = await request.text();
     body = raw ? JSON.parse(raw) : null;
@@ -122,18 +128,67 @@ export async function PATCH(request: NextRequest) {
   }
 
   const sessionId = typeof body?.session_id === 'string' ? body.session_id.trim() : '';
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(sessionId)) {
+    return NextResponse.json({ error: 'session_id inválido' }, { status: 400 });
+  }
+
+  const texto = (k: string, max: number): string | null => {
+    const v = body![k];
+    return typeof v === 'string' && v.trim() ? v.trim().slice(0, max) : null;
+  };
+
+  const updates: Record<string, unknown> = {};
+
+  const nombre = texto('nombre', 80);
+  if (nombre) updates.nombre = nombre;
+
+  const ocupacion = texto('ocupacion', 120);
+  if (ocupacion) updates.ocupacion = ocupacion;
+
+  // El handle se guarda normalizado (sin @, sin la URL completa) porque es la
+  // clave con la que el setter lo busca despues en Instagram.
+  const igCrudo = texto('instagram', 120);
+  if (igCrudo) {
+    const handle = igCrudo
+      .replace(/^https?:\/\/(www\.)?instagram\.com\//i, '')
+      .replace(/^@/, '')
+      .replace(/\/.*$/, '')
+      .trim();
+    if (/^[A-Za-z0-9._]{1,30}$/.test(handle)) updates.instagram = handle;
+  }
+
   const action = body?.action;
-  if (!sessionId || (action !== 'shared' && action !== 'dm')) {
-    return NextResponse.json({ error: 'session_id + action requeridos' }, { status: 400 });
+  if (action === 'shared') updates.shared_to_ig = true;
+  if (action === 'dm') updates.clicked_dm = true;
+
+  if (Object.keys(updates).length === 0) {
+    return NextResponse.json({ error: 'Nada para actualizar' }, { status: 400 });
   }
 
   try {
     const admin = createAdminSupabaseClient();
-    const field = action === 'shared' ? 'shared_to_ig' : 'clicked_dm';
-    await admin.from('match_quiz_responses').update({ [field]: true }).eq('session_id', sessionId);
+    const { error } = await admin
+      .from('match_quiz_responses')
+      .update(updates)
+      .eq('session_id', sessionId);
+    if (error) {
+      // Si todavia no corrieron la migracion de `ocupacion`, guardamos el
+      // resto igual en vez de perder el contacto entero.
+      if (/ocupacion|column/i.test(error.message || '')) {
+        const { ocupacion: _o, ...resto } = updates;
+        if (Object.keys(resto).length > 0) {
+          await admin.from('match_quiz_responses').update(resto).eq('session_id', sessionId);
+        }
+        logger.warn('match-quiz.patch.sin-ocupacion', {
+          hint: 'Falta correr supabase/migrations/2026_09_08_match_quiz_captura.sql',
+        });
+      } else {
+        logger.warn('match-quiz.patch.failed', { err: error });
+      }
+    }
     return NextResponse.json({ ok: true });
   } catch (err) {
-    logger.warn('match-quiz.track.failed', { err, action });
+    logger.warn('match-quiz.patch.unhandled', { err });
     return NextResponse.json({ ok: false });
   }
 }
