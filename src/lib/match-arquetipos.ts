@@ -38,7 +38,7 @@ export const ARQUETIPOS: Record<ArquetipoId, Arquetipo> = {
     mejorGuardia: 'X-Guard',
     mejorPasaje: 'Toreo + control de manga',
     loQueCuesta: 'Defender contra pesados que lo aplastan',
-    foto: '/arquetipos/marcelo.png', // dominio publico, no necesita credito
+    foto: '/arquetipos/marcelo.webp', // dominio publico, no necesita credito
   },
   gordon: {
     id: 'gordon',
@@ -49,7 +49,7 @@ export const ARQUETIPOS: Record<ArquetipoId, Arquetipo> = {
     mejorGuardia: 'Ashi Garami / Mariposa',
     mejorPasaje: 'Media guardia con presion',
     loQueCuesta: 'Rivales explosivos que fuerzan scrambles',
-    foto: '/arquetipos/gordon.png',
+    foto: '/arquetipos/gordon.webp',
   },
   buchecha: {
     id: 'buchecha',
@@ -60,7 +60,7 @@ export const ARQUETIPOS: Record<ArquetipoId, Arquetipo> = {
     mejorGuardia: 'Sit-Up Guard / Media guardia',
     mejorPasaje: 'Knee Cut + presion',
     loQueCuesta: 'Juegos modernos de mucho enredo y lapel',
-    foto: '/arquetipos/buchecha.png',
+    foto: '/arquetipos/buchecha.webp',
   },
   bernardo: {
     id: 'bernardo',
@@ -71,7 +71,7 @@ export const ARQUETIPOS: Record<ArquetipoId, Arquetipo> = {
     mejorGuardia: 'Media guardia profunda',
     mejorPasaje: 'Over-Under Pass',
     loQueCuesta: 'Rivales muy moviles que evitan el contacto',
-    foto: '/arquetipos/bernardo.png',
+    foto: '/arquetipos/bernardo.webp',
   },
   cobrinha: {
     id: 'cobrinha',
@@ -82,7 +82,7 @@ export const ARQUETIPOS: Record<ArquetipoId, Arquetipo> = {
     mejorGuardia: 'DLR / X-Guard',
     mejorPasaje: 'Leg Drag + Toreando',
     loQueCuesta: 'Rivales mucho mas pesados que frenan el ritmo',
-    foto: '/arquetipos/cobrinha.png',
+    foto: '/arquetipos/cobrinha.webp',
     credito: 'Foto: Dkaivani / Wikimedia Commons (CC BY-SA 3.0)',
   },
   // NUEVOS (sept 2026). Cubren dos perfiles que antes caian mal:
@@ -99,7 +99,7 @@ export const ARQUETIPOS: Record<ArquetipoId, Arquetipo> = {
     mejorGuardia: 'Guardia cerrada',
     mejorPasaje: 'Pasaje a presion cerrando espacios',
     loQueCuesta: 'Juegos de piernas modernos y enredos rapidos',
-    foto: '/arquetipos/roger.png',
+    foto: '/arquetipos/roger.webp',
   },
   adam: {
     id: 'adam',
@@ -110,7 +110,7 @@ export const ARQUETIPOS: Record<ArquetipoId, Arquetipo> = {
     mejorGuardia: 'Mariposa (butterfly)',
     mejorPasaje: 'Over-Under + Dog Fight',
     loQueCuesta: 'Rivales largos que juegan a distancia y no lo dejan enganchar',
-    foto: '/arquetipos/adam.png',
+    foto: '/arquetipos/adam.webp',
   },
 };
 
