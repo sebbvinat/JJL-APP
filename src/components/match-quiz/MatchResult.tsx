@@ -16,6 +16,36 @@ interface Props {
 export default function MatchResult({ sessionId, arquetipo, matchPct, brecha = [] }: Props) {
   const [copied, setCopied] = useState(false);
 
+  // Contacto. Va DESPUES de mostrar la ficha a proposito: el premio ya se
+  // entrego, esto no lo retiene. Es lo unico que convierte al quiz en un lead
+  // magnet — antes guardabamos las 8 respuestas y ninguna identidad, asi que
+  // el que no mandaba el WhatsApp se perdia entero.
+  const [nombre, setNombre] = useState('');
+  const [instagram, setInstagram] = useState('');
+  const [ocupacion, setOcupacion] = useState('');
+  const [guardado, setGuardado] = useState(false);
+
+  /** Best-effort: manda lo que haya cargado. Si falla no bloquea nada. */
+  function guardarContacto(action?: 'dm' | 'shared') {
+    const payload: Record<string, string> = { session_id: sessionId };
+    if (nombre.trim()) payload.nombre = nombre.trim();
+    if (instagram.trim()) payload.instagram = instagram.trim();
+    if (ocupacion.trim()) payload.ocupacion = ocupacion.trim();
+    if (action) payload.action = action;
+    // Solo session_id = no hay nada que guardar todavia.
+    if (Object.keys(payload).length === 1) return;
+    try {
+      fetch('/api/leads/match-quiz', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+        keepalive: true,
+      })
+        .then(() => setGuardado(true))
+        .catch(() => undefined);
+    } catch {}
+  }
+
   // Meta Pixel: el lead completó el quiz viral — Lead event para campañas
   // top-of-funnel. Distinto del Lead de Calendly (que vale +$): este es
   // más tibio pero sirve para lookalikes y retargeting.
@@ -28,21 +58,16 @@ export default function MatchResult({ sessionId, arquetipo, matchPct, brecha = [
   // siempre y deja el número, que es lo que el setter necesita para seguirlo.
   const WHATSAPP_JJL = '5491166518801';
   const waText =
-    `Hola! Hice el test "¿A qué luchador te parecés?" y me dio ${arquetipo.nombre} (${matchPct}% match).` +
+    (nombre.trim() ? `Hola! Soy ${nombre.trim()}. ` : 'Hola! ') +
+    `Hice el test "¿A qué luchador te parecés?" y me dio ${arquetipo.nombre} (${matchPct}% match).` +
     (brecha.length ? ` Me quedé pensando en esto: "${brecha[0].titulo}".` : '') +
     ` Quiero saber qué me separa de él.`;
   const waUrl = `https://wa.me/${WHATSAPP_JJL}?text=${encodeURIComponent(waText)}`;
 
   function trackAndOpen(action: 'shared' | 'dm', url: string) {
-    // Tracking best-effort. Si falla, no bloquea la apertura del link.
-    try {
-      fetch('/api/leads/match-quiz', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ session_id: sessionId, action }),
-        keepalive: true,
-      }).catch(() => undefined);
-    } catch {}
+    // Manda contacto + accion en la misma llamada: si la persona escribio el
+    // nombre y no salio del campo, el blur nunca disparo y se perderia.
+    guardarContacto(action);
     window.open(url, '_blank', 'noopener,noreferrer');
   }
 
@@ -145,6 +170,45 @@ export default function MatchResult({ sessionId, arquetipo, matchPct, brecha = [
         </div>
       )}
 
+      {/* ── GUARDÁ TU FICHA ───────────────────────────────────────────────
+          Los tres campos que faltaban. Nombre e Instagram son para poder
+          seguirlo; la ocupación es el segundo criterio de calificación
+          (nicho / inversión) y así no se gasta la pregunta en la llamada.
+          Nada de esto es obligatorio: bloquear la ficha por un formulario
+          seria cambiar 6 respuestas por 0. */}
+      <div className="mt-4 rounded-2xl border border-jjl-border bg-white/[0.02] p-6">
+        <p className="text-[11px] uppercase tracking-[0.22em] text-jjl-red font-bold">
+          Guardá tu ficha
+        </p>
+        <p className="mt-2 text-[13px] text-white/60 leading-relaxed">
+          Para que Guido la tenga a mano cuando te responda.
+        </p>
+        <div className="mt-4 space-y-2.5">
+          <Campo
+            value={nombre}
+            onChange={setNombre}
+            onBlur={() => guardarContacto()}
+            placeholder="Tu nombre"
+            autoComplete="name"
+          />
+          <Campo
+            value={instagram}
+            onChange={setInstagram}
+            onBlur={() => guardarContacto()}
+            placeholder="Tu Instagram (@usuario)"
+          />
+          <Campo
+            value={ocupacion}
+            onChange={setOcupacion}
+            onBlur={() => guardarContacto()}
+            placeholder="¿A qué te dedicás?"
+          />
+        </div>
+        {guardado && (
+          <p className="mt-3 text-[12px] text-white/40">Guardado</p>
+        )}
+      </div>
+
       {/* CTA — ahora el motivo de escribir está arriba, no es curiosidad suelta */}
       <div className="mt-4 p-4 rounded-xl border border-jjl-red/40 bg-jjl-red/[0.08]">
         <p className="text-[14px] font-bold leading-snug text-white">
@@ -217,6 +281,28 @@ function FotoArquetipo({ nombre, foto }: { nombre: string; foto?: string }) {
         onError={() => setFalló(true)}
       />
     </div>
+  );
+}
+
+function Campo({
+  value, onChange, onBlur, placeholder, autoComplete,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  onBlur: () => void;
+  placeholder: string;
+  autoComplete?: string;
+}) {
+  return (
+    <input
+      type="text"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      onBlur={onBlur}
+      placeholder={placeholder}
+      autoComplete={autoComplete}
+      className="w-full bg-white/[0.03] border border-jjl-border hover:border-jjl-border-strong rounded-xl px-4 py-3 text-[15px] text-white placeholder:text-jjl-muted/50 focus:outline-none focus:border-jjl-red focus:ring-2 focus:ring-jjl-red/25 transition-colors"
+    />
   );
 }
 

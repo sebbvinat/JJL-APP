@@ -6,20 +6,21 @@
 // el matching interno (el lead no la ve en la ficha, la usa el setter cuando
 // atiende el DM).
 
-export type ArquetipoId = 'marcelo' | 'gordon' | 'buchecha' | 'bernardo' | 'cobrinha';
+export type ArquetipoId =
+  | 'marcelo' | 'gordon' | 'buchecha' | 'bernardo' | 'cobrinha' | 'roger' | 'adam';
 export type PlanillaId = 'livianos' | 'medios' | 'simbio' | 'atleticos';
 
 export interface Arquetipo {
   id: ArquetipoId;
   nombre: string;          // "Marcelo Garcia"
   apodo: string;           // "El acrobata movil"
-  planilla: PlanillaId;    // recomendación interna
+  planilla: PlanillaId;    // recomendacion interna
   fortaleza: string;       // "Drilling obsesivo + movilidad"
   mejorGuardia: string;    // "X-Guard"
   mejorPasaje: string;     // "Toreo + control de manga"
   loQueCuesta: string;     // "Defender contra pesados que lo aplastan"
   /** Avatar circular en /public/arquetipos/<id>.png. Si no existe, la ficha
-   *  cae a las iniciales — nunca se rompe. Generar con scripts/avatar-arquetipo.py */
+   *  cae a las iniciales - nunca se rompe. Generar con scripts/avatar-arquetipo.py */
   foto?: string;
 }
 
@@ -75,6 +76,31 @@ export const ARQUETIPOS: Record<ArquetipoId, Arquetipo> = {
     mejorPasaje: 'Leg Drag + Toreando',
     loQueCuesta: 'Rivales mucho mas pesados que frenan el ritmo',
   },
+  // NUEVOS (sept 2026). Cubren dos perfiles que antes caian mal:
+  //   - el largo que juega arriba y simple  -> antes le daba Gordon
+  //   - el fuerte que juega abajo de mariposa -> antes le daba Bernardo
+  // OJO: la data tecnica de estos dos la escribi yo con lo publico de cada
+  // luchador. Guido la tiene que confirmar como confirmo la de los otros 5.
+  roger: {
+    id: 'roger',
+    nombre: 'Roger Gracie',
+    apodo: 'El gigante de lo basico',
+    planilla: 'atleticos',
+    fortaleza: 'Fundamentos perfectos + presion',
+    mejorGuardia: 'Guardia cerrada',
+    mejorPasaje: 'Pasaje a presion cerrando espacios',
+    loQueCuesta: 'Juegos de piernas modernos y enredos rapidos',
+  },
+  adam: {
+    id: 'adam',
+    nombre: 'Adam Wardzinski',
+    apodo: 'El rey de la mariposa',
+    planilla: 'simbio',
+    fortaleza: 'Mariposa + fuerza de empuje',
+    mejorGuardia: 'Mariposa (butterfly)',
+    mejorPasaje: 'Over-Under + Dog Fight',
+    loQueCuesta: 'Rivales largos que juegan a distancia y no lo dejan enganchar',
+  },
 };
 
 // ── Las 7 preguntas + scoring ────────────────────────────────────────────
@@ -101,20 +127,23 @@ export const QUIZ_QUESTIONS: QuizQuestion[] = [
     pregunta: '¿Cuántas veces por semana entrenás?',
     subtitulo: 'De esto depende qué juego te conviene, mucho más que tu biotipo',
     options: [
-      { value: '1-2', label: '1 o 2 veces',   scores: { bernardo: 3, cobrinha: 1 } },
-      { value: '3',   label: '3 veces',        scores: { bernardo: 2, marcelo: 1, cobrinha: 1 } },
-      { value: '4-5', label: '4 o 5 veces',    scores: { marcelo: 2, gordon: 1, cobrinha: 1 } },
-      { value: '6+',  label: '6 o más',        scores: { gordon: 3, buchecha: 2, marcelo: 1 } },
+      // "No estoy entrenando" no es un descarte: es el que vuelve despues de
+      // una lesion o un parate, y necesita el juego mas simple posible.
+      { value: 'no-entreno', label: 'Ahora no estoy entrenando', scores: { bernardo: 3, roger: 3 } },
+      { value: '1-2', label: '1 o 2 veces',  scores: { bernardo: 3, roger: 2, adam: 1 } },
+      { value: '3',   label: '3 veces',      scores: { bernardo: 2, roger: 2, adam: 2, marcelo: 1 } },
+      { value: '4-5', label: '4 o 5 veces',  scores: { adam: 3, marcelo: 2, cobrinha: 2, buchecha: 2 } },
+      { value: '6+',  label: '6 o más',      scores: { gordon: 3, buchecha: 3, cobrinha: 2, marcelo: 1 } },
     ],
   },
   {
     id: 'antiguedad',
     pregunta: '¿Hace cuánto entrenás jiu-jitsu?',
     options: [
-      { value: '-1',  label: 'Menos de un año',  scores: { bernardo: 2 } },
-      { value: '1-3', label: 'Entre 1 y 3 años', scores: { bernardo: 1, buchecha: 1 } },
-      { value: '3-7', label: 'Entre 3 y 7 años', scores: { marcelo: 1, cobrinha: 1, gordon: 1 } },
-      { value: '7+',  label: 'Más de 7 años',    scores: { marcelo: 2, cobrinha: 2, gordon: 1 } },
+      { value: '-1',  label: 'Menos de un año',  scores: { roger: 3, bernardo: 2 } },
+      { value: '1-3', label: 'Entre 1 y 3 años', scores: { buchecha: 3, bernardo: 2, adam: 2, roger: 1 } },
+      { value: '3-7', label: 'Entre 3 y 7 años', scores: { marcelo: 2, gordon: 2, adam: 2, cobrinha: 1 } },
+      { value: '7+',  label: 'Más de 7 años',    scores: { cobrinha: 3, marcelo: 2, gordon: 2 } },
     ],
   },
   {
@@ -122,52 +151,62 @@ export const QUIZ_QUESTIONS: QuizQuestion[] = [
     pregunta: 'Tu peso aproximado',
     subtitulo: 'Dependiendo tu categoria, hay luchadores que se parecen mas a tu estilo',
     options: [
-      { value: 'pluma',   label: 'Pluma (hasta 70kg)',     scores: { cobrinha: 3, marcelo: 2 } },
-      { value: 'medio',   label: 'Medio (70 a 88kg)',      scores: { marcelo: 3, cobrinha: 2, gordon: 1 } },
-      { value: 'pesado',  label: 'Pesado (88 a 100kg)',    scores: { gordon: 2, buchecha: 2, bernardo: 2 } },
-      { value: 'superpesado', label: 'Super pesado (+100kg)', scores: { gordon: 3, buchecha: 3, bernardo: 3 } },
+      { value: 'pluma',   label: 'Pluma (hasta 70kg)',  scores: { cobrinha: 4, marcelo: 2 } },
+      { value: 'medio',   label: 'Medio (70 a 88kg)',   scores: { marcelo: 3, cobrinha: 2, adam: 2, gordon: 1 } },
+      { value: 'pesado',  label: 'Pesado (88 a 100kg)', scores: { adam: 3, buchecha: 3, gordon: 2, bernardo: 2, roger: 2 } },
+      { value: 'superpesado', label: 'Super pesado (+100kg)', scores: { roger: 3, bernardo: 3, buchecha: 3, gordon: 2 } },
     ],
   },
   {
     id: 'fisico',
     pregunta: 'Como describirias tu fisico',
     options: [
-      { value: 'explosivo', label: 'Explosivo, mucha potencia corta', scores: { buchecha: 3, cobrinha: 2, marcelo: 1 } },
-      { value: 'resistente', label: 'Resistente, no me canso', scores: { gordon: 3, bernardo: 3 } },
-      { value: 'fuerte', label: 'Fuerte, hago pesar mi peso', scores: { gordon: 2, buchecha: 2, bernardo: 3 } },
-      { value: 'flexible', label: 'Flexible y rapido', scores: { marcelo: 3, cobrinha: 2 } },
+      { value: 'explosivo',  label: 'Explosivo, mucha potencia corta',   scores: { buchecha: 4, cobrinha: 3, adam: 1 } },
+      { value: 'resistente', label: 'Resistente, no me canso',           scores: { gordon: 3, bernardo: 3, marcelo: 1 } },
+      { value: 'fuerte',     label: 'Fuerte, hago pesar mi peso',        scores: { adam: 4, buchecha: 2, bernardo: 2, gordon: 1 } },
+      { value: 'flexible',   label: 'Flexible y rapido',                 scores: { marcelo: 3, cobrinha: 2 } },
+      { value: 'largo',      label: 'Largo, aprovecho la distancia',     scores: { roger: 4, marcelo: 1, gordon: 1 } },
+      // El que no sabe describirse no puede salir castigado por ser honesto:
+      // suma 1 a todos, o sea deja que decidan las otras 7 preguntas.
+      { value: 'no-se',      label: 'No sabria como describirlo',
+        scores: { marcelo: 1, gordon: 1, buchecha: 1, bernardo: 1, cobrinha: 1, roger: 1, adam: 1 } },
     ],
   },
   {
     id: 'estilo',
     pregunta: 'Cuando luchas libre, que haces mas',
     options: [
-      { value: 'arriba', label: 'Siempre voy arriba, busco pasar', scores: { gordon: 3, buchecha: 3, bernardo: 1 } },
-      { value: 'abajo', label: 'Me siento comodo abajo, jugando guardia', scores: { marcelo: 3, bernardo: 3, cobrinha: 2 } },
-      { value: 'finalizar', label: 'Busco terminar rapido, voy directo al sub', scores: { buchecha: 2, cobrinha: 1, gordon: 1 } },
-      { value: 'improviso', label: 'Voy probando, no tengo un patron fijo', scores: { marcelo: 1, cobrinha: 1 } },
+      { value: 'arriba',    label: 'Siempre voy arriba, busco pasar',        scores: { gordon: 3, buchecha: 3, roger: 3 } },
+      { value: 'abajo',     label: 'Me siento comodo abajo, jugando guardia', scores: { marcelo: 3, bernardo: 3, adam: 3, cobrinha: 2 } },
+      { value: 'finalizar', label: 'Busco terminar rapido, voy directo al sub', scores: { buchecha: 2, cobrinha: 2, gordon: 1 } },
+      { value: 'reacciono', label: 'Espero lo que propone el rival y reacciono', scores: { bernardo: 2, roger: 1, marcelo: 1 } },
+      { value: 'improviso', label: 'Voy probando, no tengo un patron fijo',  scores: { cobrinha: 2, adam: 2, marcelo: 1 } },
     ],
   },
   {
     id: 'posicion',
     pregunta: 'Desde donde te sentis mas peligroso',
     options: [
-      { value: 'guardia', label: 'Guardia', scores: { marcelo: 3, cobrinha: 2, bernardo: 2 } },
-      { value: 'pasaje', label: 'Pasaje', scores: { gordon: 3, buchecha: 3, bernardo: 2, cobrinha: 1 } },
-      { value: 'montada', label: 'Montada', scores: { buchecha: 2, gordon: 2 } },
-      { value: 'espalda', label: 'Espalda', scores: { gordon: 3, buchecha: 1 } },
-      { value: 'sub-abajo', label: 'Sub abajo', scores: { marcelo: 2, cobrinha: 2, bernardo: 2 } },
+      { value: 'guardia',       label: 'Desde la guardia',                    scores: { adam: 4, marcelo: 3, cobrinha: 3, bernardo: 2 } },
+      // Partir el pasaje en larga/corta es lo que separa a Cobrinha y Marcelo
+      // (toreo, distancia) de Buchecha, Bernardo y Roger (presion, espacios
+      // cerrados). Con "pasaje" a secas los tres primeros casi no salian.
+      { value: 'pasaje-largo', label: 'Pasando a distancia larga, toreando',  scores: { cobrinha: 2, marcelo: 2, gordon: 1 } },
+      { value: 'pasaje-corto', label: 'Pasando a distancia corta, presionando', scores: { gordon: 3, buchecha: 3, bernardo: 3, roger: 2, adam: 1 } },
+      { value: 'montada',      label: 'En posiciones dominantes arriba',      scores: { roger: 3, buchecha: 3 } },
+      { value: 'espalda',      label: 'En la espalda',                        scores: { gordon: 3, marcelo: 3 } },
+      { value: 'sub-abajo',    label: 'Atacando subs desde abajo',            scores: { marcelo: 2, cobrinha: 2, bernardo: 2, adam: 2 } },
     ],
   },
   {
     id: 'finalizacion',
     pregunta: 'Tu finalizacion predilecta',
     options: [
-      { value: 'estrangulacion', label: 'Estrangulacion (gola, ezekiel...)', scores: { gordon: 2, bernardo: 2, buchecha: 1 } },
-      { value: 'palanca', label: 'Palanca de brazo', scores: { gordon: 2, marcelo: 2, buchecha: 1 } },
-      { value: 'leglock', label: 'Leg lock (ashi, heelhook)', scores: { gordon: 3, cobrinha: 1 } },
-      { value: 'mataleon', label: 'Mata leon', scores: { gordon: 3, buchecha: 2 } },
-      { value: 'triangulo', label: 'Triangulo', scores: { marcelo: 3, cobrinha: 2, bernardo: 1 } },
+      { value: 'estrangulacion', label: 'Estrangulacion (gola, ezekiel...)', scores: { roger: 3, bernardo: 2, gordon: 1, adam: 1 } },
+      { value: 'palanca',        label: 'Palanca de brazo',                  scores: { adam: 3, buchecha: 3, marcelo: 1, roger: 1 } },
+      { value: 'leglock',        label: 'Leg lock (ashi, heelhook)',         scores: { gordon: 4, cobrinha: 1, adam: 1 } },
+      { value: 'mataleon',       label: 'Mata leon',                         scores: { marcelo: 3, gordon: 2, buchecha: 2 } },
+      { value: 'triangulo',      label: 'Triangulo',                         scores: { cobrinha: 4, marcelo: 2, bernardo: 1 } },
     ],
   },
   {
@@ -175,17 +214,18 @@ export const QUIZ_QUESTIONS: QuizQuestion[] = [
     pregunta: 'Lo que mas te cuesta hoy',
     subtitulo: 'Esto es clave para que tu instructor sepa por donde empezar',
     options: [
-      { value: 'me-aplastan', label: 'Me agarran abajo y no puedo salir', scores: { marcelo: 2, cobrinha: 2 } },
-      { value: 'no-paso', label: 'No logro pasar la guardia', scores: { gordon: 2, buchecha: 2 } },
-      { value: 'no-defiendo', label: 'Me cuesta defender posiciones', scores: { bernardo: 2, cobrinha: 1 } },
-      { value: 'no-finalizo', label: 'Intento finalizar y no la cierro', scores: { bernardo: 2, gordon: 1 } },
+      { value: 'me-aplastan', label: 'Me agarran abajo y no puedo salir',  scores: { marcelo: 2, cobrinha: 2, adam: 1 } },
+      { value: 'no-paso',     label: 'No logro pasar la guardia',          scores: { buchecha: 3, gordon: 2, roger: 1 } },
+      { value: 'no-defiendo', label: 'Me cuesta defender posiciones',      scores: { bernardo: 2, roger: 2 } },
+      { value: 'no-finalizo', label: 'Intento finalizar y no la cierro',   scores: { adam: 2, bernardo: 1, gordon: 1, roger: 1 } },
+      { value: 'no-se-que-buscar', label: 'No se que buscar durante la lucha', scores: { roger: 2, bernardo: 2, marcelo: 1 } },
     ],
   },
   {
     id: 'vision',
     pregunta: 'Si tu juego mejora, que cambia en tu vida',
     subtitulo: 'Contestame con tus palabras (1-2 lineas)',
-    options: [], // texto libre — no scorea
+    options: [], // texto libre - no scorea
   },
 ];
 
@@ -210,9 +250,11 @@ export interface MatchResult {
 }
 
 export function calculateMatch(answers: Partial<QuizAnswers>): MatchResult {
-  const scores: Record<ArquetipoId, number> = {
-    marcelo: 0, gordon: 0, buchecha: 0, bernardo: 0, cobrinha: 0,
-  };
+  // Derivado de ARQUETIPOS y no escrito a mano: al sumar Roger y Adam esta
+  // lista quedaba vieja y los arquetipos nuevos nunca podian ganar.
+  const scores = Object.fromEntries(
+    (Object.keys(ARQUETIPOS) as ArquetipoId[]).map((a) => [a, 0]),
+  ) as Record<ArquetipoId, number>;
 
   for (const q of QUIZ_QUESTIONS) {
     const ans = answers[q.id as keyof QuizAnswers];
@@ -258,9 +300,11 @@ export const DOLOR_LABEL: Record<string, string> = {
   'no-paso': 'no lográs pasar la guardia',
   'no-defiendo': 'te cuesta defender posiciones',
   'no-finalizo': 'intentás finalizar y no la cerrás',
+  'no-se-que-buscar': 'no sabés qué buscar durante la lucha',
 };
 
 const FRECUENCIA_LABEL: Record<string, string> = {
+  'no-entreno': 'hoy no estás entrenando',
   '1-2': '1 o 2 veces por semana',
   '3': '3 veces por semana',
   '4-5': '4 o 5 veces por semana',
@@ -301,7 +345,19 @@ export function construirBrecha(
   // ── 2 · La brecha de volumen ───────────────────────────────────────────
   const frec = answers.frecuencia ?? '';
   const frecLabel = FRECUENCIA_LABEL[frec] ?? '';
-  if (frecLabel) {
+
+  // El que no esta entrenando necesita su propio bloque: caia en el de
+  // "estas cerca en horas", que para el no tiene ningun sentido.
+  if (frec === 'no-entreno') {
+    bloques.push({
+      titulo: 'Lo primero es volver, no elegir juego',
+      texto:
+        `${arq.nombre} entrena ${VOLUMEN_PRO}. Vos hoy no estás entrenando, y eso no es un detalle: ` +
+        `ningún juego funciona sin repeticiones. ` +
+        `La buena noticia es que volver con un plan armado es mucho más rápido que empezar de cero, ` +
+        `y lo que hagas en las primeras semanas de vuelta define el resto del año.`,
+    });
+  } else if (frecLabel) {
     const pocas = frec === '1-2' || frec === '3';
     bloques.push({
       titulo: pocas ? 'Su juego no está hecho para tu semana' : 'El volumen igual no alcanza',
