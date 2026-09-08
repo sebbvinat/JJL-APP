@@ -8,21 +8,15 @@ import { renderPoster } from '@/lib/match-poster';
 
 interface Props {
   sessionId: string;
+  /** Lo cargo antes de empezar el test; se usa para saludar en el WhatsApp. */
+  nombre: string;
   arquetipo: Arquetipo;
   matchPct: number;
   /** "Lo que te separa" — lo calcula la API cruzando dolor + frecuencia + antigüedad. */
   brecha?: BrechaBloque[];
 }
 
-export default function MatchResult({ sessionId, arquetipo, matchPct, brecha = [] }: Props) {
-  // Contacto. Va DESPUES de mostrar la ficha a proposito: el premio ya se
-  // entrego, esto no lo retiene. Es lo unico que convierte al quiz en un lead
-  // magnet — antes guardabamos las 8 respuestas y ninguna identidad, asi que
-  // el que no mandaba el WhatsApp se perdia entero.
-  const [nombre, setNombre] = useState('');
-  const [instagram, setInstagram] = useState('');
-  const [ocupacion, setOcupacion] = useState('');
-  const [guardado, setGuardado] = useState(false);
+export default function MatchResult({ sessionId, nombre, arquetipo, matchPct, brecha = [] }: Props) {
   const [generando, setGenerando] = useState(false);
   const [descargado, setDescargado] = useState(false);
 
@@ -33,24 +27,15 @@ export default function MatchResult({ sessionId, arquetipo, matchPct, brecha = [
     trackLead({ content_name: `Match quiz: ${arquetipo.nombre}` });
   }, [arquetipo.nombre]);
 
-  /** Best-effort: manda lo que haya cargado. Si falla no bloquea nada. */
-  function guardarContacto(action?: 'dm' | 'shared') {
-    const payload: Record<string, string> = { session_id: sessionId };
-    if (nombre.trim()) payload.nombre = nombre.trim();
-    if (instagram.trim()) payload.instagram = instagram.trim();
-    if (ocupacion.trim()) payload.ocupacion = ocupacion.trim();
-    if (action) payload.action = action;
-    // Solo session_id = no hay nada que guardar todavia.
-    if (Object.keys(payload).length === 1) return;
+  /** Marca que apretó WhatsApp o compartir. Best-effort: si falla, no bloquea. */
+  function marcar(action: 'dm' | 'shared') {
     try {
       fetch('/api/leads/match-quiz', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ session_id: sessionId, action }),
         keepalive: true,
-      })
-        .then(() => setGuardado(true))
-        .catch(() => undefined);
+      }).catch(() => undefined);
     } catch {}
   }
 
@@ -68,7 +53,7 @@ export default function MatchResult({ sessionId, arquetipo, matchPct, brecha = [
   function abrirWhatsApp() {
     // Manda contacto + accion en la misma llamada: si la persona escribio el
     // nombre y no salio del campo, el blur nunca disparo y se perderia.
-    guardarContacto('dm');
+    marcar('dm');
     window.open(waUrl, '_blank', 'noopener,noreferrer');
   }
 
@@ -83,7 +68,7 @@ export default function MatchResult({ sessionId, arquetipo, matchPct, brecha = [
   async function compartirFicha() {
     if (generando) return;
     setGenerando(true);
-    guardarContacto('shared');
+    marcar('shared');
     try {
       const blob = await renderPoster({
         nombre: arquetipo.nombre,
@@ -166,29 +151,6 @@ export default function MatchResult({ sessionId, arquetipo, matchPct, brecha = [
         </div>
       )}
 
-      {/* ── GUARDÁ TU FICHA ───────────────────────────────────────────────
-          Los tres campos que faltaban. Nombre e Instagram son para poder
-          seguirlo; la ocupación es el segundo criterio de calificación
-          (nicho / inversión) y así no se gasta la pregunta en la llamada.
-          Nada de esto es obligatorio: bloquear la ficha por un formulario
-          seria cambiar 6 respuestas por 0. */}
-      <div className="mt-5 rounded-3xl border border-jjl-border bg-jjl-gray/60 p-6">
-        <div className="flex items-baseline justify-between">
-          <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-jjl-red">
-            Guardá tu ficha
-          </p>
-          {guardado && <span className="text-[11px] text-white/35">Guardado</span>}
-        </div>
-        <p className="mt-2 text-[13px] leading-relaxed text-white/55">
-          Para que Guido la tenga a mano cuando te responda.
-        </p>
-        <div className="mt-4 space-y-2.5">
-          <Campo value={nombre} onChange={setNombre} onBlur={() => guardarContacto()} placeholder="Tu nombre" autoComplete="name" />
-          <Campo value={instagram} onChange={setInstagram} onBlur={() => guardarContacto()} placeholder="Tu Instagram (@usuario)" />
-          <Campo value={ocupacion} onChange={setOcupacion} onBlur={() => guardarContacto()} placeholder="¿A qué te dedicás?" />
-        </div>
-      </div>
-
       {/* CTA — el motivo de escribir está arriba, no es curiosidad suelta */}
       <div className="mt-5 rounded-3xl border border-jjl-red/40 bg-gradient-to-b from-jjl-red/[0.14] to-jjl-red/[0.04] p-6">
         <p className="text-[15px] font-bold leading-snug text-white">
@@ -254,9 +216,22 @@ function Poster({ arquetipo, matchPct }: { arquetipo: Arquetipo; matchPct: numbe
   const [pct, setPct] = useState(0);
 
   useEffect(() => {
+    const DURACION = 1100;
+
+    // Sin animacion si la pestaña esta en segundo plano (ahi requestAnimationFrame
+    // no corre y el numero quedaria clavado en 0 al volver) o si la persona
+    // pidio menos movimiento en el sistema.
+    const quieto =
+      document.hidden ||
+      window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    if (quieto) {
+      setDibujado(true);
+      setPct(matchPct);
+      return;
+    }
+
     const t = setTimeout(() => setDibujado(true), 80);
     const arranque = performance.now();
-    const DURACION = 1100;
     let raf = 0;
     const tick = (ahora: number) => {
       const avance = Math.min(1, (ahora - arranque) / DURACION);
@@ -265,8 +240,15 @@ function Poster({ arquetipo, matchPct }: { arquetipo: Arquetipo; matchPct: numbe
       if (avance < 1) raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
+
+    // Red de seguridad: si la persona se va de la pestaña en el medio, los
+    // frames se cortan y el numero se queda a mitad de camino. Esto garantiza
+    // el valor final pase lo que pase.
+    const remate = setTimeout(() => setPct(matchPct), DURACION + 400);
+
     return () => {
       clearTimeout(t);
+      clearTimeout(remate);
       cancelAnimationFrame(raf);
     };
   }, [matchPct]);
@@ -379,28 +361,6 @@ function Retrato({ nombre, foto }: { nombre: string; foto?: string }) {
       height={156}
       className="h-full w-full object-cover"
       onError={() => setFalló(true)}
-    />
-  );
-}
-
-function Campo({
-  value, onChange, onBlur, placeholder, autoComplete,
-}: {
-  value: string;
-  onChange: (v: string) => void;
-  onBlur: () => void;
-  placeholder: string;
-  autoComplete?: string;
-}) {
-  return (
-    <input
-      type="text"
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      onBlur={onBlur}
-      placeholder={placeholder}
-      autoComplete={autoComplete}
-      className="w-full rounded-2xl border border-jjl-border bg-white/[0.03] px-4 py-3 text-[15px] text-white transition-colors placeholder:text-jjl-muted/50 hover:border-jjl-border-strong focus:border-jjl-red focus:outline-none focus:ring-2 focus:ring-jjl-red/25"
     />
   );
 }

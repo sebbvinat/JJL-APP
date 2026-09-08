@@ -11,7 +11,7 @@ import {
 } from '@/lib/match-arquetipos';
 import MatchResult from './MatchResult';
 
-type QuizState = 'intro' | 'questions' | 'submitting' | 'result';
+type QuizState = 'intro' | 'datos' | 'questions' | 'submitting' | 'result';
 
 export default function MatchQuiz() {
   // Identidad anónima — UUID por sesión. Persiste en localStorage para que
@@ -26,16 +26,19 @@ export default function MatchQuiz() {
   });
 
   const [state, setState] = useState<QuizState>('intro');
+  // Nombre, instagram y ocupacion se piden ANTES del test. Al final la
+  // persona ya tiene lo que vino a buscar y no tiene motivo para dejarlos.
+  const [nombre, setNombre] = useState('');
+  const [instagram, setInstagram] = useState('');
+  const [ocupacion, setOcupacion] = useState('');
   const [step, setStep] = useState(0); // índice de pregunta actual
   const [answers, setAnswers] = useState<Partial<QuizAnswers>>({});
-  const [visionText, setVisionText] = useState('');
   const [result, setResult] = useState<{ arquetipo: Arquetipo; matchPct: number; brecha?: BrechaBloque[] } | null>(null);
   const [error, setError] = useState('');
 
   const totalSteps = QUIZ_QUESTIONS.length;
   const currentQuestion = QUIZ_QUESTIONS[step];
   const isLastQuestion = step === totalSteps - 1;
-  const isVisionStep = currentQuestion?.id === 'vision';
 
   const progress = useMemo(() => Math.round(((step + 1) / totalSteps) * 100), [step, totalSteps]);
 
@@ -58,7 +61,9 @@ export default function MatchQuiz() {
         body: JSON.stringify({
           session_id: sessionId,
           ...finalAnswers,
-          vision: visionText,
+          nombre: nombre.trim(),
+          instagram: instagram.trim(),
+          ocupacion: ocupacion.trim(),
         }),
       });
       const data = await res.json();
@@ -122,7 +127,7 @@ export default function MatchQuiz() {
           onClick={() => {
             // Meta Pixel: dispara StartQuiz al apretar "Empezar el test".
             void import('@/lib/meta-pixel').then((m) => m.trackStartQuiz('Quiz luchador'));
-            setState('questions');
+            setState('datos');
           }}
           className="mt-10 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-jjl-red px-6 text-[16px] font-bold text-white shadow-[0_14px_36px_-12px_rgba(220,38,38,0.95)] transition-colors hover:bg-jjl-red-hover"
           style={{ minHeight: '56px' }}
@@ -132,6 +137,54 @@ export default function MatchQuiz() {
         </button>
         <p className="mt-4 text-center text-[11.5px] text-jjl-muted">
           60 segundos · sin email para empezar
+        </p>
+      </div>
+    );
+  }
+
+  // ── Tus datos ──────────────────────────────────────────────────────────
+  // Van antes del test y no despues: cuando la ficha ya esta en pantalla la
+  // persona consiguio lo que vino a buscar y no tiene ningun motivo para
+  // dejar el contacto. Aca todavia lo tiene, y ademas explica para que es.
+  if (state === 'datos') {
+    const completo =
+      nombre.trim().length > 1 && instagram.trim().length > 1 && ocupacion.trim().length > 1;
+
+    return (
+      <div className="mx-auto max-w-md px-5 pb-16 pt-6">
+        <button
+          onClick={() => setState('intro')}
+          className="flex h-9 w-9 items-center justify-center rounded-xl text-jjl-muted transition-colors hover:bg-white/5 hover:text-white"
+          aria-label="Volver"
+        >
+          <ArrowLeft className="h-5 w-5" />
+        </button>
+
+        <h2 className="mt-6 text-[28px] font-black leading-[1.1] tracking-[-0.03em] text-white">
+          Antes de arrancar
+        </h2>
+        <p className="mt-2.5 text-[14px] leading-relaxed text-white/55">
+          Con esto armamos tu ficha. Guido la mira antes de responderte, así no
+          arranca preguntándote lo que ya contestaste.
+        </p>
+
+        <div className="mt-7 space-y-2.5">
+          <Campo value={nombre} onChange={setNombre} placeholder="Tu nombre" autoComplete="name" autoFocus />
+          <Campo value={instagram} onChange={setInstagram} placeholder="Tu Instagram (@usuario)" />
+          <Campo value={ocupacion} onChange={setOcupacion} placeholder="¿A qué te dedicás?" />
+        </div>
+
+        <button
+          onClick={() => setState('questions')}
+          disabled={!completo}
+          className="mt-7 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-jjl-red px-6 text-[16px] font-bold text-white shadow-[0_14px_36px_-12px_rgba(220,38,38,0.95)] transition-colors hover:bg-jjl-red-hover disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none"
+          style={{ minHeight: '56px' }}
+        >
+          Empezar el test
+          <ArrowRight className="h-5 w-5" />
+        </button>
+        <p className="mt-4 text-center text-[11.5px] text-jjl-muted">
+          9 preguntas · 60 segundos
         </p>
       </div>
     );
@@ -156,6 +209,7 @@ export default function MatchQuiz() {
     return (
       <MatchResult
         sessionId={sessionId}
+        nombre={nombre}
         arquetipo={result.arquetipo}
         matchPct={result.matchPct}
         brecha={result.brecha}
@@ -200,28 +254,7 @@ export default function MatchQuiz() {
       {error && <p className="mt-4 text-[12.5px] text-red-400">{error}</p>}
 
       <div className="mt-7 space-y-2.5">
-        {isVisionStep ? (
-          <>
-            <textarea
-              value={visionText}
-              onChange={(e) => setVisionText(e.target.value)}
-              placeholder="Ej: más confianza arriba del tatami, ganar el respeto de los de cinturón mayor, divertirme sin pelear cada lucha..."
-              rows={4}
-              className="w-full resize-none rounded-2xl border border-jjl-border bg-white/[0.03] px-4 py-3.5 text-[15px] leading-relaxed text-white transition-colors placeholder:text-jjl-muted/50 hover:border-jjl-border-strong focus:border-jjl-red focus:outline-none focus:ring-2 focus:ring-jjl-red/25"
-              autoFocus
-            />
-            <button
-              onClick={() => submit({ ...answers })}
-              disabled={visionText.trim().length < 5}
-              className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-jjl-red px-6 text-[15.5px] font-bold text-white shadow-[0_14px_36px_-12px_rgba(220,38,38,0.95)] transition-colors hover:bg-jjl-red-hover disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none"
-              style={{ minHeight: '56px' }}
-            >
-              Ver mi ficha
-              <ArrowRight className="h-5 w-5" />
-            </button>
-          </>
-        ) : (
-          currentQuestion.options.map((opt) => {
+        {currentQuestion.options.map((opt) => {
             const selected = answers[currentQuestion.id as keyof QuizAnswers] === opt.value;
             return (
               <button
@@ -243,10 +276,31 @@ export default function MatchQuiz() {
                 />
                 <span className="text-[15px] font-medium leading-snug">{opt.label}</span>
               </button>
-            );
-          })
-        )}
+          );
+        })}
       </div>
     </div>
+  );
+}
+
+function Campo({
+  value, onChange, placeholder, autoComplete, autoFocus,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  placeholder: string;
+  autoComplete?: string;
+  autoFocus?: boolean;
+}) {
+  return (
+    <input
+      type="text"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder}
+      autoComplete={autoComplete}
+      autoFocus={autoFocus}
+      className="w-full rounded-2xl border border-jjl-border bg-white/[0.03] px-4 py-3.5 text-[15px] text-white transition-colors placeholder:text-jjl-muted/50 hover:border-jjl-border-strong focus:border-jjl-red focus:outline-none focus:ring-2 focus:ring-jjl-red/25"
+    />
   );
 }

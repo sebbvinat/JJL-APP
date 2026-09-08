@@ -189,7 +189,7 @@ export const QUIZ_QUESTIONS: QuizQuestion[] = [
     options: [
       { value: 'arriba',    label: 'Siempre voy arriba, busco pasar',        scores: { gordon: 3, buchecha: 3, roger: 3 } },
       { value: 'abajo',     label: 'Me siento comodo abajo, jugando guardia', scores: { marcelo: 3, bernardo: 3, adam: 3, cobrinha: 2 } },
-      { value: 'finalizar', label: 'Busco terminar rapido, voy directo al sub', scores: { buchecha: 2, cobrinha: 2, gordon: 1 } },
+      { value: 'finalizar', label: 'Voy a la finalizacion, aunque resigne la posicion', scores: { buchecha: 2, cobrinha: 2, gordon: 1 } },
       { value: 'reacciono', label: 'Espero lo que propone el rival y reacciono', scores: { bernardo: 2, roger: 1, marcelo: 1 } },
       { value: 'improviso', label: 'Voy probando, no tengo un patron fijo',  scores: { cobrinha: 2, adam: 2, marcelo: 1 } },
     ],
@@ -234,9 +234,18 @@ export const QUIZ_QUESTIONS: QuizQuestion[] = [
   },
   {
     id: 'vision',
-    pregunta: 'Si tu juego mejora, que cambia en tu vida',
-    subtitulo: 'Contestame con tus palabras (1-2 lineas)',
-    options: [], // texto libre - no scorea
+    pregunta: 'Si tu juego mejora, que cambia',
+    subtitulo: 'Lo que mas te importa conseguir',
+    // No suma puntos: no dice nada del estilo, dice que le mueve la aguja.
+    // Es lo primero que mira el setter antes de escribirle.
+    options: [
+      { value: 'aire', label: 'Llegar entero al final, dejar de quedarme sin aire', scores: {} },
+      { value: 'lesiones', label: 'Entrenar sin lesionarme', scores: {} },
+      { value: 'imponer', label: 'Imponer mi juego en vez de sobrevivir', scores: {} },
+      { value: 'respeto', label: 'Aguantarle a los cinturones mayores', scores: {} },
+      { value: 'competir', label: 'Competir y ganar', scores: {} },
+      { value: 'disfrutar', label: 'Disfrutar el entrenamiento en vez de sufrirlo', scores: {} },
+    ],
   },
 ];
 

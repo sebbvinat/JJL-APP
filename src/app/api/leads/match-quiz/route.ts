@@ -6,14 +6,29 @@ import { ARQUETIPOS, calculateMatch, construirBrecha, type ArquetipoId, type Qui
 export const runtime = 'nodejs';
 
 /**
+ * Deja el usuario de Instagram limpio: sin arroba y sin la URL completa.
+ * Es la clave con la que el setter lo busca despues, asi que no puede quedar
+ * guardado como "https://instagram.com/fulano/".
+ */
+function handleInstagram(crudo: string | null): string | null {
+  if (!crudo) return null;
+  const handle = crudo
+    .replace(/^https?:[/][/](www[.])?instagram[.]com[/]/i, '')
+    .replace(/^@/, '')
+    .split('/')[0]
+    .trim();
+  return /^[A-Za-z0-9._]{1,30}$/.test(handle) ? handle : null;
+}
+
+/**
  * POST /api/leads/match-quiz
  *
  * Persiste un resultado del quiz "¿A qué luchador te parecés?" y devuelve
  * el match calculado (el frontend lo usa para renderizar la ficha).
  *
  * Body: {
- *   session_id, peso, fisico, estilo, posicion, finalizacion, dolor, vision?,
- *   nombre?, instagram?
+ *   session_id, frecuencia, antiguedad, peso, fisico, estilo, posicion,
+ *   finalizacion, dolor, vision, nombre, instagram, ocupacion
  * }
  *
  * Idempotente: re-postear el mismo session_id update-ea la fila existente.
@@ -65,7 +80,8 @@ export async function POST(request: NextRequest) {
       session_id: sessionId,
       ...answers,
       nombre: pick('nombre'),
-      instagram: pick('instagram'),
+      instagram: handleInstagram(pick('instagram')),
+      ocupacion: pick('ocupacion'),
       match_arquetipo: match.winner,
       match_pct: match.matchPct,
     };
@@ -147,15 +163,8 @@ export async function PATCH(request: NextRequest) {
 
   // El handle se guarda normalizado (sin @, sin la URL completa) porque es la
   // clave con la que el setter lo busca despues en Instagram.
-  const igCrudo = texto('instagram', 120);
-  if (igCrudo) {
-    const handle = igCrudo
-      .replace(/^https?:\/\/(www\.)?instagram\.com\//i, '')
-      .replace(/^@/, '')
-      .replace(/\/.*$/, '')
-      .trim();
-    if (/^[A-Za-z0-9._]{1,30}$/.test(handle)) updates.instagram = handle;
-  }
+  const handle = handleInstagram(texto('instagram', 120));
+  if (handle) updates.instagram = handle;
 
   const action = body?.action;
   if (action === 'shared') updates.shared_to_ig = true;
