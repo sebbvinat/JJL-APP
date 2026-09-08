@@ -22,6 +22,10 @@ export interface Arquetipo {
   /** Avatar circular en /public/arquetipos/<id>.png. Si no existe, la ficha
    *  cae a las iniciales - nunca se rompe. Generar con scripts/avatar-arquetipo.py */
   foto?: string;
+  /** Atribucion obligatoria de la foto, si la licencia la pide (CC BY / BY-SA).
+   *  Se muestra al pie de la ficha. Las de dominio publico no llevan.
+   *  Ver public/arquetipos/CREDITOS.md */
+  credito?: string;
 }
 
 export const ARQUETIPOS: Record<ArquetipoId, Arquetipo> = {
@@ -34,6 +38,7 @@ export const ARQUETIPOS: Record<ArquetipoId, Arquetipo> = {
     mejorGuardia: 'X-Guard',
     mejorPasaje: 'Toreo + control de manga',
     loQueCuesta: 'Defender contra pesados que lo aplastan',
+    foto: '/arquetipos/marcelo.png', // dominio publico, no necesita credito
   },
   gordon: {
     id: 'gordon',
@@ -75,6 +80,8 @@ export const ARQUETIPOS: Record<ArquetipoId, Arquetipo> = {
     mejorGuardia: 'DLR / X-Guard',
     mejorPasaje: 'Leg Drag + Toreando',
     loQueCuesta: 'Rivales mucho mas pesados que frenan el ritmo',
+    foto: '/arquetipos/cobrinha.png',
+    credito: 'Foto: Dkaivani / Wikimedia Commons (CC BY-SA 3.0)',
   },
   // NUEVOS (sept 2026). Cubren dos perfiles que antes caian mal:
   //   - el largo que juega arriba y simple  -> antes le daba Gordon

@@ -237,6 +237,12 @@ export default function MatchResult({ sessionId, arquetipo, matchPct, brecha = [
         {copied ? '¡Copiado! Pegalo en tu story' : 'Compartir mi resultado'}
       </button>
 
+      {/* La atribucion es obligatoria para las fotos CC BY / BY-SA. Sale solo
+          cuando el arquetipo que toco la necesita. */}
+      {arquetipo.credito && (
+        <p className="mt-6 text-center text-[10px] text-white/25">{arquetipo.credito}</p>
+      )}
+
       <p className="mt-6 text-center text-[11px] text-white/40">
         Jiu Jitsu Latino · Programa de 6 meses
       </p>
