@@ -51,7 +51,10 @@ SELECT
   count(*) FILTER (WHERE match_arquetipo IS NOT NULL)     AS terminaron_quiz,
   count(*) FILTER (WHERE match_arquetipo IS NULL)         AS abandonaron,
   count(*) FILTER (WHERE clicked_form)                    AS pasaron_al_form,
-  count(*) FILTER (WHERE clicked_dm)                      AS escribieron_whatsapp,
+  -- Historico: el boton de WhatsApp en la ficha existio del 8 al 9/9/2026.
+  -- Se saco porque salteaba el filtro del formulario. La columna queda para
+  -- no perder esas filas, pero de aca en mas siempre va a dar 0.
+  count(*) FILTER (WHERE clicked_dm)                      AS escribieron_whatsapp_historico,
   count(*) FILTER (WHERE shared_to_ig)                    AS compartieron,
   count(*) FILTER (WHERE whatsapp IS NOT NULL)            AS con_telefono
 FROM public.match_quiz_responses
