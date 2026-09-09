@@ -246,7 +246,6 @@ export default function MatchQuiz() {
     return (
       <MatchResult
         sessionId={sessionId}
-        nombre={nombre}
         instagram={instagram}
         arquetipo={result.arquetipo}
         matchPct={result.matchPct}

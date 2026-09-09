@@ -1,15 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Zap, Shield, Target, MessageCircle, Download, Loader2, ArrowRight } from 'lucide-react';
+import { Zap, Shield, Target, Download, Loader2, ArrowRight } from 'lucide-react';
 import type { Arquetipo, BrechaBloque } from '@/lib/match-arquetipos';
 import { trackLead } from '@/lib/meta-pixel';
 import { renderPoster } from '@/lib/match-poster';
 
 interface Props {
   sessionId: string;
-  /** Lo cargo antes de empezar el test; se usa para saludar en el WhatsApp. */
-  nombre: string;
   /** Se pasa al formulario por ?ig= para no volver a preguntarselo. */
   instagram: string;
   arquetipo: Arquetipo;
@@ -18,7 +16,7 @@ interface Props {
   brecha?: BrechaBloque[];
 }
 
-export default function MatchResult({ sessionId, nombre, instagram, arquetipo, matchPct, brecha = [] }: Props) {
+export default function MatchResult({ sessionId, instagram, arquetipo, matchPct, brecha = [] }: Props) {
   const [generando, setGenerando] = useState(false);
   const [descargado, setDescargado] = useState(false);
 
@@ -29,8 +27,8 @@ export default function MatchResult({ sessionId, nombre, instagram, arquetipo, m
     trackLead({ content_name: `Match quiz: ${arquetipo.nombre}` });
   }, [arquetipo.nombre]);
 
-  /** Marca que apretó WhatsApp o compartir. Best-effort: si falla, no bloquea. */
-  function marcar(action: 'dm' | 'shared' | 'form') {
+  /** Marca que paso al formulario o que compartio. Best-effort. */
+  function marcar(action: 'shared' | 'form') {
     try {
       fetch('/api/leads/match-quiz', {
         method: 'PATCH',
@@ -39,24 +37,6 @@ export default function MatchResult({ sessionId, nombre, instagram, arquetipo, m
         keepalive: true,
       }).catch(() => undefined);
     } catch {}
-  }
-
-  // WhatsApp en vez de DM de Instagram: el DM depende de estar logueado en la
-  // app y cae en "solicitudes de mensaje" si no seguís la cuenta. WhatsApp abre
-  // siempre y deja el número, que es lo que el setter necesita para seguirlo.
-  const WHATSAPP_JJL = '5491166518801';
-  const waText =
-    (nombre.trim() ? `Hola! Soy ${nombre.trim()}. ` : 'Hola! ') +
-    `Hice el test "¿A qué luchador te parecés?" y me dio ${arquetipo.nombre} (${matchPct}% match).` +
-    (brecha.length ? ` Me quedé pensando en esto: "${brecha[0].titulo}".` : '') +
-    ` Quiero saber qué me separa de él.`;
-  const waUrl = `https://wa.me/${WHATSAPP_JJL}?text=${encodeURIComponent(waText)}`;
-
-  function abrirWhatsApp() {
-    // Manda contacto + accion en la misma llamada: si la persona escribio el
-    // nombre y no salio del campo, el blur nunca disparo y se perderia.
-    marcar('dm');
-    window.open(waUrl, '_blank', 'noopener,noreferrer');
   }
 
   /**
@@ -189,17 +169,6 @@ export default function MatchResult({ sessionId, nombre, instagram, arquetipo, m
           <ArrowRight className="h-5 w-5 shrink-0" />
         </a>
       </div>
-
-      {/* WhatsApp queda como salida secundaria: hay gente que no vuelve a
-          llenar otro formulario pero si escribe. */}
-      <button
-        onClick={abrirWhatsApp}
-        className="mt-3 inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl border border-jjl-border bg-white/[0.04] px-5 text-[14px] font-semibold text-white transition-colors hover:border-jjl-border-strong hover:bg-white/[0.08]"
-        style={{ minHeight: '52px' }}
-      >
-        <MessageCircle className="h-4 w-4" />
-        Prefiero escribirle por WhatsApp
-      </button>
 
       <button
         onClick={compartirFicha}

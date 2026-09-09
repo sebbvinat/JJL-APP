@@ -17,7 +17,7 @@ interface Item {
   dolor: string | null;
   frecuencia: string | null;
   peso: string | null;
-  clicked_dm: boolean;
+  clicked_form: boolean;
   created_at: string;
   /** false = abandonó antes de terminar el quiz. */
   completo: boolean;
@@ -185,9 +185,9 @@ function Fila({ item }: { item: Item }) {
               Abandonó el quiz
             </span>
           )}
-          {item.clicked_dm && (
+          {item.clicked_form && (
             <span className="inline-flex h-5 items-center rounded border border-green-500/40 bg-green-500/10 px-1.5 text-[10px] font-bold text-green-300">
-              Ya escribió
+              Pasó al formulario
             </span>
           )}
           <span className="text-[11px] text-jjl-muted">{fecha}</span>

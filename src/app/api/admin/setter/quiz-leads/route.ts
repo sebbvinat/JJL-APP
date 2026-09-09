@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
   const { data, error } = await auth.admin
     .from('match_quiz_responses')
     .select(
-      'session_id, nombre, instagram, whatsapp, match_arquetipo, match_pct, vision, dolor, frecuencia, peso, clicked_dm, created_at',
+      'session_id, nombre, instagram, whatsapp, match_arquetipo, match_pct, vision, dolor, frecuencia, peso, clicked_form, created_at',
     )
     .order('created_at', { ascending: false })
     .limit(200);
