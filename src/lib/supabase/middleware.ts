@@ -97,7 +97,7 @@ async function handleAlumno(
   if (pathname.startsWith('/api/')) {
     // Endpoints PÚBLICOS de captación de leads + tracking. Los usan las
     // landings de marketing (/auditoria, /que-luchador-sos,
-    // /consultoria-gratuita), que cualquiera puede visitar — incluido un
+    // /consultoria-gratuita, /agendar), que cualquiera puede visitar — incluido un
     // cliente_cursos logueado que venga de un anuncio. Se autentican por su
     // cuenta (service-role + session_id), así que NO deben pasar por el gate
     // cross-producto: si no, se rompe la conversión (el lead recibe "No
@@ -140,7 +140,7 @@ async function handleAlumno(
   }
 
   // Public routes that don't require auth
-  const publicRoutes = ['/', '/login', '/register', '/consultoria-gratuita', '/que-luchador-sos', '/auditoria'];
+  const publicRoutes = ['/', '/login', '/register', '/consultoria-gratuita', '/agendar', '/que-luchador-sos', '/auditoria'];
   const isPublicRoute =
     publicRoutes.includes(pathname) ||
     pathname.startsWith('/auth/') ||

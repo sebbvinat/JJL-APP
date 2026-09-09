@@ -40,15 +40,14 @@ export default function MatchResult({ sessionId, instagram, arquetipo, matchPct,
   }
 
   /**
-   * El paso al formulario de consultoria.
+   * El paso a la agenda rapida.
    *
    * El quiz no filtra a nadie a proposito: es un juego y tiene que terminarlo
-   * cualquiera. El filtro sigue estando en el formulario, que es el que decide
-   * si le muestra el calendario. Le pasamos el instagram por la URL para que
-   * no se lo vuelva a preguntar.
+   * cualquiera. El filtro esta en /agendar: tres preguntas y recien ahi el
+   * calendario. Le pasamos el instagram por la URL para no volver a pedirlo.
    */
   const urlForm =
-    '/consultoria-gratuita' +
+    '/agendar' +
     (instagram.trim() ? `?ig=${encodeURIComponent(instagram.trim().replace(/^@/, ''))}` : '');
 
   function irAlForm() {
@@ -149,15 +148,17 @@ export default function MatchResult({ sessionId, instagram, arquetipo, matchPct,
         </div>
       )}
 
-      {/* CTA — el paso al formulario, que es donde se filtra.
-          El quiz no filtra: cualquiera lo termina y cualquiera ve este boton. */}
+      {/* CTA — el paso a /agendar, que es donde se filtra.
+          El quiz no filtra: cualquiera lo termina y cualquiera ve este boton.
+          No va a /consultoria-gratuita porque esa es una landing larga para
+          alguien que llega frio; al que ya hizo el quiz le repetiria todo. */}
       <div className="mt-5 rounded-3xl border border-jjl-red/40 bg-gradient-to-b from-jjl-red/[0.14] to-jjl-red/[0.04] p-6">
-        <p className="text-[15px] font-bold leading-snug text-white">
-          Guido te dice {brecha.length > 1 ? `cuál de las ${brecha.length} atacar primero` : 'por dónde empezar'}
+        <p className="text-[15.5px] font-bold leading-snug text-white">
+          ¿Querés armar tu estrategia de juego ideal?
         </p>
-        <p className="mt-1.5 text-[13px] leading-relaxed text-white/65">
-          Son unas preguntas más sobre tu caso. Si encaja, te aparecen los horarios
-          para sentarte 45 minutos con él.
+        <p className="mt-2 text-[13.5px] leading-relaxed text-white/70">
+          Agendá una llamada gratuita con los profesores de Jiu Jitsu Latino para
+          aprender el paso a paso.
         </p>
         <a
           href={urlForm}

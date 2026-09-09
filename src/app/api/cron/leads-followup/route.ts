@@ -54,7 +54,6 @@ export async function GET(request: NextRequest) {
     .eq('disqualified', false)
     .is('followed_up_at', null)
     .not('instagram', 'is', null)
-    .not('limitacion', 'is', null)
     .not('compromiso', 'is', null)
     .lte('created_at', minAge)
     .gte('created_at', maxAge)

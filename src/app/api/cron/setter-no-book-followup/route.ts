@@ -44,7 +44,6 @@ export async function GET(request: NextRequest) {
     .eq('booked', false)
     .eq('disqualified', false)
     .is('setter_notified_no_book_at', null)
-    .not('limitacion', 'is', null)
     .not('compromiso', 'is', null)
     .lte('created_at', slaCutoff)
     .gte('created_at', maxAge)

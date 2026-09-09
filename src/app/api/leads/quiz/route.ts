@@ -67,8 +67,13 @@ export async function POST(request: NextRequest) {
   // (las repetia el quiz del luchador). Si las siguieramos exigiendo aca,
   // `isInitial` seria siempre false y con eso se apagaba el webhook de abajo,
   // o sea todas las automatizaciones externas, sin ningun error visible.
+  // Tienen que ser campos que existan en LOS DOS caminos que escriben aca:
+  // el formulario largo de /consultoria-gratuita y la agenda rapida de
+  // /agendar (tres preguntas). `limitacion` la pregunta solo el primero, asi
+  // que si la exigieramos, todo lo que entra por /agendar no dispararia el
+  // webhook y las automatizaciones externas se perderian la mitad.
   const isInitial =
-    typeof update.limitacion === 'string' && typeof update.compromiso === 'string';
+    typeof update.compromiso === 'string' && typeof update.urgencia === 'string';
 
   if (isInitial) {
     update.user_agent = userAgent;

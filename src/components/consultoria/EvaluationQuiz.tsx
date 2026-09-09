@@ -30,6 +30,7 @@ import {
   Zap,
 } from 'lucide-react';
 import CalendlyEmbed from './CalendlyEmbed';
+import { withSession } from '@/lib/calendly-url';
 import PhoneCollect from './PhoneCollect';
 
 type AnswerKey =
@@ -582,43 +583,13 @@ function NoCalendarScreen({ instagram }: { instagram: string | null }) {
 
 const LIMITACION_HOOK: Record<string, string> = {
   cardio: 'Trabajamos un juego que no se basa en quemar gas — sobrevivís lucha tras lucha.',
-  movilidad: 'Diseñamos un estilo que no exige desplazamientos largos — economía de movimiento.',
+  movilidad: 'Armamos un juego que funciona desde donde ya estás parado, sin depender de moverte más rápido que el otro.',
   flexibilidad: 'Construimos un juego que no depende de guardias extremas — lo armás con lo que tenés.',
   coordinacion: 'Patrones simples y repetibles que entran en automático con menos repeticiones.',
   mental: 'Plan claro semana a semana: dejás de improvisar y la confianza vuelve sola.',
 };
 
 
-
-/**
- * Anexa nuestro session_id como `utm_content` al link de Calendly. Calendly
- * propaga ese valor al webhook `invitee.created`, lo que nos permite asociar
- * la reserva con la fila del lead en `lead_quiz_responses`.
- */
-/**
- * Arma la URL del Calendly con lo que ya sabemos de la persona.
- *
- * - utm_content: el id de sesion, para poder cruzar la agenda con el lead.
- * - a4: el usuario de Instagram con el que entro. En Calendly esa es la
- *   pregunta "REF (no llenar)", que existe justamente para esto y no es
- *   obligatoria, asi que el que agenda ni la ve.
- *
- * Sin esto la consultoria llega con nombre y mail pero sin forma de saber de
- * que cuenta de Instagram salio, que es lo unico que guarda el lead.
- */
-function withSession(url: string, sessionId: string, instagram?: string | null): string {
-  const handle = (instagram || '').trim().replace(/^@/, '');
-  try {
-    const u = new URL(url);
-    u.searchParams.set('utm_content', sessionId);
-    if (handle) u.searchParams.set('a4', `@${handle}`);
-    return u.toString();
-  } catch {
-    const sep = url.includes('?') ? '&' : '?';
-    const extra = handle ? `&a4=${encodeURIComponent('@' + handle)}` : '';
-    return `${url}${sep}utm_content=${encodeURIComponent(sessionId)}${extra}`;
-  }
-}
 
 function QuizResult({
   answers,
@@ -816,8 +787,8 @@ function QuizResult({
 
       <div className="mt-5 rounded-xl bg-black/30 border border-jjl-border p-4">
         <p className="text-[13px] text-white/90 leading-relaxed">
-          <strong className="text-white">Sesión 1 a 1 para analizar tu juego</strong> y
-          ver si realmente te podemos ayudar.
+          <strong className="text-white">Sesión 1 a 1 para analizar tu juego ideal</strong> de
+          acuerdo a tu cuerpo y tu edad, y cómo podrías alcanzar tus objetivos en el tatami.
         </p>
       </div>
 
