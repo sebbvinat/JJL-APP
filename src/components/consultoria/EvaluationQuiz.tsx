@@ -125,19 +125,6 @@ const QUESTIONS: QuizQuestion[] = [
   },
   {
     kind: 'choice',
-    key: 'fortaleza',
-    eyebrow: 'Tu fortaleza',
-    title: '¿Cuál sentís que es tu principal fortaleza física?',
-    hint: 'Tu juego se construye sobre lo que ya hacés bien.',
-    options: [
-      { value: 'fuerza', label: 'Fuerza / potencia', Icon: Dumbbell },
-      { value: 'cardio', label: 'Resistencia / cardio', Icon: Wind },
-      { value: 'flexibilidad', label: 'Flexibilidad / movilidad', Icon: Footprints },
-      { value: 'velocidad', label: 'Velocidad / explosividad', Icon: Zap },
-    ],
-  },
-  {
-    kind: 'choice',
     key: 'limitacion',
     eyebrow: 'Tu limitante',
     title: '¿Qué es lo que más te frena en el tatami?',
@@ -148,74 +135,6 @@ const QUESTIONS: QuizQuestion[] = [
       { value: 'flexibilidad', label: 'Me falta flexibilidad', Icon: Activity },
       { value: 'coordinacion', label: 'Me cuesta coordinar movimientos', Icon: Gauge },
       { value: 'mental', label: 'Mental — confianza, foco', Icon: Brain },
-    ],
-  },
-  {
-    kind: 'choice',
-    key: 'estado',
-    eyebrow: 'Tu punto de partida',
-    title: '¿En qué punto sentís que está hoy tu juego?',
-    hint: 'Diagnóstico honesto — así el plan es real, no genérico.',
-    options: [
-      {
-        value: 'estancado',
-        label: 'Entreno, pero siento que mi nivel está estancado hace tiempo',
-        Icon: Pause,
-      },
-      {
-        value: 'noaplico',
-        label: 'Me cuesta aplicar en lucha lo que entreno',
-        Icon: ShieldQuestion,
-      },
-      {
-        value: 'improviso',
-        label: 'Improviso y no tengo una estrategia clara',
-        Icon: Sparkles,
-      },
-      {
-        value: 'inconsistente',
-        label: 'Algunos días rindo bien, pero no soy consistente',
-        Icon: Gauge,
-      },
-      {
-        value: 'canso',
-        label: 'Me canso rápido y mi nivel baja en los sparrings',
-        Icon: Battery,
-      },
-      {
-        value: 'cuerpo',
-        label: 'Siento que mi cuerpo ya no responde igual y tengo que adaptar mi juego',
-        Icon: HeartPulse,
-      },
-    ],
-  },
-  {
-    kind: 'choice',
-    key: 'vision',
-    eyebrow: 'Tu punto ideal',
-    title: '¿Cómo te gustaría que se vea tu juego de acá a 6 meses?',
-    hint: 'A dónde querés llegar — el destino marca el camino.',
-    options: [
-      {
-        value: 'claridad',
-        label: 'Tener un juego claro donde sé qué hacer en cada situación',
-        Icon: MapIcon,
-      },
-      {
-        value: 'ritmo',
-        label: 'Poder imponer mi ritmo y no depender del rival',
-        Icon: Crown,
-      },
-      {
-        value: 'estrategia',
-        label: 'Dejar de improvisar y empezar a luchar con estrategia',
-        Icon: Target,
-      },
-      {
-        value: 'solidez',
-        label: 'Sentirme sólido tanto atacando como defendiendo',
-        Icon: Layers,
-      },
     ],
   },
   {
@@ -291,7 +210,10 @@ function instagramDeLaUrl(): string | null {
   if (typeof window === 'undefined') return null;
   const q = new URLSearchParams(window.location.search);
   const crudo = q.get('ig') || q.get('instagram') || q.get('handle') || '';
-  const v = crudo.trim().replace(/^@+/, '').replace(/s+/g, '');
+  // Ojo: aca decia replace(/s+/g,'') por una barra invertida perdida, o sea
+  // que borraba todas las letras 's' del usuario. Filtramos directo contra
+  // los caracteres que Instagram permite, que ademas limpia cualquier basura.
+  const v = crudo.trim().replace(/^@+/, '').replace(/[^A-Za-z0-9._]/g, '');
   return /^[A-Za-z0-9._]{1,30}$/.test(v) ? v : null;
 }
 
@@ -366,10 +288,7 @@ export default function EvaluationQuiz({ calendlyUrl }: EvaluationQuizProps) {
     // Sólo las choice questions son obligatorias para considerar el quiz
     // "completo" — instagram y ocupacion son opcionales.
     if (
-      !payload.fortaleza ||
       !payload.limitacion ||
-      !payload.estado ||
-      !payload.vision ||
       !payload.compromiso ||
       !payload.urgencia
     ) {
@@ -660,12 +579,6 @@ function NoCalendarScreen({ instagram }: { instagram: string | null }) {
 // Result screen — personalized hook + Calendly embed → phone collect.
 // ---------------------------------------------------------------------------
 
-const FORTALEZA_LABEL: Record<string, string> = {
-  fuerza: 'fuerza y potencia',
-  cardio: 'resistencia y cardio',
-  flexibilidad: 'flexibilidad y movilidad',
-  velocidad: 'velocidad y explosividad',
-};
 
 const LIMITACION_HOOK: Record<string, string> = {
   cardio: 'Trabajamos un juego que no se basa en quemar gas — sobrevivís lucha tras lucha.',
@@ -675,21 +588,7 @@ const LIMITACION_HOOK: Record<string, string> = {
   mental: 'Plan claro semana a semana: dejás de improvisar y la confianza vuelve sola.',
 };
 
-const ESTADO_HOOK: Record<string, string> = {
-  estancado: 'Identificamos qué te tiene estancado y rompemos esa meseta en semanas.',
-  noaplico: 'Cerramos la brecha entre lo que entrenás y lo que aplicás en lucha real.',
-  improviso: 'Reemplazamos la improvisación por un plan claro semana a semana.',
-  inconsistente: 'Volvés tu rendimiento consistente: lo bueno deja de ser casualidad.',
-  canso: 'Trabajamos un juego que no se basa en quemar gas — economía de movimiento.',
-  cuerpo: 'Adaptamos el juego a tu cuerpo de hoy — sin pelear contra él.',
-};
 
-const VISION_HOOK: Record<string, string> = {
-  claridad: 'Vamos a darte un mapa de juego claro: en cada situación sabés qué hacer.',
-  ritmo: 'Diseñamos un estilo donde imponés tu ritmo y dejás de reaccionar al rival.',
-  estrategia: 'Te sacamos de la improvisación con un sistema repetible y estratégico.',
-  solidez: 'Construimos un juego sólido en ataque y en defensa — sin huecos.',
-};
 
 /**
  * Anexa nuestro session_id como `utm_content` al link de Calendly. Calendly
@@ -730,10 +629,7 @@ function QuizResult({
   calendlyUrl: string;
   sessionId: string;
 }) {
-  const fortaleza = answers.fortaleza ? FORTALEZA_LABEL[answers.fortaleza] : null;
   const limitacionHook = answers.limitacion ? LIMITACION_HOOK[answers.limitacion] : null;
-  const estadoHook = answers.estado ? ESTADO_HOOK[answers.estado] : null;
-  const visionHook = answers.vision ? VISION_HOOK[answers.vision] : null;
 
   // Después de agendar:
   //   - 'pending'  → todavía mostramos el calendly (lead no agendó)
@@ -912,29 +808,11 @@ function QuizResult({
         Evaluación lista
       </div>
       <h3 className="mt-3 text-2xl font-bold leading-tight">
-        Tu juego se construye sobre tu{' '}
-        {fortaleza ? <span className="text-jjl-red">{fortaleza}</span> : 'perfil'}.
+        Ya sabemos <span className="text-jjl-red">por dónde empezar</span> con vos.
       </h3>
-      <ul className="mt-4 space-y-2 text-[14px] text-white/85">
-        {limitacionHook && (
-          <li className="flex items-start gap-2.5">
-            <span className="mt-1 h-1.5 w-1.5 rounded-full bg-jjl-red shrink-0" />
-            <span>{limitacionHook}</span>
-          </li>
-        )}
-        {estadoHook && (
-          <li className="flex items-start gap-2.5">
-            <span className="mt-1 h-1.5 w-1.5 rounded-full bg-jjl-red shrink-0" />
-            <span>{estadoHook}</span>
-          </li>
-        )}
-        {visionHook && (
-          <li className="flex items-start gap-2.5">
-            <span className="mt-1 h-1.5 w-1.5 rounded-full bg-jjl-red shrink-0" />
-            <span>{visionHook}</span>
-          </li>
-        )}
-      </ul>
+      {limitacionHook && (
+        <p className="mt-4 text-[15px] leading-relaxed text-white/85">{limitacionHook}</p>
+      )}
 
       <div className="mt-5 rounded-xl bg-black/30 border border-jjl-border p-4">
         <p className="text-[13px] text-white/90 leading-relaxed">

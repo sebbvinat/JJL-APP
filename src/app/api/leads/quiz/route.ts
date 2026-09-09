@@ -61,14 +61,14 @@ export async function POST(request: NextRequest) {
   if (typeof obj.disqualified === 'boolean') update.disqualified = obj.disqualified;
   if (typeof obj.booked === 'boolean') update.booked = obj.booked;
 
-  // Si trae las 5 respuestas obligatorias del quiz → es el insert inicial:
+  // Si trae las respuestas obligatorias del quiz → es el insert inicial:
   // enriquecer con metadata. instagram + ocupacion son opcionales.
+  // En sept/2026 el formulario dejo de preguntar fortaleza, estado y vision
+  // (las repetia el quiz del luchador). Si las siguieramos exigiendo aca,
+  // `isInitial` seria siempre false y con eso se apagaba el webhook de abajo,
+  // o sea todas las automatizaciones externas, sin ningun error visible.
   const isInitial =
-    typeof update.fortaleza === 'string' &&
-    typeof update.limitacion === 'string' &&
-    typeof update.estado === 'string' &&
-    typeof update.vision === 'string' &&
-    typeof update.compromiso === 'string';
+    typeof update.limitacion === 'string' && typeof update.compromiso === 'string';
 
   if (isInitial) {
     update.user_agent = userAgent;

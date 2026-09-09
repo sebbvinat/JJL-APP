@@ -54,10 +54,7 @@ export async function GET(request: NextRequest) {
     .eq('disqualified', false)
     .is('followed_up_at', null)
     .not('instagram', 'is', null)
-    .not('fortaleza', 'is', null)
     .not('limitacion', 'is', null)
-    .not('estado', 'is', null)
-    .not('vision', 'is', null)
     .not('compromiso', 'is', null)
     .lte('created_at', minAge)
     .gte('created_at', maxAge)
@@ -128,10 +125,10 @@ function buildFollowupMessage(lead: FollowupLead): string {
     (dmLink ? `👉 Abrir DM: ${dmLink}\n` : '') +
     `\n` +
     `*Situación:* ${prettyOcupacion}\n` +
-    `*Fortaleza:* ${fortaleza}\n` +
+    (lead.fortaleza ? `*Fortaleza:* ${fortaleza}\n` : '') +
     `*Limitante:* ${limitacion}\n` +
-    `*Estado actual:* ${estado}\n` +
-    `*Visión 6 meses:* ${vision}\n` +
+    (lead.estado ? `*Estado actual:* ${estado}\n` : '') +
+    (lead.vision ? `*Visión 6 meses:* ${vision}\n` : '') +
     `*Compromiso:* ${compromiso}\n` +
     `\n` +
     `Completó el form pero todavía no agendó. Escribile por IG.`
