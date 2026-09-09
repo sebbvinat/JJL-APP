@@ -9,16 +9,23 @@
 -- 1. El embudo dia por dia.
 --
 -- Ojo con dos columnas: `vieron_calendario` y `eligieron_horario` existen
--- desde el 29/8/2026. Para fechas anteriores van a dar 0 porque no se median,
--- NO porque nadie haya visto el calendario. En Looker conviene filtrar
--- fecha >= 2026-08-29 en cualquier grafico que las use.
+-- desde el 29/8/2026. Cualquier cuenta de "no vio el calendario" que incluya
+-- fechas anteriores esta inflada: no es que no lo vieron, es que no se medía.
+-- En Looker conviene filtrar fecha >= 2026-08-29 en cualquier grafico que
+-- las use.
 -- ─────────────────────────────────────────────────────────────────────────
 CREATE OR REPLACE VIEW public.v_embudo_diario AS
 SELECT
   (created_at AT TIME ZONE 'America/Argentina/Buenos_Aires')::date AS fecha,
   count(*)                                                    AS completaron_form,
-  count(*) FILTER (WHERE NOT disqualified)                    AS calificaron,
-  count(*) FILTER (WHERE disqualified)                        AS descalificados,
+  -- OJO: el filtro del formulario NO es `disqualified`. Ninguna opcion lo
+  -- marca; es una bandera que pone el setter a mano (12 filas en toda la
+  -- historia). Lo que decide si ve el calendario es `urgencia`: el que
+  -- contesta "no" a si esta dispuesto a invertir no lo ve, pero NO queda
+  -- descalificado a proposito -- el setter lo trabaja por DM con low ticket.
+  count(*) FILTER (WHERE urgencia = 'si')                     AS dispuestos_a_invertir,
+  count(*) FILTER (WHERE urgencia = 'no')                     AS no_invierte,
+  count(*) FILTER (WHERE disqualified)                        AS descartados_a_mano,
   count(*) FILTER (WHERE calendly_loaded_at IS NOT NULL)      AS vieron_calendario,
   count(*) FILTER (WHERE calendly_datetime_selected_at IS NOT NULL) AS eligieron_horario,
   count(*) FILTER (WHERE booked)                              AS agendaron,
@@ -71,9 +78,10 @@ SELECT
   l.last_contact_at,
   CASE
     WHEN l.calendly_datetime_selected_at IS NOT NULL THEN '1. Eligio dia y hora y no confirmo'
-    WHEN l.calendly_loaded_at IS NOT NULL             THEN '2. Vio el calendario y no eligio'
-    WHEN NOT l.disqualified                           THEN '3. Califico y no llego al calendario'
-    ELSE                                                   '4. Dijo que no esta dispuesto a invertir'
+    WHEN l.calendly_loaded_at IS NOT NULL            THEN '2. Vio el calendario y no eligio'
+    WHEN l.urgencia = 'no'                           THEN '3. Dijo que no invierte (va por DM, low ticket)'
+    WHEN l.urgencia = 'si'                           THEN '4. Dijo que si invierte y no llego al calendario'
+    ELSE                                                  '5. No termino el formulario'
   END AS motivo,
   -- Cuantos dias hace que se cayo, para priorizar
   (now()::date - (l.created_at AT TIME ZONE 'America/Argentina/Buenos_Aires')::date) AS dias
@@ -86,13 +94,15 @@ ORDER BY motivo, l.created_at DESC;
 -- ─────────────────────────────────────────────────────────────────────────
 -- 4. El agujero de atribucion, en una sola fila por dia.
 --
--- Calendly tiene MAS agendas que las que la app registra: las que entran por
--- el link directo o por ManyChat nunca pasan por el embed y quedan con
--- booked=false. Eso tiene dos consecuencias feas:
---   - el embudo miente hacia abajo
---   - los crons de follow-up salen a perseguir a gente que YA agendo
--- Esta vista deja el numero de la app a la vista para compararlo contra el
--- de Calendly, que hay que traer aparte.
+-- Calendly tiene mas agendas que las que la app registra, y no es un bug:
+-- del 29/8 al 9/9 hubo 47 eventos y 26 vinieron del formulario web. Los otros
+-- 21 los cargo el propio equipo desde Calendly (`invitee_scheduled_by` = JJL,
+-- sin respuestas del formulario y sin utm), o sea cierres por WhatsApp o DM.
+--
+-- Es un canal real, no una fuga. Pero mientras no quede registrado, el
+-- rendimiento del embudo web se ve peor de lo que es y no se puede comparar
+-- un canal contra el otro. Esta vista deja el numero de la app a mano para
+-- contrastarlo con el de Calendly, que hay que traer por API.
 -- ─────────────────────────────────────────────────────────────────────────
 CREATE OR REPLACE VIEW public.v_agendas_registradas AS
 SELECT
