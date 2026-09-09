@@ -247,6 +247,7 @@ export default function MatchQuiz() {
       <MatchResult
         sessionId={sessionId}
         nombre={nombre}
+        instagram={instagram}
         arquetipo={result.arquetipo}
         matchPct={result.matchPct}
         brecha={result.brecha}

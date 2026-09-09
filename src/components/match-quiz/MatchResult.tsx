@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Zap, Shield, Target, MessageCircle, Download, Loader2 } from 'lucide-react';
+import { Zap, Shield, Target, MessageCircle, Download, Loader2, ArrowRight } from 'lucide-react';
 import type { Arquetipo, BrechaBloque } from '@/lib/match-arquetipos';
 import { trackLead } from '@/lib/meta-pixel';
 import { renderPoster } from '@/lib/match-poster';
@@ -10,13 +10,15 @@ interface Props {
   sessionId: string;
   /** Lo cargo antes de empezar el test; se usa para saludar en el WhatsApp. */
   nombre: string;
+  /** Se pasa al formulario por ?ig= para no volver a preguntarselo. */
+  instagram: string;
   arquetipo: Arquetipo;
   matchPct: number;
   /** "Lo que te separa" — lo calcula la API cruzando dolor + frecuencia + antigüedad. */
   brecha?: BrechaBloque[];
 }
 
-export default function MatchResult({ sessionId, nombre, arquetipo, matchPct, brecha = [] }: Props) {
+export default function MatchResult({ sessionId, nombre, instagram, arquetipo, matchPct, brecha = [] }: Props) {
   const [generando, setGenerando] = useState(false);
   const [descargado, setDescargado] = useState(false);
 
@@ -28,7 +30,7 @@ export default function MatchResult({ sessionId, nombre, arquetipo, matchPct, br
   }, [arquetipo.nombre]);
 
   /** Marca que apretó WhatsApp o compartir. Best-effort: si falla, no bloquea. */
-  function marcar(action: 'dm' | 'shared') {
+  function marcar(action: 'dm' | 'shared' | 'form') {
     try {
       fetch('/api/leads/match-quiz', {
         method: 'PATCH',
@@ -55,6 +57,22 @@ export default function MatchResult({ sessionId, nombre, arquetipo, matchPct, br
     // nombre y no salio del campo, el blur nunca disparo y se perderia.
     marcar('dm');
     window.open(waUrl, '_blank', 'noopener,noreferrer');
+  }
+
+  /**
+   * El paso al formulario de consultoria.
+   *
+   * El quiz no filtra a nadie a proposito: es un juego y tiene que terminarlo
+   * cualquiera. El filtro sigue estando en el formulario, que es el que decide
+   * si le muestra el calendario. Le pasamos el instagram por la URL para que
+   * no se lo vuelva a preguntar.
+   */
+  const urlForm =
+    '/consultoria-gratuita' +
+    (instagram.trim() ? `?ig=${encodeURIComponent(instagram.trim().replace(/^@/, ''))}` : '');
+
+  function irAlForm() {
+    marcar('form');
   }
 
   /**
@@ -151,23 +169,37 @@ export default function MatchResult({ sessionId, nombre, arquetipo, matchPct, br
         </div>
       )}
 
-      {/* CTA — el motivo de escribir está arriba, no es curiosidad suelta */}
+      {/* CTA — el paso al formulario, que es donde se filtra.
+          El quiz no filtra: cualquiera lo termina y cualquiera ve este boton. */}
       <div className="mt-5 rounded-3xl border border-jjl-red/40 bg-gradient-to-b from-jjl-red/[0.14] to-jjl-red/[0.04] p-6">
         <p className="text-[15px] font-bold leading-snug text-white">
           Guido te dice {brecha.length > 1 ? `cuál de las ${brecha.length} atacar primero` : 'por dónde empezar'}
         </p>
         <p className="mt-1.5 text-[13px] leading-relaxed text-white/65">
-          Mandale tu ficha por WhatsApp. Te responde con una cosa concreta para tu próxima semana.
+          Son unas preguntas más sobre tu caso. Si encaja, te aparecen los horarios
+          para sentarte 45 minutos con él.
         </p>
-        <button
-          onClick={abrirWhatsApp}
+        <a
+          href={urlForm}
+          onClick={irAlForm}
           className="mt-5 inline-flex w-full items-center justify-center gap-2.5 rounded-2xl bg-jjl-red px-5 py-3.5 text-center text-[15px] font-bold leading-snug text-white shadow-[0_10px_30px_-10px_rgba(220,38,38,0.9)] transition-colors hover:bg-jjl-red-hover"
           style={{ minHeight: '54px' }}
         >
-          <MessageCircle className="h-5 w-5 shrink-0" />
           Quiero un juego claro como {arquetipo.nombre}
-        </button>
+          <ArrowRight className="h-5 w-5 shrink-0" />
+        </a>
       </div>
+
+      {/* WhatsApp queda como salida secundaria: hay gente que no vuelve a
+          llenar otro formulario pero si escribe. */}
+      <button
+        onClick={abrirWhatsApp}
+        className="mt-3 inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl border border-jjl-border bg-white/[0.04] px-5 text-[14px] font-semibold text-white transition-colors hover:border-jjl-border-strong hover:bg-white/[0.08]"
+        style={{ minHeight: '52px' }}
+      >
+        <MessageCircle className="h-4 w-4" />
+        Prefiero escribirle por WhatsApp
+      </button>
 
       <button
         onClick={compartirFicha}

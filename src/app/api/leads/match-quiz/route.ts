@@ -165,7 +165,7 @@ export async function POST(request: NextRequest) {
  *   - contacto: { nombre?, instagram?, ocupacion? } - la ficha de resultado
  *     los pide y los guarda a medida que la persona escribe. Sin esto el
  *     quiz no capturaba a nadie: el que no mandaba el WhatsApp se perdia.
- *   - tracking: { action: 'shared' | 'dm' }
+ *   - tracking: { action: 'shared' | 'dm' | 'form' }
  *
  * Los dos pueden venir juntos (el boton de WhatsApp manda contacto + accion).
  */
@@ -207,6 +207,7 @@ export async function PATCH(request: NextRequest) {
   const action = body?.action;
   if (action === 'shared') updates.shared_to_ig = true;
   if (action === 'dm') updates.clicked_dm = true;
+  if (action === 'form') updates.clicked_form = true;
 
   if (Object.keys(updates).length === 0) {
     return NextResponse.json({ error: 'Nada para actualizar' }, { status: 400 });

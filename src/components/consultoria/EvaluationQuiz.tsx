@@ -125,6 +125,101 @@ const QUESTIONS: QuizQuestion[] = [
   },
   {
     kind: 'choice',
+    key: 'fortaleza',
+    eyebrow: 'Tu fortaleza',
+    title: '¿Cuál sentís que es tu principal fortaleza física?',
+    hint: 'Tu juego se construye sobre lo que ya hacés bien.',
+    options: [
+      { value: 'fuerza', label: 'Fuerza / potencia', Icon: Dumbbell },
+      { value: 'cardio', label: 'Resistencia / cardio', Icon: Wind },
+      { value: 'flexibilidad', label: 'Flexibilidad / movilidad', Icon: Footprints },
+      { value: 'velocidad', label: 'Velocidad / explosividad', Icon: Zap },
+    ],
+  },
+  {
+    kind: 'choice',
+    key: 'limitacion',
+    eyebrow: 'Tu limitante',
+    title: '¿Qué es lo que más te frena en el tatami?',
+    hint: 'El obstáculo principal que sentís cuando entrenás o luchás.',
+    options: [
+      { value: 'cardio', label: 'Me canso rápido — falta resistencia', Icon: Wind },
+      { value: 'movilidad', label: 'Me cuesta moverme / desplazarme', Icon: Footprints },
+      { value: 'flexibilidad', label: 'Me falta flexibilidad', Icon: Activity },
+      { value: 'coordinacion', label: 'Me cuesta coordinar movimientos', Icon: Gauge },
+      { value: 'mental', label: 'Mental — confianza, foco', Icon: Brain },
+    ],
+  },
+  {
+    kind: 'choice',
+    key: 'estado',
+    eyebrow: 'Tu punto de partida',
+    title: '¿En qué punto sentís que está hoy tu juego?',
+    hint: 'Diagnóstico honesto — así el plan es real, no genérico.',
+    options: [
+      {
+        value: 'estancado',
+        label: 'Entreno, pero siento que mi nivel está estancado hace tiempo',
+        Icon: Pause,
+      },
+      {
+        value: 'noaplico',
+        label: 'Me cuesta aplicar en lucha lo que entreno',
+        Icon: ShieldQuestion,
+      },
+      {
+        value: 'improviso',
+        label: 'Improviso y no tengo una estrategia clara',
+        Icon: Sparkles,
+      },
+      {
+        value: 'inconsistente',
+        label: 'Algunos días rindo bien, pero no soy consistente',
+        Icon: Gauge,
+      },
+      {
+        value: 'canso',
+        label: 'Me canso rápido y mi nivel baja en los sparrings',
+        Icon: Battery,
+      },
+      {
+        value: 'cuerpo',
+        label: 'Siento que mi cuerpo ya no responde igual y tengo que adaptar mi juego',
+        Icon: HeartPulse,
+      },
+    ],
+  },
+  {
+    kind: 'choice',
+    key: 'vision',
+    eyebrow: 'Tu punto ideal',
+    title: '¿Cómo te gustaría que se vea tu juego de acá a 6 meses?',
+    hint: 'A dónde querés llegar — el destino marca el camino.',
+    options: [
+      {
+        value: 'claridad',
+        label: 'Tener un juego claro donde sé qué hacer en cada situación',
+        Icon: MapIcon,
+      },
+      {
+        value: 'ritmo',
+        label: 'Poder imponer mi ritmo y no depender del rival',
+        Icon: Crown,
+      },
+      {
+        value: 'estrategia',
+        label: 'Dejar de improvisar y empezar a luchar con estrategia',
+        Icon: Target,
+      },
+      {
+        value: 'solidez',
+        label: 'Sentirme sólido tanto atacando como defendiendo',
+        Icon: Layers,
+      },
+    ],
+  },
+  {
+    kind: 'choice',
     key: 'compromiso',
     eyebrow: 'Tu compromiso',
     title: '¿Qué tan comprometido estás con mejorar tu juego hoy?',
@@ -271,6 +366,10 @@ export default function EvaluationQuiz({ calendlyUrl }: EvaluationQuizProps) {
     // Sólo las choice questions son obligatorias para considerar el quiz
     // "completo" — instagram y ocupacion son opcionales.
     if (
+      !payload.fortaleza ||
+      !payload.limitacion ||
+      !payload.estado ||
+      !payload.vision ||
       !payload.compromiso ||
       !payload.urgencia
     ) {
@@ -631,6 +730,10 @@ function QuizResult({
   calendlyUrl: string;
   sessionId: string;
 }) {
+  const fortaleza = answers.fortaleza ? FORTALEZA_LABEL[answers.fortaleza] : null;
+  const limitacionHook = answers.limitacion ? LIMITACION_HOOK[answers.limitacion] : null;
+  const estadoHook = answers.estado ? ESTADO_HOOK[answers.estado] : null;
+  const visionHook = answers.vision ? VISION_HOOK[answers.vision] : null;
 
   // Después de agendar:
   //   - 'pending'  → todavía mostramos el calendly (lead no agendó)
@@ -809,12 +912,29 @@ function QuizResult({
         Evaluación lista
       </div>
       <h3 className="mt-3 text-2xl font-bold leading-tight">
-        Listo. Ahora lo vemos <span className="text-jjl-red">con vos</span>.
+        Tu juego se construye sobre tu{' '}
+        {fortaleza ? <span className="text-jjl-red">{fortaleza}</span> : 'perfil'}.
       </h3>
-      <p className="mt-4 text-[14px] leading-relaxed text-white/85">
-        Con lo que contestaste ya podemos mirar tu caso. Lo que sigue es
-        sentarnos 45 minutos a ver qué te está frenando y si te podemos ayudar.
-      </p>
+      <ul className="mt-4 space-y-2 text-[14px] text-white/85">
+        {limitacionHook && (
+          <li className="flex items-start gap-2.5">
+            <span className="mt-1 h-1.5 w-1.5 rounded-full bg-jjl-red shrink-0" />
+            <span>{limitacionHook}</span>
+          </li>
+        )}
+        {estadoHook && (
+          <li className="flex items-start gap-2.5">
+            <span className="mt-1 h-1.5 w-1.5 rounded-full bg-jjl-red shrink-0" />
+            <span>{estadoHook}</span>
+          </li>
+        )}
+        {visionHook && (
+          <li className="flex items-start gap-2.5">
+            <span className="mt-1 h-1.5 w-1.5 rounded-full bg-jjl-red shrink-0" />
+            <span>{visionHook}</span>
+          </li>
+        )}
+      </ul>
 
       <div className="mt-5 rounded-xl bg-black/30 border border-jjl-border p-4">
         <p className="text-[13px] text-white/90 leading-relaxed">

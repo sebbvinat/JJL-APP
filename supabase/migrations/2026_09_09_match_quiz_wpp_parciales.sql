@@ -12,6 +12,10 @@
 
 ALTER TABLE public.match_quiz_responses
   ADD COLUMN IF NOT EXISTS whatsapp text,
+  -- El quiz es un juego y no filtra a nadie: el filtro sigue siendo el
+  -- formulario de consultoria. Esto marca al que cruzo del quiz al form, que
+  -- es el unico numero que dice si el quiz sirve para traer agendas.
+  ADD COLUMN IF NOT EXISTS clicked_form boolean DEFAULT false,
   ALTER COLUMN match_arquetipo DROP NOT NULL,
   ALTER COLUMN match_pct DROP NOT NULL;
 
