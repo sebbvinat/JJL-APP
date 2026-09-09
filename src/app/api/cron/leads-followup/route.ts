@@ -54,10 +54,6 @@ export async function GET(request: NextRequest) {
     .eq('disqualified', false)
     .is('followed_up_at', null)
     .not('instagram', 'is', null)
-    .not('fortaleza', 'is', null)
-    .not('limitacion', 'is', null)
-    .not('estado', 'is', null)
-    .not('vision', 'is', null)
     .not('compromiso', 'is', null)
     .lte('created_at', minAge)
     .gte('created_at', maxAge)
@@ -127,11 +123,14 @@ function buildFollowupMessage(lead: FollowupLead): string {
     `${flag} *@${handle}*\n` +
     (dmLink ? `👉 Abrir DM: ${dmLink}\n` : '') +
     `\n` +
+    // Estas cuatro salieron del formulario en sept/2026: los leads viejos
+    // las tienen y los nuevos no, asi que la linea se omite en vez de
+    // mostrar un guion vacio.
     `*Situación:* ${prettyOcupacion}\n` +
-    `*Fortaleza:* ${fortaleza}\n` +
-    `*Limitante:* ${limitacion}\n` +
-    `*Estado actual:* ${estado}\n` +
-    `*Visión 6 meses:* ${vision}\n` +
+    (lead.fortaleza ? `*Fortaleza:* ${fortaleza}\n` : '') +
+    (lead.limitacion ? `*Limitante:* ${limitacion}\n` : '') +
+    (lead.estado ? `*Estado actual:* ${estado}\n` : '') +
+    (lead.vision ? `*Visión 6 meses:* ${vision}\n` : '') +
     `*Compromiso:* ${compromiso}\n` +
     `\n` +
     `Completó el form pero todavía no agendó. Escribile por IG.`

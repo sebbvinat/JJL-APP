@@ -20,6 +20,14 @@ function handleInstagram(crudo: string | null): string | null {
   return /^[A-Za-z0-9._]{1,30}$/.test(handle) ? handle : null;
 }
 
+/** Deja el telefono en digitos (y el + inicial) para poder armar el wa.me. */
+function normalizarWhatsapp(crudo: string | null): string | null {
+  if (!crudo) return null;
+  const limpio = crudo.replace(/[^0-9+]/g, '').replace(/(?!^)[+]/g, '');
+  // 8 digitos es un numero local corto; menos que eso es basura.
+  return limpio.replace(/[^0-9]/g, '').length >= 8 ? limpio.slice(0, 20) : null;
+}
+
 /**
  * POST /api/leads/match-quiz
  *
@@ -52,6 +60,32 @@ export async function POST(request: NextRequest) {
     return typeof v === 'string' && v.trim() ? v.trim().slice(0, 500) : null;
   };
 
+  // Guardado parcial: se llama al terminar la pantalla de datos, antes de la
+  // primera pregunta. Deja la fila creada con el contacto para que el que
+  // abandona a mitad igual aparezca en el panel y se lo pueda seguir.
+  if (body.parcial === true) {
+    const contacto = {
+      session_id: sessionId,
+      nombre: pick('nombre'),
+      instagram: handleInstagram(pick('instagram')),
+      whatsapp: normalizarWhatsapp(pick('whatsapp')),
+    };
+    if (!contacto.nombre && !contacto.instagram && !contacto.whatsapp) {
+      return NextResponse.json({ error: 'Sin datos de contacto' }, { status: 400 });
+    }
+    try {
+      const admin = createAdminSupabaseClient();
+      const { error } = await admin
+        .from('match_quiz_responses')
+        .upsert(contacto, { onConflict: 'session_id' });
+      if (error) logger.warn('match-quiz.parcial.failed', { err: error });
+    } catch (err) {
+      logger.warn('match-quiz.parcial.unhandled', { err });
+    }
+    // Nunca bloquea: si esto falla la persona igual tiene que poder seguir.
+    return NextResponse.json({ ok: true, parcial: true });
+  }
+
   const answers: Partial<QuizAnswers> = {
     frecuencia: pick('frecuencia') || '',
     antiguedad: pick('antiguedad') || '',
@@ -82,6 +116,7 @@ export async function POST(request: NextRequest) {
       nombre: pick('nombre'),
       instagram: handleInstagram(pick('instagram')),
       ocupacion: pick('ocupacion'),
+      whatsapp: normalizarWhatsapp(pick('whatsapp')),
       match_arquetipo: match.winner,
       match_pct: match.matchPct,
     };
@@ -163,6 +198,9 @@ export async function PATCH(request: NextRequest) {
 
   // El handle se guarda normalizado (sin @, sin la URL completa) porque es la
   // clave con la que el setter lo busca despues en Instagram.
+  const wpp = normalizarWhatsapp(texto('whatsapp', 40));
+  if (wpp) updates.whatsapp = wpp;
+
   const handle = handleInstagram(texto('instagram', 120));
   if (handle) updates.instagram = handle;
 

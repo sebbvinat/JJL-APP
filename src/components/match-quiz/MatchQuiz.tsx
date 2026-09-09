@@ -26,11 +26,11 @@ export default function MatchQuiz() {
   });
 
   const [state, setState] = useState<QuizState>('intro');
-  // Nombre, instagram y ocupacion se piden ANTES del test. Al final la
+  // Nombre, instagram y whatsapp se piden ANTES del test. Al final la
   // persona ya tiene lo que vino a buscar y no tiene motivo para dejarlos.
   const [nombre, setNombre] = useState('');
   const [instagram, setInstagram] = useState('');
-  const [ocupacion, setOcupacion] = useState('');
+  const [whatsapp, setWhatsapp] = useState('');
   const [step, setStep] = useState(0); // índice de pregunta actual
   const [answers, setAnswers] = useState<Partial<QuizAnswers>>({});
   const [result, setResult] = useState<{ arquetipo: Arquetipo; matchPct: number; brecha?: BrechaBloque[] } | null>(null);
@@ -51,6 +51,32 @@ export default function MatchQuiz() {
     }, 220);
   }
 
+  /**
+   * Guarda el contacto apenas termina la pantalla de datos, antes de la
+   * primera pregunta.
+   *
+   * Hasta ahora la fila se creaba recien al terminar el quiz: el que
+   * abandonaba a mitad no dejaba ningun rastro y no habia forma de seguirlo.
+   * Es best-effort — si falla, la persona sigue igual y el POST final vuelve
+   * a mandar los mismos datos.
+   */
+  function guardarParcial() {
+    try {
+      fetch('/api/leads/match-quiz', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          session_id: sessionId,
+          parcial: true,
+          nombre: nombre.trim(),
+          instagram: instagram.trim(),
+          whatsapp: whatsapp.trim(),
+        }),
+        keepalive: true,
+      }).catch(() => undefined);
+    } catch {}
+  }
+
   async function submit(finalAnswers: Partial<QuizAnswers>) {
     setState('submitting');
     setError('');
@@ -63,7 +89,7 @@ export default function MatchQuiz() {
           ...finalAnswers,
           nombre: nombre.trim(),
           instagram: instagram.trim(),
-          ocupacion: ocupacion.trim(),
+          whatsapp: whatsapp.trim(),
         }),
       });
       const data = await res.json();
@@ -148,7 +174,9 @@ export default function MatchQuiz() {
   // dejar el contacto. Aca todavia lo tiene, y ademas explica para que es.
   if (state === 'datos') {
     const completo =
-      nombre.trim().length > 1 && instagram.trim().length > 1 && ocupacion.trim().length > 1;
+      nombre.trim().length > 1 &&
+      instagram.trim().length > 1 &&
+      whatsapp.replace(/[^0-9]/g, '').length >= 8;
 
     return (
       <div className="mx-auto max-w-md px-5 pb-16 pt-6">
@@ -171,11 +199,20 @@ export default function MatchQuiz() {
         <div className="mt-7 space-y-2.5">
           <Campo value={nombre} onChange={setNombre} placeholder="Tu nombre" autoComplete="name" autoFocus />
           <Campo value={instagram} onChange={setInstagram} placeholder="Tu Instagram (@usuario)" />
-          <Campo value={ocupacion} onChange={setOcupacion} placeholder="¿A qué te dedicás?" />
+          <Campo
+            value={whatsapp}
+            onChange={setWhatsapp}
+            placeholder="Tu WhatsApp (con código de país)"
+            tipo="tel"
+            autoComplete="tel"
+          />
         </div>
 
         <button
-          onClick={() => setState('questions')}
+          onClick={() => {
+            guardarParcial();
+            setState('questions');
+          }}
           disabled={!completo}
           className="mt-7 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-jjl-red px-6 text-[16px] font-bold text-white shadow-[0_14px_36px_-12px_rgba(220,38,38,0.95)] transition-colors hover:bg-jjl-red-hover disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none"
           style={{ minHeight: '56px' }}
@@ -284,17 +321,19 @@ export default function MatchQuiz() {
 }
 
 function Campo({
-  value, onChange, placeholder, autoComplete, autoFocus,
+  value, onChange, placeholder, autoComplete, autoFocus, tipo = 'text',
 }: {
   value: string;
   onChange: (v: string) => void;
   placeholder: string;
   autoComplete?: string;
   autoFocus?: boolean;
+  /** 'tel' hace que el celular abra el teclado numerico. */
+  tipo?: 'text' | 'tel';
 }) {
   return (
     <input
-      type="text"
+      type={tipo}
       value={value}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}

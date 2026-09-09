@@ -11,6 +11,7 @@ import SetterGuide from '@/components/admin/setter/SetterGuide';
 import CommissionPanel from '@/components/admin/setter/CommissionPanel';
 import FollowupsPanel from '@/components/admin/setter/FollowupsPanel';
 import AgendaCalendly from '@/components/admin/setter/AgendaCalendly';
+import QuizLeads from '@/components/admin/setter/QuizLeads';
 
 type AdminRow = { id: string; nombre: string; avatar_url: string | null; tags: string[] };
 
@@ -156,6 +157,8 @@ export default function AgendasClient() {
 
       {/* Follow-ups del bot que hay que seguir a mano (logs del CRM) */}
       <FollowupsPanel />
+
+      <QuizLeads />
 
       {/* Comisión por mes — cuánto va ganando el setter cada mes */}
       <CommissionPanel isSetter={isSetter} />

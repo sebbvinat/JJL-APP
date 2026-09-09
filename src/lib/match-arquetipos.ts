@@ -174,7 +174,7 @@ export const QUIZ_QUESTIONS: QuizQuestion[] = [
     options: [
       { value: 'explosivo',  label: 'Explosivo, mucha potencia corta',   scores: { buchecha: 4, cobrinha: 3, adam: 1 } },
       { value: 'resistente', label: 'Resistente, no me canso',           scores: { gordon: 3, bernardo: 3, marcelo: 1 } },
-      { value: 'fuerte',     label: 'Fuerte, hago pesar mi peso',        scores: { adam: 4, buchecha: 2, bernardo: 2, gordon: 1 } },
+      { value: 'fuerte',     label: 'Fuerte, controlo fisicamente al rival',        scores: { adam: 4, buchecha: 2, bernardo: 2, gordon: 1 } },
       { value: 'flexible',   label: 'Flexible y rapido',                 scores: { marcelo: 3, cobrinha: 2 } },
       { value: 'largo',      label: 'Largo, aprovecho la distancia',     scores: { roger: 4, marcelo: 1, gordon: 1 } },
       // El que no sabe describirse no puede salir castigado por ser honesto:
@@ -185,7 +185,7 @@ export const QUIZ_QUESTIONS: QuizQuestion[] = [
   },
   {
     id: 'estilo',
-    pregunta: 'Cuando luchas libre, que haces mas',
+    pregunta: 'Cuando luchas, que soles hacer mas',
     options: [
       { value: 'arriba',    label: 'Siempre voy arriba, busco pasar',        scores: { gordon: 3, buchecha: 3, roger: 3 } },
       { value: 'abajo',     label: 'Me siento comodo abajo, jugando guardia', scores: { marcelo: 3, bernardo: 3, adam: 3, cobrinha: 2 } },
@@ -204,9 +204,9 @@ export const QUIZ_QUESTIONS: QuizQuestion[] = [
       // cerrados). Con "pasaje" a secas los tres primeros casi no salian.
       { value: 'pasaje-largo', label: 'Pasando a distancia larga, toreando',  scores: { cobrinha: 2, marcelo: 2, gordon: 1 } },
       { value: 'pasaje-corto', label: 'Pasando a distancia corta, presionando', scores: { gordon: 3, buchecha: 3, bernardo: 3, roger: 2, adam: 1 } },
-      { value: 'montada',      label: 'En posiciones dominantes arriba',      scores: { roger: 3, buchecha: 3 } },
+      { value: 'montada',      label: 'En posiciones dominantes arriba (100kg / montada)',      scores: { roger: 3, buchecha: 3 } },
       { value: 'espalda',      label: 'En la espalda',                        scores: { gordon: 3, marcelo: 3 } },
-      { value: 'sub-abajo',    label: 'Atacando subs desde abajo',            scores: { marcelo: 2, cobrinha: 2, bernardo: 2, adam: 2 } },
+      { value: 'scrambles',    label: 'En los scrambles',                     scores: { cobrinha: 3, marcelo: 2, buchecha: 2, adam: 1 } },
     ],
   },
   {
@@ -216,7 +216,7 @@ export const QUIZ_QUESTIONS: QuizQuestion[] = [
       { value: 'estrangulacion', label: 'Estrangulacion (gola, ezekiel...)', scores: { roger: 3, bernardo: 2, gordon: 1, adam: 1 } },
       { value: 'palanca',        label: 'Palanca de brazo',                  scores: { adam: 3, buchecha: 3, marcelo: 1, roger: 1 } },
       { value: 'leglock',        label: 'Leg lock (ashi, heelhook)',         scores: { gordon: 4, cobrinha: 1, adam: 1 } },
-      { value: 'mataleon',       label: 'Mata leon',                         scores: { marcelo: 3, gordon: 2, buchecha: 2 } },
+      { value: 'mataleon',       label: 'Mataleon',                         scores: { marcelo: 3, gordon: 2, buchecha: 2 } },
       { value: 'triangulo',      label: 'Triangulo',                         scores: { cobrinha: 4, marcelo: 2, bernardo: 1 } },
     ],
   },
@@ -225,8 +225,8 @@ export const QUIZ_QUESTIONS: QuizQuestion[] = [
     pregunta: 'Lo que mas te cuesta hoy',
     subtitulo: 'Esto es clave para que tu instructor sepa por donde empezar',
     options: [
-      { value: 'me-aplastan', label: 'Me agarran abajo y no puedo salir',  scores: { marcelo: 2, cobrinha: 2, adam: 1 } },
-      { value: 'no-paso',     label: 'No logro pasar la guardia',          scores: { buchecha: 3, gordon: 2, roger: 1 } },
+      { value: 'me-aplastan', label: 'Me cuesta controlar desde la guardia',  scores: { marcelo: 2, cobrinha: 2, adam: 1 } },
+      { value: 'no-paso',     label: 'Me cuesta pasar la guardia',          scores: { buchecha: 3, gordon: 2, roger: 1 } },
       { value: 'no-defiendo', label: 'Me cuesta defender posiciones',      scores: { bernardo: 2, roger: 2 } },
       { value: 'no-finalizo', label: 'Intento finalizar y no la cierro',   scores: { adam: 2, bernardo: 1, gordon: 1, roger: 1 } },
       { value: 'no-se-que-buscar', label: 'No se que buscar durante la lucha', scores: { roger: 2, bernardo: 2, marcelo: 1 } },

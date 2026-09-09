@@ -161,11 +161,11 @@ export default function MatchResult({ sessionId, nombre, arquetipo, matchPct, br
         </p>
         <button
           onClick={abrirWhatsApp}
-          className="mt-5 inline-flex h-13 w-full items-center justify-center gap-2.5 rounded-2xl bg-jjl-red px-5 text-[15px] font-bold text-white shadow-[0_10px_30px_-10px_rgba(220,38,38,0.9)] transition-colors hover:bg-jjl-red-hover"
+          className="mt-5 inline-flex w-full items-center justify-center gap-2.5 rounded-2xl bg-jjl-red px-5 py-3.5 text-center text-[15px] font-bold leading-snug text-white shadow-[0_10px_30px_-10px_rgba(220,38,38,0.9)] transition-colors hover:bg-jjl-red-hover"
           style={{ minHeight: '54px' }}
         >
-          <MessageCircle className="h-5 w-5" />
-          Mandar mi ficha por WhatsApp
+          <MessageCircle className="h-5 w-5 shrink-0" />
+          Quiero un juego claro como {arquetipo.nombre}
         </button>
       </div>
 
