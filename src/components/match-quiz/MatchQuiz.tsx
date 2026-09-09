@@ -35,6 +35,9 @@ export default function MatchQuiz() {
   const [answers, setAnswers] = useState<Partial<QuizAnswers>>({});
   const [result, setResult] = useState<{ arquetipo: Arquetipo; matchPct: number; brecha?: BrechaBloque[] } | null>(null);
   const [error, setError] = useState('');
+  // Se enciende al primer intento de avanzar; hasta entonces no mostramos
+  // ningun error, para no recibir a la persona con la pantalla en rojo.
+  const [intento, setIntento] = useState(false);
 
   const totalSteps = QUIZ_QUESTIONS.length;
   const currentQuestion = QUIZ_QUESTIONS[step];
@@ -173,10 +176,22 @@ export default function MatchQuiz() {
   // persona consiguio lo que vino a buscar y no tiene ningun motivo para
   // dejar el contacto. Aca todavia lo tiene, y ademas explica para que es.
   if (state === 'datos') {
-    const completo =
-      nombre.trim().length > 1 &&
-      instagram.trim().length > 1 &&
-      whatsapp.replace(/[^0-9]/g, '').length >= 8;
+    // Que falta en cada campo. El boton NO se bloquea: se puede apretar
+    // siempre y ahi se muestra el motivo. Un boton apagado sin explicacion
+    // deja a la persona mirando la pantalla sin saber que hacer.
+    const faltaNombre = nombre.trim().length < 2 ? 'Escribí tu nombre.' : null;
+    const faltaIg =
+      instagram.trim().replace(/^@/, '').length < 2
+        ? 'Escribí tu usuario de Instagram.'
+        : null;
+    const digitos = whatsapp.replace(/[^0-9]/g, '').length;
+    const faltaWpp =
+      digitos === 0
+        ? 'Escribí tu WhatsApp con código de país. Ej: +54 9 11 2345-6789'
+        : digitos < 8
+          ? 'Faltan números — poné el WhatsApp completo, con código de país.'
+          : null;
+    const completo = !faltaNombre && !faltaIg && !faltaWpp;
 
     return (
       <div className="mx-auto max-w-md px-5 pb-16 pt-6">
@@ -196,25 +211,45 @@ export default function MatchQuiz() {
           arranca preguntándote lo que ya contestaste.
         </p>
 
-        <div className="mt-7 space-y-2.5">
-          <Campo value={nombre} onChange={setNombre} placeholder="Tu nombre" autoComplete="name" autoFocus />
-          <Campo value={instagram} onChange={setInstagram} placeholder="Tu Instagram (@usuario)" />
+        <div className="mt-7 space-y-3.5">
+          <Campo
+            value={nombre}
+            onChange={setNombre}
+            placeholder="Tu nombre"
+            autoComplete="name"
+            autoFocus
+            error={intento ? faltaNombre : null}
+          />
+          <Campo
+            value={instagram}
+            onChange={setInstagram}
+            placeholder="Tu Instagram (@usuario)"
+            error={intento ? faltaIg : null}
+          />
           <Campo
             value={whatsapp}
             onChange={setWhatsapp}
             placeholder="Tu WhatsApp (con código de país)"
             tipo="tel"
             autoComplete="tel"
+            error={intento ? faltaWpp : null}
           />
         </div>
 
         <button
           onClick={() => {
+            if (!completo) {
+              setIntento(true);
+              // Lo llevamos al primer campo que falta, que en el celular
+              // ademas abre el teclado en el lugar correcto.
+              const i = [faltaNombre, faltaIg, faltaWpp].findIndex(Boolean);
+              document.querySelectorAll('input')[i]?.focus();
+              return;
+            }
             guardarParcial();
             setState('questions');
           }}
-          disabled={!completo}
-          className="mt-7 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-jjl-red px-6 text-[16px] font-bold text-white shadow-[0_14px_36px_-12px_rgba(220,38,38,0.95)] transition-colors hover:bg-jjl-red-hover disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none"
+          className="mt-7 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-jjl-red px-6 text-[16px] font-bold text-white shadow-[0_14px_36px_-12px_rgba(220,38,38,0.95)] transition-colors hover:bg-jjl-red-hover"
           style={{ minHeight: '56px' }}
         >
           Empezar el test
@@ -321,7 +356,7 @@ export default function MatchQuiz() {
 }
 
 function Campo({
-  value, onChange, placeholder, autoComplete, autoFocus, tipo = 'text',
+  value, onChange, placeholder, autoComplete, autoFocus, tipo = 'text', error,
 }: {
   value: string;
   onChange: (v: string) => void;
@@ -330,16 +365,26 @@ function Campo({
   autoFocus?: boolean;
   /** 'tel' hace que el celular abra el teclado numerico. */
   tipo?: 'text' | 'tel';
+  /** Que le falta a este campo. Null = esta bien o todavia no lo intento. */
+  error?: string | null;
 }) {
   return (
-    <input
-      type={tipo}
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      placeholder={placeholder}
-      autoComplete={autoComplete}
-      autoFocus={autoFocus}
-      className="w-full rounded-2xl border border-jjl-border bg-white/[0.03] px-4 py-3.5 text-[15px] text-white transition-colors placeholder:text-jjl-muted/50 hover:border-jjl-border-strong focus:border-jjl-red focus:outline-none focus:ring-2 focus:ring-jjl-red/25"
-    />
+    <div>
+      <input
+        type={tipo}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        autoComplete={autoComplete}
+        autoFocus={autoFocus}
+        aria-invalid={!!error}
+        className={`w-full rounded-2xl border bg-white/[0.03] px-4 py-3.5 text-[15px] text-white transition-colors placeholder:text-jjl-muted/50 focus:outline-none focus:ring-2 ${
+          error
+            ? 'border-jjl-red focus:border-jjl-red focus:ring-jjl-red/25'
+            : 'border-jjl-border hover:border-jjl-border-strong focus:border-jjl-red focus:ring-jjl-red/25'
+        }`}
+      />
+      {error && <p className="mt-1.5 px-1 text-[12.5px] text-jjl-red">{error}</p>}
+    </div>
   );
 }
