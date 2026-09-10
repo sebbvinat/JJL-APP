@@ -9,6 +9,7 @@ import {
   LIMITACION_LABEL,
   VISION_LABEL,
   flagFor,
+  OCUPACION_LABEL,
 } from '@/lib/lead-labels';
 
 /**
@@ -26,6 +27,7 @@ export interface LeadForNotification {
   estado?: string | null;
   vision?: string | null;
   compromiso?: string | null;
+  urgencia?: string | null;
   pais?: string | null;
   scheduled_at?: string | null;
   created_at?: string | null;
@@ -110,6 +112,10 @@ export async function notifySettersLeadNoBook(
   const estado = lead.estado ? ESTADO_LABEL[lead.estado] || lead.estado : null;
   const vision = lead.vision ? VISION_LABEL[lead.vision] || lead.vision : null;
   const compromiso = lead.compromiso ? COMPROMISO_LABEL[lead.compromiso] || lead.compromiso : null;
+  const trabajo = lead.ocupacion ? OCUPACION_LABEL[lead.ocupacion] || lead.ocupacion : null;
+  // El que dijo que no invierte nunca vio el calendario (hidesCalendar): no es
+  // "no agendo", es otra conversacion, low ticket por DM.
+  const noInvierte = lead.urgencia === 'no';
 
   const detalles = [
     fortaleza && `fuerte: ${fortaleza}`,
@@ -117,9 +123,12 @@ export async function notifySettersLeadNoBook(
     estado && `estado: ${estado}`,
     vision && `quiere: ${vision}`,
     compromiso && `compromiso: ${compromiso}`,
+    trabajo && `trabajo: ${trabajo}`,
   ].filter(Boolean).join(' · ');
 
-  const titulo = `⚠️ ${flag} ${label} — llenó quiz sin agendar`;
+  const titulo = noInvierte
+    ? `💬 ${flag} ${label} — no invierte todavía (low ticket por DM)`
+    : `⚠️ ${flag} ${label} — llenó quiz sin agendar`;
   const mensaje = detalles || 'Contactar para agendar consultoría.';
   const url = `/admin/agendas?session=${encodeURIComponent(lead.session_id)}`;
 

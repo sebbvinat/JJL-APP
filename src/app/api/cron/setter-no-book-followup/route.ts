@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
   const { data: leads, error } = await admin
     .from('lead_quiz_responses')
     .select(
-      'id, session_id, instagram, ocupacion, fortaleza, limitacion, estado, vision, compromiso, telefono, pais, nombre, email, scheduled_at, created_at',
+      'id, session_id, instagram, ocupacion, fortaleza, limitacion, estado, vision, compromiso, urgencia, telefono, pais, nombre, email, scheduled_at, created_at',
     )
     .eq('booked', false)
     .eq('disqualified', false)

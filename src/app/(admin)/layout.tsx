@@ -50,6 +50,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const inSubTab = SUB_PATHS.some((p) => pathname.startsWith(p));
   const [moreOpen, setMoreOpen] = useState(false);
   const moreRef = useRef<HTMLDivElement>(null);
+  const moreBtnRef = useRef<HTMLButtonElement>(null);
+  // Donde dibujar el menu. Va con `fixed` y no `absolute` porque la barra de
+  // pestañas tiene overflow-x-auto (para deslizarla en el celular), y en CSS
+  // eso tambien corta lo que se sale para abajo: el menu se "abria" pero
+  // quedaba recortado bajo la barra, invisible. En la compu no se veia nada.
+  const [morePos, setMorePos] = useState<{ top: number; right: number } | null>(null);
 
   const { data: meData } = useSWR<MeResponse>('/api/auth/me', fetcher, {
     revalidateOnFocus: false,
@@ -87,8 +93,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     function onClick(e: MouseEvent) {
       if (moreRef.current && !moreRef.current.contains(e.target as Node)) setMoreOpen(false);
     }
-    if (moreOpen) document.addEventListener('mousedown', onClick);
-    return () => document.removeEventListener('mousedown', onClick);
+    function cerrar() {
+      setMoreOpen(false);
+    }
+    if (moreOpen) {
+      document.addEventListener('mousedown', onClick);
+      window.addEventListener('resize', cerrar);
+      window.addEventListener('scroll', cerrar, true);
+    }
+    return () => {
+      document.removeEventListener('mousedown', onClick);
+      window.removeEventListener('resize', cerrar);
+      window.removeEventListener('scroll', cerrar, true);
+    };
   }, [moreOpen]);
 
   // Setter: solo ve la tab Agendas, sin "Más" ni badges.
@@ -154,7 +171,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           {!isSetter && (
             <div ref={moreRef} className="relative shrink-0 flex items-stretch">
               <button
-                onClick={() => setMoreOpen((v) => !v)}
+                ref={moreBtnRef}
+                onClick={() => {
+                  const r = moreBtnRef.current?.getBoundingClientRect();
+                  if (r) setMorePos({ top: r.bottom + 4, right: Math.max(8, window.innerWidth - r.right) });
+                  setMoreOpen((v) => !v);
+                }}
                 className={`flex items-center gap-1.5 px-3 sm:px-4 py-2.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
                   moreActive || moreOpen ? 'border-jjl-red text-white' : 'border-transparent text-jjl-muted hover:text-white'
                 }`}
@@ -163,8 +185,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 Más
                 <ChevronDown className={`h-3.5 w-3.5 transition-transform ${moreOpen ? 'rotate-180' : ''}`} />
               </button>
-              {moreOpen && (
-                <div className="absolute top-full right-0 mt-1 w-56 rounded-xl border border-jjl-border bg-jjl-gray shadow-2xl py-1.5 z-50">
+              {moreOpen && morePos && (
+                <div
+                  className="fixed w-56 rounded-xl border border-jjl-border bg-jjl-gray shadow-2xl py-1.5 z-50"
+                  style={{ top: morePos.top, right: morePos.right }}
+                >
                   {MORE_TABS.map((tab) => {
                     const Icon = tab.icon;
                     const active = pathname.startsWith(tab.href);

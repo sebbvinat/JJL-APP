@@ -34,14 +34,16 @@ interface Pregunta {
   opciones: Opcion[];
 }
 
-// Los `value` son los mismos que usa el formulario largo. Si cambian, las dos
-// vistas de Looker y los dos crons dejan de entender la mitad de las filas.
+// Los `value` TIENEN que ser los mismos que usa el formulario largo
+// (EvaluationQuiz.tsx): las notificaciones traducen el valor con
+// COMPROMISO_LABEL y un valor distinto sale crudo. Aca estuvo 'enserio' en vez
+// de 'serio' y la notificacion al setter decia literalmente "compromiso: enserio".
 const PREGUNTAS: Pregunta[] = [
   {
     key: 'compromiso',
     titulo: '¿Qué tan comprometido estás con mejorar tu juego hoy?',
     opciones: [
-      { value: 'enserio', label: 'Quiero ordenar mi juego en serio y adaptarlo a mi realidad' },
+      { value: 'serio', label: 'Quiero ordenar mi juego en serio y adaptarlo a mi realidad' },
       { value: 'moderado', label: 'Quiero mejorar, pero sin cambiar demasiado lo que vengo haciendo' },
       { value: 'viendo', label: 'Solo estoy viendo' },
     ],

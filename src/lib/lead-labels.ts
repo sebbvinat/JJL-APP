@@ -39,6 +39,12 @@ export const COMPROMISO_LABEL: Record<string, string> = {
   viendo: 'Solo estoy viendo / no busco nada puntual',
 };
 
+export const OCUPACION_LABEL: Record<string, string> = {
+  estable: 'Trabajo estable',
+  inestable: 'Trabajo inestable',
+  jubilado: 'Jubilado',
+};
+
 export const URGENCIA_LABEL: Record<string, string> = {
   si: 'Sí, dispuesto a invertir si encaja',
   no: 'No quiere invertir (= oportunidad low ticket)',
