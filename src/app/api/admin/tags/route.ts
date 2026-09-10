@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
 
   const { data, error } = await auth.admin
     .from('users')
-    .select('id, nombre, avatar_url, tags')
+    .select('id, nombre, email, avatar_url, tags')
     .eq('rol', 'admin')
     .order('nombre');
   if (error) {
@@ -56,14 +56,23 @@ export async function GET(request: NextRequest) {
     }
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
+  // El setter puede leer esta lista (la necesita para el dropdown de
+  // asignacion de leads), pero no tiene por que ver los mails del resto del
+  // equipo. Solo los ven los admins con acceso completo.
+  const verEmails = !auth.tags.includes('setter');
+
   return NextResponse.json({
-    admins: (data || []).map((u: { id: string; nombre: string; avatar_url: string | null; tags: string[] | null }) => ({
+    admins: (data || []).map((u: { id: string; nombre: string; email: string | null; avatar_url: string | null; tags: string[] | null }) => ({
       id: u.id,
       nombre: u.nombre,
       avatar_url: u.avatar_url,
       tags: u.tags || [],
+      ...(verEmails ? { email: u.email } : {}),
     })),
     allowedTags: [...ALLOWED_TAGS],
+    // Para marcar tu propia fila: el PATCH no deja editar tus propios
+    // permisos, asi que la pagina los muestra bloqueados en vez de tirar error.
+    me: auth.userId,
   });
 }
 

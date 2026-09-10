@@ -21,12 +21,14 @@ const PRIMARY_TABS = [
 
 // Tabs SECUNDARIOS — bajo el menú "Más" para no saturar el header.
 const MORE_TABS = [
+  // Primero y con nombre claro: se llamaba "Tags / Roles" y estaba al fondo
+  // de este menu, y nadie la encontraba buscando "admins" o "permisos".
+  { label: 'Equipo y permisos', href: '/admin/tags', icon: Tag },
   { label: 'Editor de videos', href: '/admin/videos', icon: Film },
   { label: 'Cursos / Planillas', href: '/admin/courses', icon: FileSpreadsheet },
   { label: 'Anuncios', href: '/admin/anuncios', icon: Megaphone },
   { label: 'Analíticas', href: '/admin/analytics', icon: BarChart3 },
   { label: 'Diarios', href: '/admin/diaries', icon: NotebookPen },
-  { label: 'Tags / Roles', href: '/admin/tags', icon: Tag },
   { label: 'Google Drive', href: '/admin/google-drive', icon: Cloud },
 ];
 
