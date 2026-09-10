@@ -122,6 +122,20 @@ export default function MatchResult({ sessionId, instagram, arquetipo, matchPct,
     <div className="mx-auto max-w-md px-5 py-8">
       <Poster arquetipo={arquetipo} matchPct={matchPct} />
 
+      {/* El mismo boton que abajo, pero apenas termina la ficha.
+          Estaba solo al final, despues de los tres bloques de la brecha: el
+          que ya se decidio al ver su resultado tenia que scrollear para
+          encontrarlo. */}
+      <a
+        href={urlForm}
+        onClick={irAlForm}
+        className="mt-4 inline-flex w-full items-center justify-center gap-2.5 rounded-2xl bg-jjl-red px-5 py-3.5 text-center text-[15px] font-bold leading-snug text-white shadow-[0_10px_30px_-10px_rgba(220,38,38,0.9)] transition-colors hover:bg-jjl-red-hover"
+        style={{ minHeight: '54px' }}
+      >
+        Agendá tu llamada gratuita
+        <ArrowRight className="h-5 w-5 shrink-0" />
+      </a>
+
       {/* ── LO QUE TE SEPARA ──────────────────────────────────────────────
           La mitad que faltaba. Sin esto el resultado es un halago: el lead
           sale contento y no tiene ningún motivo para escribir. */}
