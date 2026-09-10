@@ -70,7 +70,7 @@ export default function LeaderboardPage() {
       <PageHero
         eyebrow="Equipo"
         title="Ranking"
-        subtitle="Los guerreros mas dedicados"
+        subtitle="Los parceiros más duros"
         right={
           me ? (
             <>
