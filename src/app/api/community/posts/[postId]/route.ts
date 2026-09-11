@@ -133,6 +133,8 @@ export async function GET(
       cinturon: beltFor(post.user_id),
       titulo: post.titulo,
       contenido: post.contenido,
+      imagen_url: post.imagen_url || null,
+      video_url: post.video_url || null,
       categoria: post.categoria,
       likes: post.likes_count || 0,
       comments: post.comments_count || 0,

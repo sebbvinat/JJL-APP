@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthedUser, createAdminSupabaseClient } from '@/lib/supabase/server';
+import { videoEmbedDe } from '@/lib/video-embed';
 
 // GET: List posts (optionally filter by category)
 export async function GET(request: NextRequest) {
@@ -137,6 +138,8 @@ export async function GET(request: NextRequest) {
     cinturon: userMap[p.user_id]?.rol === 'admin' ? 'black' : (userMap[p.user_id]?.cinturon_actual || 'white'),
     titulo: p.titulo,
     contenido: p.contenido,
+    imagen_url: p.imagen_url || null,
+    video_url: p.video_url || null,
     categoria: p.categoria,
     likes: p.likes_count || 0,
     comments: p.comments_count || 0,
@@ -158,10 +161,36 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
   }
 
-  const { titulo, contenido, categoria, poll } = await request.json();
+  const { titulo, contenido, categoria, poll, imagen_url, video_url } = await request.json();
 
-  if (!titulo?.trim() || !contenido?.trim()) {
-    return NextResponse.json({ error: 'Titulo y contenido son requeridos' }, { status: 400 });
+  // La foto tiene que ser una que subio ESTE usuario a traves de
+  // /api/community/image. Si aceptaramos cualquier URL, cualquiera podria
+  // meter en el feed una imagen externa (un pixel de rastreo, por ejemplo)
+  // o una foto que subio otro.
+  const base = (process.env.NEXT_PUBLIC_SUPABASE_URL || '').replace(/[/]+$/, '');
+  const carpetaPropia = `${base}/storage/v1/object/public/avatars/comunidad/${user.id}/`;
+  let imagen: string | null = null;
+  if (typeof imagen_url === 'string' && imagen_url) {
+    if (!imagen_url.startsWith(carpetaPropia)) {
+      return NextResponse.json({ error: 'La foto no es valida. Volve a subirla.' }, { status: 400 });
+    }
+    imagen = imagen_url;
+  }
+
+  // El video se guarda como link, pero solo si es de una plataforma que
+  // sabemos embeber. El iframe lo arma el front a partir del id, nunca con el
+  // link crudo.
+  let video: string | null = null;
+  if (typeof video_url === 'string' && video_url.trim()) {
+    if (!videoEmbedDe(video_url)) {
+      return NextResponse.json({ error: 'El link del video tiene que ser de YouTube, Instagram o Vimeo.' }, { status: 400 });
+    }
+    video = video_url.trim().slice(0, 500);
+  }
+
+  // Un post de "Subi tu treino" puede ser solo la foto o el video con titulo.
+  if (!titulo?.trim() || (!contenido?.trim() && !imagen && !video)) {
+    return NextResponse.json({ error: 'Poné un título y escribí algo, o agregá una foto o un video' }, { status: 400 });
   }
 
   const { data, error } = await supabase
@@ -169,8 +198,12 @@ export async function POST(request: NextRequest) {
     .insert({
       user_id: user.id,
       titulo: titulo.trim(),
-      contenido: contenido.trim(),
+      contenido: (contenido || '').trim(),
       categoria: categoria || 'discussion',
+      // Solo se mandan si vienen: asi un post de solo texto sigue andando
+      // aunque la migracion de las columnas todavia no se haya corrido.
+      ...(imagen ? { imagen_url: imagen } : {}),
+      ...(video ? { video_url: video } : {}),
     })
     .select()
     .single();

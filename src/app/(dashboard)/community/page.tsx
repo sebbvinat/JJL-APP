@@ -16,6 +16,7 @@ import PageHero from '@/components/ui/PageHero';
 import { SkeletonCard } from '@/components/ui/Skeleton';
 import PostForm from '@/components/community/PostForm';
 import Poll from '@/components/community/Poll';
+import PostMedia from '@/components/community/PostMedia';
 import { Linkify } from '@/components/community/Linkify';
 import { fetcher } from '@/lib/fetcher';
 import { useToast } from '@/components/ui/Toast';
@@ -38,6 +39,8 @@ interface Post {
   canDelete: boolean;
   pinned: boolean;
   createdAt: string;
+  imagen_url?: string | null;
+  video_url?: string | null;
 }
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -86,7 +89,7 @@ export default function CommunityPage() {
   const posts = data?.posts || [];
   const isAdmin = !!data?.isAdmin;
 
-  async function handleNewPost(form: { titulo: string; contenido: string; categoria: string; poll?: { pregunta: string; opciones: string[]; multiple: boolean } }) {
+  async function handleNewPost(form: { titulo: string; contenido: string; categoria: string; poll?: { pregunta: string; opciones: string[]; multiple: boolean }; imagen_url?: string; video_url?: string }) {
     try {
       const res = await fetch('/api/community/posts', {
         method: 'POST',
@@ -258,9 +261,12 @@ export default function CommunityPage() {
                     <h3 className="font-bold mt-1.5 text-white text-[15px] leading-snug text-balance">
                       {post.titulo}
                     </h3>
-                    <p className="text-[13px] text-jjl-muted mt-1 line-clamp-2 leading-relaxed">
-                      <Linkify text={post.contenido} />
-                    </p>
+                    {post.contenido && (
+                      <p className="text-[13px] text-jjl-muted mt-1 line-clamp-2 leading-relaxed">
+                        <Linkify text={post.contenido} />
+                      </p>
+                    )}
+                    <PostMedia imagenUrl={post.imagen_url} videoUrl={post.video_url} compacto />
                     {post.poll && <Poll poll={post.poll} isAdmin={isAdmin} />}
                     <div className="flex items-center gap-4 mt-3">
                       <button

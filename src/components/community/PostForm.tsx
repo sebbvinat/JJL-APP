@@ -1,9 +1,11 @@
 'use client';
 
-import { useState } from 'react';
-import { X, BarChart3, Plus } from 'lucide-react';
+import { useRef, useState } from 'react';
+import { X, BarChart3, Plus, ImagePlus, Video, Loader2 } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
+import { comprimirImagen } from '@/lib/comprimir-imagen';
+import { videoEmbedDe } from '@/lib/video-embed';
 
 interface PostFormProps {
   onClose: () => void;
@@ -14,6 +16,8 @@ interface PostFormProps {
     contenido: string;
     categoria: string;
     poll?: { pregunta: string; opciones: string[]; multiple: boolean };
+    imagen_url?: string;
+    video_url?: string;
   }) => void | boolean | Promise<void | boolean>;
 }
 
@@ -34,6 +38,18 @@ export default function PostForm({ onClose, onSubmit }: PostFormProps) {
   const [contenido, setContenido] = useState('');
   const [categoria, setCategoria] = useState('discussion');
 
+  // Foto: se sube apenas la elige, asi ve la vista previa antes de publicar.
+  const [imagenUrl, setImagenUrl] = useState<string | null>(null);
+  const [subiendoFoto, setSubiendoFoto] = useState(false);
+  const [errorFoto, setErrorFoto] = useState('');
+  const inputFoto = useRef<HTMLInputElement>(null);
+
+  // Video: solo el link. No se sube (ver migracion 2026_09_10).
+  const [videoAbierto, setVideoAbierto] = useState(false);
+  const [videoLink, setVideoLink] = useState('');
+  const videoValido = videoEmbedDe(videoLink);
+  const videoConError = videoLink.trim().length > 0 && !videoValido;
+
   // Poll state
   const [pollEnabled, setPollEnabled] = useState(false);
   const [pollQuestion, setPollQuestion] = useState('');
@@ -41,9 +57,36 @@ export default function PostForm({ onClose, onSubmit }: PostFormProps) {
   const [pollMultiple, setPollMultiple] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
+  // Un post de "Subí tu treino" puede ser solo la foto o el video con un
+  // titulo: no le pedimos que invente un texto para poder publicar.
+  const tieneMedia = !!imagenUrl || !!videoValido;
+  const puedePublicar =
+    titulo.trim().length > 0 && (contenido.trim().length > 0 || tieneMedia) && !subiendoFoto && !videoConError;
+
+  async function elegirFoto(e: React.ChangeEvent<HTMLInputElement>) {
+    const archivo = e.target.files?.[0];
+    e.target.value = ''; // permite volver a elegir la misma foto si la saca
+    if (!archivo) return;
+    setErrorFoto('');
+    setSubiendoFoto(true);
+    try {
+      const liviana = await comprimirImagen(archivo);
+      const fd = new FormData();
+      fd.append('image', liviana);
+      const res = await fetch('/api/community/image', { method: 'POST', body: fd });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.url) throw new Error(data.error || 'No se pudo subir la foto');
+      setImagenUrl(data.url);
+    } catch (err) {
+      setErrorFoto(err instanceof Error ? err.message : 'No se pudo subir la foto');
+    } finally {
+      setSubiendoFoto(false);
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!titulo.trim() || !contenido.trim() || submitting) return;
+    if (!puedePublicar || submitting) return;
 
     let poll: { pregunta: string; opciones: string[]; multiple: boolean } | undefined;
     if (pollEnabled && pollQuestion.trim()) {
@@ -58,7 +101,14 @@ export default function PostForm({ onClose, onSubmit }: PostFormProps) {
     // entero (escrito en el celular) y solo veía un toast rojo.
     setSubmitting(true);
     try {
-      const ok = await onSubmit({ titulo, contenido, categoria, poll });
+      const ok = await onSubmit({
+        titulo,
+        contenido,
+        categoria,
+        poll,
+        imagen_url: imagenUrl || undefined,
+        video_url: videoValido ? videoLink.trim() : undefined,
+      });
       if (ok !== false) onClose();
     } finally {
       setSubmitting(false);
@@ -86,13 +136,105 @@ export default function PostForm({ onClose, onSubmit }: PostFormProps) {
           />
 
           <div>
-            <label className="block text-sm font-medium text-jjl-muted mb-1.5">Contenido</label>
+            <label className="block text-sm font-medium text-jjl-muted mb-1.5">
+              Contenido{tieneMedia && <span className="text-jjl-muted/60"> (opcional)</span>}
+            </label>
             <textarea
               value={contenido}
               onChange={(e) => setContenido(e.target.value)}
               placeholder="Comparte tu experiencia, duda o tecnica..."
               className="w-full bg-jjl-gray-light border border-jjl-border rounded-lg px-4 py-3 text-white text-base placeholder:text-jjl-muted/60 focus:outline-none focus:ring-2 focus:ring-jjl-red/50 focus:border-jjl-red transition-colors resize-none h-32"
-              required
+            />
+          </div>
+
+          {/* ── Foto y video ─────────────────────────────────────────────── */}
+          <div className="space-y-3">
+            {imagenUrl && (
+              <div className="relative">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={imagenUrl}
+                  alt="Vista previa"
+                  className="max-h-72 w-full rounded-xl border border-jjl-border bg-black object-contain"
+                />
+                <button
+                  type="button"
+                  onClick={() => setImagenUrl(null)}
+                  className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-black/75 text-white hover:bg-black"
+                  aria-label="Sacar la foto"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            )}
+
+            {videoAbierto && (
+              <div>
+                <div className="flex gap-2">
+                  <input
+                    type="url"
+                    inputMode="url"
+                    value={videoLink}
+                    onChange={(e) => setVideoLink(e.target.value)}
+                    placeholder="Pegá el link de YouTube, Instagram o Vimeo"
+                    className={`flex-1 rounded-lg border bg-jjl-gray-light px-3.5 py-2.5 text-base text-white placeholder:text-jjl-muted/60 focus:outline-none focus:ring-2 ${
+                      videoConError
+                        ? 'border-jjl-red focus:ring-jjl-red/40'
+                        : 'border-jjl-border focus:border-jjl-red focus:ring-jjl-red/40'
+                    }`}
+                    autoFocus
+                  />
+                  <button
+                    type="button"
+                    onClick={() => { setVideoAbierto(false); setVideoLink(''); }}
+                    className="p-2 text-jjl-muted hover:text-red-400"
+                    aria-label="Sacar el video"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+                {videoConError && (
+                  <p className="mt-1.5 text-[12.5px] text-jjl-red">
+                    Ese link no es de YouTube, Instagram o Vimeo. Copialo desde el botón Compartir del video.
+                  </p>
+                )}
+                {videoValido && (
+                  <p className="mt-1.5 text-[12.5px] text-green-400">Video de {videoValido.plataforma === 'youtube' ? 'YouTube' : videoValido.plataforma === 'instagram' ? 'Instagram' : 'Vimeo'} listo.</p>
+                )}
+              </div>
+            )}
+
+            {errorFoto && <p className="text-[12.5px] text-jjl-red">{errorFoto}</p>}
+
+            <div className="flex flex-wrap gap-2">
+              {!imagenUrl && (
+                <button
+                  type="button"
+                  onClick={() => inputFoto.current?.click()}
+                  disabled={subiendoFoto}
+                  className="inline-flex min-h-[40px] items-center gap-2 rounded-full border border-jjl-border bg-jjl-gray-light px-4 text-sm font-medium text-jjl-muted transition-colors hover:text-white disabled:opacity-60"
+                >
+                  {subiendoFoto ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImagePlus className="h-4 w-4" />}
+                  {subiendoFoto ? 'Subiendo foto…' : 'Agregar foto'}
+                </button>
+              )}
+              {!videoAbierto && (
+                <button
+                  type="button"
+                  onClick={() => setVideoAbierto(true)}
+                  className="inline-flex min-h-[40px] items-center gap-2 rounded-full border border-jjl-border bg-jjl-gray-light px-4 text-sm font-medium text-jjl-muted transition-colors hover:text-white"
+                >
+                  <Video className="h-4 w-4" />
+                  Agregar video
+                </button>
+              )}
+            </div>
+            <input
+              ref={inputFoto}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/heic,image/heif,image/gif"
+              onChange={elegirFoto}
+              className="hidden"
             />
           </div>
 
@@ -208,8 +350,8 @@ export default function PostForm({ onClose, onSubmit }: PostFormProps) {
             <Button type="button" variant="secondary" className="flex-1" onClick={onClose}>
               Cancelar
             </Button>
-            <Button type="submit" className="flex-1">
-              Publicar
+            <Button type="submit" className="flex-1" disabled={!puedePublicar || submitting}>
+              {subiendoFoto ? 'Esperá la foto…' : 'Publicar'}
             </Button>
           </div>
         </form>

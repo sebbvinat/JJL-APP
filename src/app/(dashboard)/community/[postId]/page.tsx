@@ -9,6 +9,7 @@ import Card from '@/components/ui/Card';
 import Avatar from '@/components/ui/Avatar';
 import Poll from '@/components/community/Poll';
 import { Linkify } from '@/components/community/Linkify';
+import PostMedia from '@/components/community/PostMedia';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 
@@ -26,6 +27,8 @@ interface Post {
   isOwner: boolean;
   createdAt: string;
   poll?: import('@/components/community/Poll').PollData | null;
+  imagen_url?: string | null;
+  video_url?: string | null;
 }
 
 interface Comment {
@@ -197,6 +200,8 @@ export default function PostDetailPage() {
         <div className="mt-3 text-jjl-muted whitespace-pre-line text-sm leading-relaxed break-words">
           <Linkify text={post.contenido} />
         </div>
+
+        <PostMedia imagenUrl={post.imagen_url} videoUrl={post.video_url} />
 
         {post.poll && <Poll poll={post.poll} isAdmin={isAdmin} />}
 
