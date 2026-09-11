@@ -31,6 +31,7 @@ type AdminRow = {
 const NOTIFICACIONES: Record<string, { label: string; description: string }> = {
   soporte: { label: 'Soporte', description: 'Le llegan las consultas de Soporte' },
   profesor: { label: 'Profesor', description: 'Le llegan los videos nuevos para revisar' },
+  errores: { label: 'Errores', description: 'Le llegan los avisos de errores de la app' },
 };
 
 export default function EquipoPermisosPage() {
@@ -132,7 +133,7 @@ export default function EquipoPermisosPage() {
         </div>
         <div className="rounded-xl border border-jjl-border bg-white/[0.02] p-4">
           <div className="flex items-center gap-2 text-[13px] font-bold text-white">
-            <Bell className="h-4 w-4 text-jjl-muted" /> Notificaciones: Soporte y Profesor
+            <Bell className="h-4 w-4 text-jjl-muted" /> Notificaciones: Soporte, Profesor y Errores
           </div>
           <p className="mt-1.5 text-[12.5px] leading-relaxed text-jjl-muted">
             Solo deciden a quién le llegan los avisos. No cambian lo que puede ver. Si nadie tiene una, ese

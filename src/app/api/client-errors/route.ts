@@ -84,9 +84,16 @@ export async function POST(request: NextRequest) {
         .from('users')
         .select('id, tags')
         .eq('rol', 'admin');
-      const adminIds = ((adminRows as { id: string; tags: string[] | null }[] | null) || [])
-        .filter((a) => !(a.tags || []).includes('setter'))
-        .map((a) => a.id);
+      const admins = (adminRows as { id: string; tags: string[] | null }[] | null) || [];
+      // Van solo a quien tenga la marca "errores" (se asigna en Equipo y
+      // permisos). Son avisos tecnicos: al profe o al setter no les sirven.
+      // Si nadie la tiene todavia, van a todos los admins que no son setter,
+      // como antes, para que un error nunca pase sin que nadie se entere.
+      const conMarca = admins.filter((a) => (a.tags || []).includes('errores'));
+      const adminIds = (conMarca.length > 0
+        ? conMarca
+        : admins.filter((a) => !(a.tags || []).includes('setter'))
+      ).map((a) => a.id);
 
       for (const id of adminIds) {
         await createNotification(

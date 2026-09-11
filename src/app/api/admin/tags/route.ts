@@ -40,7 +40,7 @@ async function ensureAdmin(request: NextRequest) {
   } as const;
 }
 
-const ALLOWED_TAGS = new Set(['soporte', 'profesor', 'setter']);
+const ALLOWED_TAGS = new Set(['soporte', 'profesor', 'setter', 'errores']);
 
 // GET /api/admin/tags — lista todos los admins con sus tags actuales.
 export async function GET(request: NextRequest) {
