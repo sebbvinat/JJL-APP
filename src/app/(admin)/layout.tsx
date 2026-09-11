@@ -41,7 +41,7 @@ const SUB_PATHS = ALL_HREFS.filter((h) => h !== '/admin');
 const SETTER_ALLOWED_PATH = '/admin/agendas';
 
 interface MeResponse {
-  user?: { id: string; nombre: string | null; tags?: string[] | null };
+  user?: { id: string; nombre: string | null; rol?: string | null; tags?: string[] | null };
 }
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -131,7 +131,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <p className="text-xs text-jjl-red tracking-widest uppercase -mt-0.5 truncate">Jiu Jitsu Latino</p>
             </div>
           </div>
-          {!isSetter && (
+          {/* Se oculta solo al setter ADMIN: la app de alumnos lo manda de vuelta
+              a Agendas. Una setter que es alumna si necesita volver a su app. */}
+          {(!isSetter || meData?.user?.rol !== 'admin') && (
             <Link
               href="/dashboard"
               className="text-sm text-jjl-muted hover:text-white transition-colors shrink-0"

@@ -12,6 +12,8 @@ type AdminRow = {
   avatar_url: string | null;
   tags: string[];
   email?: string | null;
+  /** 'alumno' cuando es una alumna con la marca de setter. */
+  rol?: string | null;
 };
 
 /**
@@ -88,9 +90,12 @@ export default function EquipoPermisosPage() {
     const esSetter = admin.tags.includes('setter');
     // Este cambio no es cosmetico: cambia lo que la persona puede ver. Se
     // confirma siempre, diciendo exactamente que pasa.
+    const esAlumna = !!admin.rol && admin.rol !== 'admin';
     const aviso = esSetter
-      ? `${admin.nombre} va a pasar a tener ACCESO COMPLETO al panel: todos los alumnos, analíticas, cursos y el total recaudado.\n\n¿Seguir?`
-      : `${admin.nombre} va a quedar como SETTER: solo va a ver Agendas y su propia comisión. Pierde acceso a alumnos, analíticas y cursos, y deja de ver el total recaudado.\n\n¿Seguir?`;
+      ? esAlumna
+        ? `${admin.nombre} va a quedar como alumna comun: pierde el acceso a Agendas y deja de ver su comision. ¿Seguir?`
+        : `${admin.nombre} va a pasar a tener ACCESO COMPLETO al panel: todos los alumnos, analiticas, cursos y el total recaudado. ¿Seguir?`
+      : `${admin.nombre} va a quedar como SETTER: solo va a ver Agendas y su propia comision. Pierde acceso a alumnos, analiticas y cursos, y deja de ver el total recaudado. ¿Seguir?`;
     if (!window.confirm(aviso)) return;
     const next = esSetter ? admin.tags.filter((t) => t !== 'setter') : [...admin.tags, 'setter'];
     void guardar(admin, next);
@@ -165,7 +170,7 @@ export default function EquipoPermisosPage() {
                     </div>
                     {a.email && <p className="truncate text-[12px] text-jjl-muted">{a.email}</p>}
                     <p className={`mt-1 text-[12px] font-semibold ${esSetter ? 'text-sky-300' : 'text-amber-300'}`}>
-                      {esSetter ? 'Setter · solo Agendas y su comisión' : 'Acceso completo · ve todo, incluido lo recaudado'}
+                      {a.rol && a.rol !== 'admin' ? 'Alumna + Setter · usa la app y entra a Agendas' : esSetter ? 'Setter · solo Agendas y su comisión' : 'Acceso completo · ve todo, incluido lo recaudado'}
                     </p>
                   </div>
                 </div>
@@ -183,6 +188,8 @@ export default function EquipoPermisosPage() {
                   >
                     <Lock className="h-3.5 w-3.5" /> Setter
                   </button>
+                  {(!a.rol || a.rol === 'admin') && (
+                    <>
                   <span className="mx-0.5 hidden h-5 w-px bg-jjl-border sm:block" />
                   {Object.entries(NOTIFICACIONES).map(([tag, info]) => {
                     const activo = a.tags.includes(tag);
@@ -202,6 +209,8 @@ export default function EquipoPermisosPage() {
                       </button>
                     );
                   })}
+                    </>
+                  )}
                 </div>
               </div>
             );

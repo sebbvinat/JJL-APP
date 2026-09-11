@@ -15,7 +15,7 @@ import { requireAdmin } from '@/lib/supabase/server';
  * middleware y el setter lo tiene que poder leer.
  */
 export async function GET(request: NextRequest) {
-  const auth = await requireAdmin(request);
+  const auth = await requireAdmin(request, { allowSetter: true });
   if (!auth) return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
 
   const { data, error } = await auth.admin

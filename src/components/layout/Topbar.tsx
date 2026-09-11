@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 
-import { LogOut, Settings, Menu, X, RefreshCw, LifeBuoy } from 'lucide-react';
+import { LogOut, Settings, Menu, X, RefreshCw, LifeBuoy, CalendarClock } from 'lucide-react';
 import Avatar from '@/components/ui/Avatar';
 import NotificationBell from '@/components/layout/NotificationBell';
 import { NAV_ITEMS, ADMIN_NAV } from '@/lib/constants';
@@ -20,6 +20,7 @@ export default function Topbar() {
   const pathname = usePathname();
   const { profile, authUser, signOut } = useUser();
   const isAdmin = profile?.rol === 'admin';
+  const esSetter = !!profile?.tags?.includes('setter');
 
   useEffect(() => {
     if (!authUser) return;
@@ -178,6 +179,24 @@ export default function Topbar() {
                 </Link>
               );
             })}
+
+            {/* Setter que es alumna: su unico acceso al panel es Agendas. */}
+            {!isAdmin && esSetter && (
+              <>
+                <div className="my-4 border-t border-jjl-border/60" />
+                <p className="px-3 mb-2 text-[10px] uppercase tracking-[0.18em] text-amber-500/70 font-semibold">
+                  Setter
+                </p>
+                <Link
+                  href="/admin/agendas"
+                  onClick={() => setMobileNavOpen(false)}
+                  className="relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors text-amber-500/70 hover:text-amber-400 hover:bg-white/[0.03]"
+                >
+                  <CalendarClock className="h-[18px] w-[18px] shrink-0" strokeWidth={1.9} />
+                  Agendas
+                </Link>
+              </>
+            )}
 
             {isAdmin && (
               <>

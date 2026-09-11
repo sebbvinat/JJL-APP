@@ -96,7 +96,7 @@ export async function getAuthedUser(request: NextRequest) {
  */
 export async function requireAdmin(
   request: NextRequest,
-  opts?: { denyTags?: string[] },
+  opts?: { denyTags?: string[]; allowSetter?: boolean },
 ) {
   const { user, supabase } = await getAuthedUser(request);
   if (!user) return null;
@@ -108,12 +108,20 @@ export async function requireAdmin(
     .eq('id', user.id)
     .single<{ rol: string; tags: string[] | null }>();
 
-  if (profile?.rol !== 'admin') return null;
-
   const tags = profile?.tags || [];
+
+  // `allowSetter`: un setter puede NO ser admin. Es una alumna con la marca
+  // 'setter', que usa la app de alumnos con su cuenta y ademas opera Agendas.
+  // Solo las rutas que el setter necesita pasan esta opcion (las mismas de la
+  // lista blanca del middleware). En cualquier otra ruta de admin, una alumna
+  // con la marca sigue rebotando aca: si alguien se olvida de algo, falla
+  // cerrado.
+  if (profile?.rol !== 'admin' && !(opts?.allowSetter && tags.includes('setter'))) {
+    return null;
+  }
   if (opts?.denyTags?.length && opts.denyTags.some((t) => tags.includes(t))) {
     return null;
   }
 
-  return { user, supabase, admin, tags };
+  return { user, supabase, admin, tags, rol: profile?.rol ?? null };
 }

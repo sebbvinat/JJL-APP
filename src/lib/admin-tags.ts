@@ -15,11 +15,12 @@ export async function getAdminsByTag(
   tag: string
 ): Promise<string[]> {
   // Admins con el tag especifico
-  const { data: tagged } = await admin
-    .from('users')
-    .select('id')
-    .eq('rol', 'admin')
-    .contains('tags', [tag]);
+  // 'setter' puede estar en una alumna (usa la app con su cuenta y ademas
+  // opera Agendas). Si filtraramos por rol admin, dejaria de recibir justo las
+  // alertas de leads que son su trabajo. Las otras marcas solo las tienen admins.
+  let q = admin.from('users').select('id').contains('tags', [tag]);
+  if (tag !== 'setter') q = q.eq('rol', 'admin');
+  const { data: tagged } = await q;
   const taggedIds = ((tagged || []) as { id: string }[]).map((u) => u.id);
   if (taggedIds.length > 0) return taggedIds;
 

@@ -16,7 +16,7 @@ import { agendaCalendly, invitadosDe, buscarPorEmail, calendlyConfigurada } from
  *   atras  — cuántos días hacia atrás incluir (default 0, máx 60)
  */
 export async function GET(request: NextRequest) {
-  const auth = await requireAdmin(request);
+  const auth = await requireAdmin(request, { allowSetter: true });
   if (!auth) return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
 
   if (!calendlyConfigurada()) {

@@ -32,7 +32,7 @@ const MES_ES = [
  *   }
  */
 export async function GET(request: NextRequest) {
-  const ctx = await requireAdmin(request);
+  const ctx = await requireAdmin(request, { allowSetter: true });
   if (!ctx) return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
   const { user, admin } = ctx;
 

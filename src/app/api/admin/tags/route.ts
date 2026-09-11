@@ -26,7 +26,9 @@ async function ensureAdmin(request: NextRequest) {
     .select('rol, tags')
     .eq('id', user.id)
     .single<{ rol: string; tags: string[] | null }>();
-  if (profile?.rol !== 'admin') {
+  // Un setter que es alumna tambien lee esta lista (el dropdown de asignacion
+  // de leads la usa). El PATCH igual se lo bloquea mas abajo por la marca.
+  if (profile?.rol !== 'admin' && !(profile?.tags || []).includes('setter')) {
     return { admin: null, userId: null, tags: [], error: 'No autorizado', status: 403 } as const;
   }
   return {
@@ -47,8 +49,10 @@ export async function GET(request: NextRequest) {
 
   const { data, error } = await auth.admin
     .from('users')
-    .select('id, nombre, email, avatar_url, tags')
-    .eq('rol', 'admin')
+    .select('id, nombre, email, avatar_url, tags, rol')
+    // Admins y setters. Un setter puede ser alumna: tiene que aparecer aca para
+    // poder asignarle leads y para poder sacarle la marca.
+    .or('rol.eq.admin,tags.cs.{setter}')
     .order('nombre');
   if (error) {
     if (/column .* does not exist/i.test(error.message)) {
@@ -62,8 +66,9 @@ export async function GET(request: NextRequest) {
   const verEmails = !auth.tags.includes('setter');
 
   return NextResponse.json({
-    admins: (data || []).map((u: { id: string; nombre: string; email: string | null; avatar_url: string | null; tags: string[] | null }) => ({
+    admins: (data || []).map((u: { id: string; nombre: string; email: string | null; avatar_url: string | null; tags: string[] | null; rol: string | null }) => ({
       id: u.id,
+      rol: u.rol,
       nombre: u.nombre,
       avatar_url: u.avatar_url,
       tags: u.tags || [],
@@ -101,11 +106,26 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
   }
 
-  const tags = rawTags
+  const { data: destino } = await auth.admin
+    .from('users')
+    .select('rol')
+    .eq('id', userId)
+    .single<{ rol: string }>();
+  if (!destino) return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 });
+  // Marcas solo para admins o alumnos del programa. Nunca a un cliente de
+  // cursos sueltos, que no deberia poder entrar a nada del panel.
+  if (destino.rol !== 'admin' && destino.rol !== 'alumno') {
+    return NextResponse.json({ error: 'A este usuario no se le pueden dar permisos' }, { status: 400 });
+  }
+
+  let tags = rawTags
     .map((t: unknown) => String(t).toLowerCase().trim())
     .filter((t: string) => ALLOWED_TAGS.has(t));
+  // A una alumna solo le sirve la marca de setter: soporte y profesor son
+  // avisos de trabajo del equipo.
+  if (destino.rol !== 'admin') tags = tags.filter((t: string) => t === 'setter');
 
-  const { error } = await auth.admin.from('users').update({ tags }).eq('id', userId).eq('rol', 'admin');
+  const { error } = await auth.admin.from('users').update({ tags }).eq('id', userId);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ success: true, tags });
 }

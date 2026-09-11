@@ -36,6 +36,8 @@ export interface User {
   updated_at: string;
   onboarding_step: number;
   onboarding_completed_at: string | null;
+  /** Marcas del equipo. 'setter' puede estar en una alumna: usa la app y opera Agendas. */
+  tags?: string[] | null;
 }
 
 export interface Module {

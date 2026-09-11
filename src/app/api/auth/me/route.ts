@@ -11,13 +11,13 @@ export const runtime = 'nodejs';
  * (basado en tags + setter_guide_seen_at).
  */
 export async function GET(request: NextRequest) {
-  const ctx = await requireAdmin(request);
+  const ctx = await requireAdmin(request, { allowSetter: true });
   if (!ctx) return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
   const { user, admin } = ctx;
 
   const { data, error } = await admin
     .from('users')
-    .select('id, nombre, tags, setter_guide_seen_at')
+    .select('id, nombre, rol, tags, setter_guide_seen_at')
     .eq('id', user.id)
     .single();
 
@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
     if (/column .* does not exist/i.test(error.message)) {
       const { data: fallback } = await admin
         .from('users')
-        .select('id, nombre, tags')
+        .select('id, nombre, rol, tags')
         .eq('id', user.id)
         .single();
       return NextResponse.json({ user: fallback });

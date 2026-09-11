@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { clsx } from 'clsx';
 import useSWR from 'swr';
 
+import { CalendarClock } from 'lucide-react';
 import { NAV_ITEMS, ADMIN_NAV } from '@/lib/constants';
 import { useUser } from '@/hooks/useUser';
 import { fetcher } from '@/lib/fetcher';
@@ -14,6 +15,7 @@ export default function Sidebar() {
   const pathname = usePathname();
   const { profile } = useUser();
   const isAdmin = profile?.rol === 'admin';
+  const esSetter = !!profile?.tags?.includes('setter');
 
   // Badge de videos sin revisar para el coach. Solo fetchea si es admin;
   // refresh cada 5 min — el push por video subido ya cubre el tiempo real,
@@ -99,6 +101,23 @@ export default function Sidebar() {
             </Link>
           );
         })}
+
+        {/* Setter que es alumna: su unico acceso al panel es Agendas. */}
+        {!isAdmin && esSetter && (
+          <>
+            <div className="my-4 border-t border-jjl-border/60" />
+            <p className="px-3 mb-2 text-[10px] uppercase tracking-[0.18em] text-amber-500/70 font-semibold">
+              Setter
+            </p>
+            <Link
+              href="/admin/agendas"
+              className="group relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 text-amber-500/70 hover:text-amber-400 hover:bg-white/[0.03]"
+            >
+              <CalendarClock className="h-[18px] w-[18px] shrink-0" strokeWidth={1.9} />
+              <span>Agendas</span>
+            </Link>
+          </>
+        )}
 
         {/* Admin section */}
         {isAdmin && (

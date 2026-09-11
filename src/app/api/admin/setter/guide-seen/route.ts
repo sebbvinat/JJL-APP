@@ -10,7 +10,7 @@ export const runtime = 'nodejs';
  * — el modal no se vuelve a mostrar a este usuario.
  */
 export async function POST(request: NextRequest) {
-  const ctx = await requireAdmin(request);
+  const ctx = await requireAdmin(request, { allowSetter: true });
   if (!ctx) return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
   const { user, admin } = ctx;
 

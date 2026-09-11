@@ -7,7 +7,7 @@ type Ctx = { params: Promise<{ id: string }> };
 // Body: { stage?, assigned_to?, disqualified? }
 export async function PATCH(request: NextRequest, ctx: Ctx) {
   const { id } = await ctx.params;
-  const auth = await requireAdmin(request);
+  const auth = await requireAdmin(request, { allowSetter: true });
   if (!auth) return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
 
   const body = await request.json();

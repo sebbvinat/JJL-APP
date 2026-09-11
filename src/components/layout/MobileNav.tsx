@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { clsx } from 'clsx';
-import { LayoutDashboard, BookOpen, Users, NotebookPen, User, Shield } from 'lucide-react';
+import { LayoutDashboard, BookOpen, Users, NotebookPen, User, Shield, CalendarClock } from 'lucide-react';
 import { useUser } from '@/hooks/useUser';
 
 const MOBILE_ITEMS = [
@@ -18,10 +18,14 @@ export default function MobileNav() {
   const pathname = usePathname();
   const { profile } = useUser();
   const isAdmin = profile?.rol === 'admin';
+  // Setter que es alumna: en vez de "Admin" ve "Agendas", su unico acceso al panel.
+  const esSetter = !!profile?.tags?.includes('setter');
 
   const items = isAdmin
     ? [...MOBILE_ITEMS.slice(0, 4), { label: 'Admin', href: '/admin', icon: Shield }]
-    : MOBILE_ITEMS;
+    : esSetter
+      ? [...MOBILE_ITEMS.slice(0, 4), { label: 'Agendas', href: '/admin/agendas', icon: CalendarClock }]
+      : MOBILE_ITEMS;
 
   return (
     <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-jjl-gray border-t border-jjl-border z-40 safe-area-bottom">
@@ -29,7 +33,7 @@ export default function MobileNav() {
         {items.map((item) => {
           const isActive = pathname.startsWith(item.href);
           const Icon = item.icon;
-          const isAdminItem = item.href === '/admin';
+          const isAdminItem = item.href.startsWith('/admin');
           return (
             <Link
               key={item.href}

@@ -25,7 +25,7 @@ const VENTANA_DEFECTO = 24;
  * conteo total sigue siendo honesto.
  */
 export async function GET(request: NextRequest) {
-  const ctx = await requireAdmin(request);
+  const ctx = await requireAdmin(request, { allowSetter: true });
   if (!ctx) return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
   const { admin } = ctx;
 
@@ -127,7 +127,7 @@ export async function GET(request: NextRequest) {
  * `posponer` lo manda a mañana; al día siguiente vuelve a aparecer.
  */
 export async function POST(request: NextRequest) {
-  const ctx = await requireAdmin(request);
+  const ctx = await requireAdmin(request, { allowSetter: true });
   if (!ctx) return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
   const { admin, user } = ctx;
 

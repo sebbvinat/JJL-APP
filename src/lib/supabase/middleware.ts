@@ -130,7 +130,10 @@ async function handleAlumno(
       // /admin/agendas vive solo en el cliente. Acá lo cerramos del lado del
       // server con una whitelist: es un único punto de control y las rutas
       // nuevas quedan protegidas por defecto (deny-by-default).
-      if (isAdmin && (prof?.tags || []).includes('setter') && isAdminApi(pathname)) {
+      // Vale para cualquiera con la marca, sea admin o no: un setter puede ser
+      // una alumna que usa la app con su cuenta, y la lista blanca tiene que
+      // valer igual para ella.
+      if ((prof?.tags || []).includes('setter') && isAdminApi(pathname)) {
         if (!isSetterAllowed(pathname, request.method)) {
           return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
         }
@@ -169,16 +172,18 @@ async function handleAlumno(
     rol: string;
     onboarding_completed_at: string | null;
     program_member: boolean | null;
+    tags: string[] | null;
   } | null = null;
   if (user && !isPublicRoute) {
     const { data } = await supabase
       .from('users')
-      .select('rol, onboarding_completed_at, program_member')
+      .select('rol, onboarding_completed_at, program_member, tags')
       .eq('id', user.id)
       .single<{
         rol: string;
         onboarding_completed_at: string | null;
         program_member: boolean | null;
+        tags: string[] | null;
       }>();
     profile = data;
   }
@@ -211,7 +216,12 @@ async function handleAlumno(
 
   // ADMIN ROUTE PROTECTION — server-side role check
   if (user && pathname.startsWith('/admin')) {
-    if (profile?.rol !== 'admin') {
+    // Una alumna con la marca de setter entra al panel, pero SOLO a Agendas.
+    const setterAlumno =
+      profile?.rol !== 'admin' &&
+      (profile?.tags || []).includes('setter') &&
+      (pathname === '/admin/agendas' || pathname.startsWith('/admin/agendas/'));
+    if (profile?.rol !== 'admin' && !setterAlumno) {
       const url = request.nextUrl.clone();
       url.pathname = '/dashboard';
       return NextResponse.redirect(url);
