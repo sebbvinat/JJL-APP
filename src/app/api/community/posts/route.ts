@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse, after } from 'next/server';
 import { getAuthedUser, createAdminSupabaseClient } from '@/lib/supabase/server';
 import { videoEmbedDe } from '@/lib/video-embed';
 
@@ -229,37 +229,35 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // Push notify all other users about the new post
-  try {
-    const { data: authorProfile } = await supabase
-      .from('users')
-      .select('nombre')
-      .eq('id', user.id)
-      .single();
-
-    const admin = createAdminSupabaseClient();
-
-    // Get all users except the author
-    const { data: allUsers } = await admin
-      .from('users')
-      .select('id')
-      .neq('id', user.id);
-
-    if (allUsers && allUsers.length > 0) {
-      const { createNotification } = await import('@/lib/notifications');
-      const authorName = authorProfile?.nombre || 'Alguien';
-      const postUrl = data?.id ? `/community/${data.id}` : '/community';
-      for (const u of allUsers) {
-        await createNotification(
-          u.id,
-          'system',
-          `Nuevo post de ${authorName}`,
-          titulo.trim(),
-          postUrl
-        );
-      }
+  // Avisar al resto de la comunidad, DESPUES de responder.
+  //
+  // Antes esto corria antes del return: la notificacion + el push a cada uno
+  // de los ~140 usuarios, en fila, y el alumno esperaba 10 a 30 segundos a que
+  // terminara para ver su post publicado. El post ya esta guardado en este
+  // punto; los avisos no tienen por que hacerlo esperar. `after` mantiene viva
+  // la funcion hasta que terminan, asi que no se pierden.
+  const autorId = user.id;
+  const postUrl = data?.id ? `/community/${data.id}` : '/community';
+  const tituloPost = titulo.trim();
+  after(async () => {
+    try {
+      const admin = createAdminSupabaseClient();
+      const [{ data: autor }, { data: resto }] = await Promise.all([
+        admin.from('users').select('nombre').eq('id', autorId).single(),
+        admin.from('users').select('id').neq('id', autorId),
+      ]);
+      const { createNotificationsBulk } = await import('@/lib/notifications');
+      await createNotificationsBulk(
+        ((resto || []) as { id: string }[]).map((u) => u.id),
+        'system',
+        `Nuevo post de ${(autor as { nombre?: string } | null)?.nombre || 'Alguien'}`,
+        tituloPost,
+        postUrl,
+      );
+    } catch (err) {
+      console.error('[community/posts] aviso de post nuevo fallo', err);
     }
-  } catch {}
+  });
 
   return NextResponse.json({ success: true, post: data });
 }
