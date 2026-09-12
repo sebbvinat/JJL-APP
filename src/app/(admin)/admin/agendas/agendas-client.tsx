@@ -8,7 +8,6 @@ import Kanban, { type LeadRowExt, type SaleSummary } from '@/components/admin/se
 import LeadDrawer from '@/components/admin/setter/LeadDrawer';
 import ConvertToAlumnoModal from '@/components/admin/setter/ConvertToAlumnoModal';
 import SetterGuide from '@/components/admin/setter/SetterGuide';
-import CommissionPanel from '@/components/admin/setter/CommissionPanel';
 import FollowupsPanel from '@/components/admin/setter/FollowupsPanel';
 import AgendaCalendly from '@/components/admin/setter/AgendaCalendly';
 import QuizLeads from '@/components/admin/setter/QuizLeads';
@@ -80,12 +79,6 @@ export default function AgendasClient() {
     { revalidateOnFocus: true, refreshInterval: 300_000, dedupingInterval: 30_000 },
   );
   const salesByLead = salesData?.by_lead ?? {};
-  // Comision del mes en curso, para la tarjeta de arriba. Misma clave que usa
-  // CommissionPanel, asi SWR hace un solo pedido para los dos.
-  const { data: comisionData } = useSWR<{
-    current?: { label: string; comision: number; monto: number; ventas: number };
-  }>('/api/admin/leads/commission-monthly', fetcher, { revalidateOnFocus: false, dedupingInterval: 30_000 });
-  const mesComision = comisionData?.current;
 
   // Admins (con sus tags) para el dropdown de asignación. Reusamos /api/admin/tags.
   const { data: adminsData } = useSWR<{ admins: AdminRow[]; setupRequired?: boolean }>('/api/admin/tags', fetcher);
@@ -142,26 +135,11 @@ export default function AgendasClient() {
       )}
 
       {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
         <StatCard label="Leads totales" value={stats.total} />
         <StatCard label="Nuevos hoy" value={stats.nuevosHoy} tone="blue" />
         <StatCard label="Sin agendar +24h" value={stats.sinAgendar24} tone={stats.sinAgendar24 > 0 ? 'amber' : 'default'} />
         <StatCard label="Conversion últ. 30d" value={`${stats.convRate}%`} sub={`${stats.conv}/${stats.totalUltMes}`} tone={stats.convRate >= 20 ? 'green' : 'default'} />
-        {/* La comision se mira por mes, no acumulada: el total historico mezclaba
-            meses cerrados con el actual y no le decia al setter cuanto va este
-            mes, que es lo que cobra. El detalle de meses anteriores esta en el
-            panel de abajo. */}
-        <StatCard
-          label={`${isSetter ? 'Tu comisión' : 'Comisión'} de ${mesComision?.label?.split(' ')[0] || 'este mes'}`}
-          value={`$${(mesComision?.comision ?? 0).toLocaleString('es-AR')}`}
-          // Al setter no le mostramos el monto bruto cobrado — solo cuánto gana él.
-          sub={
-            isSetter || !mesComision?.monto
-              ? `${mesComision?.ventas ?? 0} venta${mesComision?.ventas === 1 ? '' : 's'}`
-              : `sobre $${mesComision.monto.toLocaleString('es-AR')} cobrado`
-          }
-          tone="green"
-        />
       </div>
 
       {/* Consultorías agendadas — se leen en vivo de Calendly. Va primero
@@ -172,9 +150,6 @@ export default function AgendasClient() {
       <FollowupsPanel />
 
       <QuizLeads />
-
-      {/* Comisión por mes — cuánto va ganando el setter cada mes */}
-      <CommissionPanel isSetter={isSetter} />
 
       {/* Búsqueda + guion de setting */}
       <div className="flex items-center gap-2">

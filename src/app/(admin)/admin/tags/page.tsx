@@ -94,9 +94,9 @@ export default function EquipoPermisosPage() {
     const esAlumna = !!admin.rol && admin.rol !== 'admin';
     const aviso = esSetter
       ? esAlumna
-        ? `${admin.nombre} va a quedar como alumna comun: pierde el acceso a Agendas y deja de ver su comision. ¿Seguir?`
+        ? `${admin.nombre} va a quedar como alumna comun: pierde el acceso a Agendas. ¿Seguir?`
         : `${admin.nombre} va a pasar a tener ACCESO COMPLETO al panel: todos los alumnos, analiticas, cursos y el total recaudado. ¿Seguir?`
-      : `${admin.nombre} va a quedar como SETTER: solo va a ver Agendas y su propia comision. Pierde acceso a alumnos, analiticas y cursos, y deja de ver el total recaudado. ¿Seguir?`;
+      : `${admin.nombre} va a quedar como SETTER: solo va a ver Agendas. Pierde acceso a alumnos, analiticas y cursos, y deja de ver el total recaudado. ¿Seguir?`;
     if (!window.confirm(aviso)) return;
     const next = esSetter ? admin.tags.filter((t) => t !== 'setter') : [...admin.tags, 'setter'];
     void guardar(admin, next);
@@ -127,7 +127,7 @@ export default function EquipoPermisosPage() {
             <Lock className="h-4 w-4 text-jjl-red" /> Permiso: Setter
           </div>
           <p className="mt-1.5 text-[12.5px] leading-relaxed text-jjl-muted">
-            Solo ve <b className="text-white/80">Agendas</b> y su propia comisión. No ve alumnos, analíticas,
+            Solo ve <b className="text-white/80">Agendas</b>. No ve alumnos, analíticas,
             cursos ni el total recaudado. Sin esta marca, un admin ve todo.
           </p>
         </div>
@@ -171,7 +171,7 @@ export default function EquipoPermisosPage() {
                     </div>
                     {a.email && <p className="truncate text-[12px] text-jjl-muted">{a.email}</p>}
                     <p className={`mt-1 text-[12px] font-semibold ${esSetter ? 'text-sky-300' : 'text-amber-300'}`}>
-                      {a.rol && a.rol !== 'admin' ? 'Alumna + Setter · usa la app y entra a Agendas' : esSetter ? 'Setter · solo Agendas y su comisión' : 'Acceso completo · ve todo, incluido lo recaudado'}
+                      {a.rol && a.rol !== 'admin' ? 'Alumna + Setter · usa la app y entra a Agendas' : esSetter ? 'Setter · solo Agendas' : 'Acceso completo · ve todo, incluido lo recaudado'}
                     </p>
                   </div>
                 </div>

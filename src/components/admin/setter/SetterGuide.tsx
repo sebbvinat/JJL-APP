@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { X, ChevronLeft, ChevronRight, MessageSquare, Calendar, Trophy, DollarSign, AlertTriangle, Bell } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, MessageSquare, Calendar, AlertTriangle, Bell } from 'lucide-react';
 
 interface Props {
   onDismiss: () => void;
@@ -16,7 +16,7 @@ interface Step {
 /**
  * Modal de bienvenida — se muestra una sola vez por setter, la primera
  * vez que entra a /admin/agendas. Cubre las 4 cosas clave que tiene que
- * saber para hacer el laburo: columnas, colores, descarte y comisión.
+ * saber para hacer el laburo: columnas, colores y descarte.
  */
 export default function SetterGuide({ onDismiss }: Props) {
   const [step, setStep] = useState(0);
@@ -44,7 +44,7 @@ export default function SetterGuide({ onDismiss }: Props) {
           <li><span className="inline-block w-3 h-3 rounded bg-amber-500/40 mr-2 align-middle" /><strong className="text-white">Agendados</strong> — ya reservaron call.</li>
           <li><span className="inline-block w-3 h-3 rounded bg-purple-500/40 mr-2 align-middle" /><strong className="text-white">Contactado</strong> — vos los moviste acá manual cuando los contactás.</li>
           <li><span className="inline-block w-3 h-3 rounded bg-jjl-border mr-2 align-middle" /><strong className="text-white">Descartado</strong> — no aplica o se autoexcluyó.</li>
-          <li><span className="inline-block w-3 h-3 rounded bg-green-500/40 mr-2 align-middle" /><strong className="text-white">Convertido 💰</strong> — compró el programa. Acá ves tu comisión.</li>
+          <li><span className="inline-block w-3 h-3 rounded bg-green-500/40 mr-2 align-middle" /><strong className="text-white">Convertido 💰</strong> — compró el programa.</li>
         </ul>
       ),
     },
@@ -93,31 +93,6 @@ export default function SetterGuide({ onDismiss }: Props) {
           <p className="text-sm text-jjl-muted leading-relaxed mt-2">
             Las ves en la campanita arriba y, si diste permiso, también como notificación del navegador.
           </p>
-        </>
-      ),
-    },
-    {
-      icon: <Trophy className="h-6 w-6 text-green-400" />,
-      title: 'Tu comisión por cada venta',
-      body: (
-        <>
-          <p className="text-sm text-jjl-muted leading-relaxed">
-            En la columna <strong className="text-green-300">Convertido</strong> cada card te muestra cuánto <strong className="text-green-300">ganás vos</strong> por ese cliente.
-          </p>
-          <div className="my-2 rounded-lg border border-green-500/40 bg-green-500/[0.06] p-2.5">
-            <p className="text-[15px] font-extrabold text-green-300 tabular-nums">
-              +$50.000
-            </p>
-            <p className="text-[10px] text-jjl-muted mt-0.5 flex items-center gap-1">
-              <DollarSign className="h-2.5 w-2.5" />
-              3 cuotas
-            </p>
-          </div>
-          <ul className="space-y-1 text-[12px] text-jjl-muted">
-            <li>· Cada <strong className="text-white">cuota</strong> que se cobra suma tu comisión.</li>
-            <li>· Los <strong className="text-white">fees / reservas</strong> NO suman (aparecen como &ldquo;no suma comisión&rdquo;).</li>
-            <li>· Arriba a la derecha del panel ves el <strong className="text-green-300">total acumulado</strong> de lo que vas a cobrar.</li>
-          </ul>
         </>
       ),
     },

@@ -256,8 +256,9 @@ export default function Kanban({ leads, admins, onOpenLead, salesByLead, onQuick
 /**
  * Bloque que se muestra en las cards de la columna "Convertido".
  *
- * - Admin (coach): ve el monto cobrado total + la comisión del setter en verde.
- * - Setter (hideAmount=true): solo ve "+$X comisión" + cantidad de cuotas.
+ * - Admin (coach): ve el monto cobrado total.
+ * - Setter (hideAmount=true): ve que se vendio y la cantidad de cuotas, sin
+ *   montos. La comision no se muestra en la app.
  *   No queremos exponer el ticket bruto a los setters contratados.
  *
  * Si es solo fee/reserva → "fee/reserva (no suma)" en gris (igual para todos).
@@ -269,25 +270,18 @@ function SaleSummaryBlock({ sale, hideAmount }: { sale: SaleSummary; hideAmount:
   if (onlyFee) {
     return (
       <div className="my-1 px-2 py-1.5 rounded border border-jjl-border/40 bg-white/[0.02]">
-        <p className="text-[11px] font-semibold text-jjl-muted">Fee/reserva — no suma comisión</p>
+        <p className="text-[11px] font-semibold text-jjl-muted">Fee/reserva</p>
       </div>
     );
   }
   return (
     <div className="my-1 px-2 py-1.5 rounded border border-green-500/40 bg-green-500/[0.06]">
       {hideAmount ? (
-        <p className="text-[15px] font-extrabold text-green-300 tabular-nums" title="Tu comisión por este cliente">
-          +${sale.total_comision.toLocaleString('es-AR')}
-        </p>
+        <p className="text-[13px] font-extrabold text-green-300">Vendido</p>
       ) : (
-        <div className="flex items-baseline justify-between gap-2">
-          <p className="text-[13px] font-extrabold text-white tabular-nums">
-            {formatMonto(sale.total_monto, sale.moneda)}
-          </p>
-          <span className="text-[11px] font-bold text-green-300 tabular-nums" title="Comisión del setter">
-            +${sale.total_comision.toLocaleString('es-AR')}
-          </span>
-        </div>
+        <p className="text-[13px] font-extrabold text-white tabular-nums">
+          {formatMonto(sale.total_monto, sale.moneda)}
+        </p>
       )}
       <p className="text-[10px] text-jjl-muted mt-0.5 flex items-center gap-1">
         <DollarSign className="h-2.5 w-2.5" />

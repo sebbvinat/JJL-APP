@@ -144,7 +144,7 @@ export default function LeadDrawer({ lead, admins, onClose, onChanged, onConvert
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'No se pudo marcar la venta');
       setSaleMsg(
-        `✓ ${saleIsFee ? 'Fee' : 'Venta'} registrada${data.comision ? ` · comisión $${Number(data.comision).toLocaleString('es-AR')}` : ''}`,
+        `✓ ${saleIsFee ? 'Fee' : 'Venta'} registrada`,
       );
       setSaleMonto('');
       setSaleConcepto('');
@@ -263,7 +263,7 @@ export default function LeadDrawer({ lead, admins, onClose, onChanged, onConvert
               <label className="flex items-center gap-2 text-[12px] text-jjl-muted cursor-pointer">
                 <input type="checkbox" checked={saleIsFee} onChange={(e) => setSaleIsFee(e.target.checked)}
                   className="accent-green-500 h-3.5 w-3.5" />
-                Es fee / reserva (no suma comisión)
+                Es fee / reserva
               </label>
               {!saleIsFee && (
                 <div className="flex gap-1.5">
