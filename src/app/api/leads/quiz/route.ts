@@ -53,6 +53,11 @@ export async function POST(request: NextRequest) {
     'ocupacion',
     'nombre',
     'email',
+    // El formulario pide el WhatsApp despues del Instagram. Mismo formato que
+    // guarda /api/leads/phone (telefono "+549...", pais "54"), asi el link de
+    // WhatsApp del panel y el chequeo de "ya tiene telefono" funcionan igual.
+    'telefono',
+    'pais',
   ];
   for (const f of stringFields) {
     const v = obj[f];

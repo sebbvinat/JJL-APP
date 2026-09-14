@@ -4,7 +4,8 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { CheckCircle2, Phone, Loader2 } from 'lucide-react';
 
 // Países hispanohablantes + Brasil + USA. value = código de marcado E.164 sin "+".
-const COUNTRIES: { code: string; flag: string; name: string }[] = [
+// Exportada: el formulario de consultoría pide el WhatsApp con el mismo selector.
+export const COUNTRIES: { code: string; flag: string; name: string }[] = [
   { code: '54', flag: '🇦🇷', name: 'Argentina' },
   { code: '591', flag: '🇧🇴', name: 'Bolivia' },
   { code: '55', flag: '🇧🇷', name: 'Brasil' },

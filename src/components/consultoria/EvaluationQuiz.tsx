@@ -20,6 +20,7 @@ import {
   Layers,
   Map as MapIcon,
   Pause,
+  Phone,
   RefreshCcw,
   Sailboat,
   ShieldQuestion,
@@ -31,10 +32,12 @@ import {
 } from 'lucide-react';
 import CalendlyEmbed from './CalendlyEmbed';
 import { withSession } from '@/lib/calendly-url';
-import PhoneCollect from './PhoneCollect';
+import PhoneCollect, { COUNTRIES } from './PhoneCollect';
 
 type AnswerKey =
   | 'instagram'
+  | 'telefono'
+  | 'pais'
   | 'ocupacion'
   | 'fortaleza'
   | 'limitacion'
@@ -86,6 +89,15 @@ type QuizQuestion =
       optional?: boolean;
       // Limpia el valor antes de guardarlo (ej. quitar "@" de un usuario IG).
       sanitize?: (raw: string) => string;
+    }
+  | {
+      // WhatsApp: selector de país + número. Guarda `telefono` ("+549...") y
+      // `pais` (código de marcado), igual que PhoneCollect.
+      kind: 'phone';
+      key: 'telefono';
+      eyebrow: string;
+      title: string;
+      hint?: string;
     };
 
 const QUESTIONS: QuizQuestion[] = [
@@ -99,6 +111,16 @@ const QUESTIONS: QuizQuestion[] = [
     Icon: AtSign,
     // Obligatorio: lo usamos para hacer follow-up por DM si no agendan.
     sanitize: (raw) => raw.trim().replace(/^@+/, '').replace(/\s+/g, ''),
+  },
+  {
+    // Va antes que el resto para tenerlo aunque abandonen a mitad del
+    // formulario o no lleguen a agendar. Si ya lo dejan acá, el pedido de
+    // número que aparecía después de agendar se saltea solo (/api/leads/check).
+    kind: 'phone',
+    key: 'telefono',
+    eyebrow: 'Tu WhatsApp',
+    title: '¿A qué número de WhatsApp te podemos escribir?',
+    hint: 'Para confirmarte la sesión. Solo lo usamos para esta consultoría.',
   },
   {
     kind: 'choice',
@@ -277,6 +299,8 @@ export default function EvaluationQuiz({ calendlyUrl }: EvaluationQuizProps) {
     const payload = {
       session_id: sessionId,
       instagram: answers.instagram,
+      telefono: answers.telefono,
+      pais: answers.pais,
       ocupacion: answers.ocupacion,
       fortaleza: answers.fortaleza,
       limitacion: answers.limitacion,
@@ -409,6 +433,15 @@ export default function EvaluationQuiz({ calendlyUrl }: EvaluationQuizProps) {
             );
           })}
         </div>
+      ) : q.kind === 'phone' ? (
+        <PhoneStep
+          initialCountry={answers.pais || '54'}
+          initialTelefono={answers.telefono || ''}
+          onSubmit={(telefono, pais) => {
+            setAnswers((prev) => ({ ...prev, telefono, pais }));
+            setStep((s) => s + 1);
+          }}
+        />
       ) : (
         <TextStep
           question={q}
@@ -513,6 +546,102 @@ function TextStep({
           </button>
         )}
       </div>
+    </form>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// WhatsApp step: país + número. Si falta o es corto, avisa por qué no avanza.
+// ---------------------------------------------------------------------------
+
+function PhoneStep({
+  initialCountry,
+  initialTelefono,
+  onSubmit,
+}: {
+  initialCountry: string;
+  initialTelefono: string;
+  onSubmit: (telefono: string, pais: string) => void;
+}) {
+  const [country, setCountry] = useState(initialCountry);
+  // Al volver con "Anterior" se muestra el número sin el código del país.
+  const [phone, setPhone] = useState(() =>
+    initialTelefono.startsWith(`+${initialCountry}`)
+      ? initialTelefono.slice(initialCountry.length + 1)
+      : '',
+  );
+  const [error, setError] = useState<string | null>(null);
+  const selected = COUNTRIES.find((c) => c.code === country);
+
+  function commit(e: React.FormEvent) {
+    e.preventDefault();
+    const digits = phone.replace(/[^0-9]/g, '');
+    if (!digits) {
+      setError('Escribí tu número de WhatsApp para continuar.');
+      return;
+    }
+    if (digits.length < 8) {
+      setError('El número parece incompleto. Revisalo (sin el código del país).');
+      return;
+    }
+    setError(null);
+    onSubmit(`+${country}${digits}`, country);
+  }
+
+  return (
+    <form onSubmit={commit} className="mt-5 space-y-3" noValidate>
+      <select
+        aria-label="País"
+        value={country}
+        onChange={(e) => setCountry(e.target.value)}
+        className="w-full bg-black/30 border border-jjl-border rounded-xl px-4 h-12 text-[16px] text-white focus:outline-none focus:border-jjl-red/60"
+      >
+        {COUNTRIES.map((c) => (
+          <option key={c.code} value={c.code}>
+            {c.flag}  {c.name}  +{c.code}
+          </option>
+        ))}
+      </select>
+      <div
+        className={`flex items-stretch w-full bg-black/30 border rounded-xl focus-within:border-jjl-red/60 overflow-hidden ${
+          error ? 'border-jjl-red/60' : 'border-jjl-border'
+        }`}
+      >
+        <span className="flex items-center gap-1.5 px-3 sm:px-4 bg-white/[0.04] border-r border-jjl-border text-[15px] font-semibold text-white shrink-0">
+          <span aria-hidden>{selected?.flag || '🌐'}</span>
+          <span>+{country}</span>
+        </span>
+        <div className="flex-1 flex items-center min-w-0">
+          <Phone className="h-4 w-4 text-jjl-muted shrink-0 ml-3" aria-hidden />
+          <input
+            type="tel"
+            inputMode="numeric"
+            autoComplete="tel-national"
+            placeholder="11 5555 5555"
+            value={phone}
+            onChange={(e) => {
+              setPhone(e.target.value);
+              if (error) setError(null);
+            }}
+            className="block w-full bg-transparent border-0 outline-0 px-3 h-12 text-[16px] text-white placeholder:text-jjl-muted/60 focus:outline-none focus:ring-0"
+            aria-label="Tu número sin el código de país"
+            autoFocus
+          />
+        </div>
+      </div>
+      {error ? (
+        <p role="alert" className="text-[12px] text-jjl-red">
+          {error}
+        </p>
+      ) : (
+        <p className="text-[11px] text-jjl-muted">Sin el código del país.</p>
+      )}
+      <button
+        type="submit"
+        className="w-full inline-flex items-center justify-center gap-2 h-11 px-4 bg-jjl-red hover:bg-jjl-red-hover text-white font-semibold rounded-xl transition-colors"
+      >
+        Continuar
+      </button>
     </form>
   );
 }
