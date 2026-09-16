@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import useSWR from 'swr';
-import { CalendarClock, Send, Search, Check, Clock, RotateCcw, AlertTriangle, AtSign } from 'lucide-react';
+import { CalendarClock, Send, Search, Check, Clock, RotateCcw, AlertTriangle } from 'lucide-react';
 import { fetcher } from '@/lib/fetcher';
 import { useToast } from '@/components/ui/Toast';
 import { APP_TZ } from '@/lib/dates';
@@ -52,25 +52,6 @@ function dmUrl(handle: string): string {
 
 function perfilUrl(handle: string): string {
   return `https://www.instagram.com/${encodeURIComponent(handle)}`;
-}
-
-/**
- * ManyChat escribe en la columna USUARIO a veces el @ real
- * ("aagustin_molina") y a veces el nombre visible ("Oscar Gil"). Mientras la
- * columna de Instagram no exista, esto es lo mejor que se puede deducir:
- *
- *  - seguro: tiene punto, guion bajo o numero. Ningun nombre visible se
- *    escribe asi, o sea que es un @ y se le puede abrir el chat directo.
- *  - probable: una sola palabra en minuscula ("bjjserral"). Casi siempre es
- *    el @, pero tambien puede ser un nombre de pila en minuscula ("giuli"),
- *    asi que se abre el PERFIL para mirar primero, nunca el DM.
- *  - null: tiene espacios, mayusculas o emojis -> es el nombre visible y solo
- *    queda buscarlo.
- */
-function igDeUsuario(usuario: string): { handle: string; seguro: boolean } | null {
-  const u = usuario.trim().replace(/^@/, '');
-  if (!/^[a-z0-9._]{3,30}$/.test(u)) return null;
-  return { handle: u, seguro: /[._0-9]/.test(u) };
 }
 
 /**
@@ -260,10 +241,6 @@ export default function FollowupsPanel() {
             const key = `${item.tipo}|${item.usuario}|${item.fecha}`;
             const ocupado = guardando === key;
             const hecho = item.estado === 'hecho';
-            // El @ de la columna gana; si no esta, se deduce del nombre.
-            const ig = item.handle
-              ? { handle: item.handle, seguro: true }
-              : igDeUsuario(item.usuario);
             return (
               <div
                 key={key}
@@ -274,16 +251,12 @@ export default function FollowupsPanel() {
                   <span className="shrink-0 inline-flex items-center h-5 px-1.5 rounded border border-jjl-border bg-white/[0.04] text-[10px] font-bold uppercase tracking-wider text-jjl-muted">
                     {labelDe(item.tipo)}
                   </span>
-                  {ig ? (
+                  {item.handle ? (
                     <a
-                      href={perfilUrl(ig.handle)}
+                      href={perfilUrl(item.handle)}
                       target="_blank"
                       rel="noopener noreferrer"
-                      title={
-                        ig.seguro
-                          ? `Ver el perfil de @${ig.handle}`
-                          : `Abrir instagram.com/${ig.handle} — es el nombre que guardó ManyChat, fijate que sea la persona`
-                      }
+                      title={`Ver el perfil de @${item.handle}`}
                       className={`truncate text-[13px] font-medium hover:text-jjl-red transition-colors ${hecho ? 'line-through text-jjl-muted' : 'text-white'}`}
                     >
                       {item.usuario}
@@ -300,27 +273,16 @@ export default function FollowupsPanel() {
 
                 {/* Linea 2: acciones */}
                 <div className="mt-1.5 flex items-center gap-2 pl-1">
-                  {ig?.seguro ? (
+                  {item.handle ? (
                     <a
-                      href={dmUrl(ig.handle)}
+                      href={dmUrl(item.handle)}
                       target="_blank"
                       rel="noopener noreferrer"
-                      title={`Abrir el chat con @${ig.handle}`}
+                      title={`Abrir el chat con @${item.handle}`}
                       className="inline-flex items-center gap-1 h-8 px-2.5 rounded-lg border border-purple-500/30 bg-purple-500/10 text-[11px] font-semibold text-purple-300 hover:bg-purple-500/20"
                     >
                       <Send className="h-3 w-3" />
                       Escribirle
-                    </a>
-                  ) : ig ? (
-                    <a
-                      href={perfilUrl(ig.handle)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      title={`Abrir instagram.com/${ig.handle} — mirá que sea la persona antes de escribirle`}
-                      className="inline-flex items-center gap-1 h-8 px-2.5 rounded-lg border border-purple-500/30 bg-purple-500/10 text-[11px] font-semibold text-purple-300 hover:bg-purple-500/20"
-                    >
-                      <AtSign className="h-3 w-3" />
-                      Ver perfil
                     </a>
                   ) : (
                     <a

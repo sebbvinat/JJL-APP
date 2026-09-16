@@ -40,12 +40,12 @@ export interface CrmLogEntry {
   /** Nombre visible de Instagram, que es lo que reporta ManyChat. */
   usuario: string;
   /**
-   * Usuario real de Instagram (sin @), si la pestaña lo trae.
+   * Usuario real de Instagram (sin @), cuando se lo puede saber.
    *
-   * Es lo único que permite abrirle el chat a la persona correcta. ManyChat
-   * hoy escribe el nombre visible: cuando ese nombre ya es el @ se puede
-   * linkear igual, pero un "Martín Blanco" no lleva a ningún lado. Ver
-   * COLUMNA_HANDLE.
+   * Sale de la columna de IG si la pestaña la tiene (ver COLUMNA_HANDLE) y,
+   * si no, de la propia columna USUARIO en las pestañas donde ManyChat
+   * escribe el @ y no el nombre visible. Es lo único que permite abrirle el
+   * chat a la persona correcta: con un "Martín Blanco" solo queda buscarlo.
    */
   handle: string | null;
   /** ISO del momento en que ManyChat mandó el mensaje. */
@@ -63,6 +63,16 @@ export interface CrmLogEntry {
  * linkear al chat de la persona sin tocar nada más.
  */
 const COLUMNA_HANDLE = /^(ig|instagram|usuario[ _]?ig|handle|arroba)$/i;
+
+/**
+ * Forma de @ de Instagram escrito por un bot: todo en minúscula y sin
+ * espacios. Los nombres visibles que manda ManyChat vienen con mayúscula,
+ * espacios o emojis ("Jose Garcia", "𝑳𝑼𝑰𝑺 𝑭𝑬𝑳𝑰𝑷𝑬"), así que esto los deja
+ * afuera.
+ */
+function pareceHandle(raw: unknown): boolean {
+  return /^[a-z0-9._]{3,30}$/.test(String(raw ?? '').trim().replace(/^@/, ''));
+}
 
 /** Un @ de Instagram válido: letras, números, punto y guion bajo. */
 function limpiarHandle(raw: unknown): string | null {
@@ -234,6 +244,7 @@ export async function fetchCrmLogs(): Promise<{ entries: CrmLogEntry[]; etiqueta
 
     const idxHandle = indiceHandle(filas[0]);
 
+    const crudas: { usuario: string; handleCol: string | null; dt: Date }[] = [];
     for (const row of filas.slice(1)) {
       // La C se usa como respaldo del nombre solo si NO es la columna del
       // handle: en filas viejas el nombre quedó corrido a esa columna.
@@ -244,20 +255,52 @@ export async function fetchCrmLogs(): Promise<{ entries: CrmLogEntry[]; etiqueta
       if (!usuario) continue;
       const dt = parseFecha(row?.[0]);
       if (!dt) continue;
+      crudas.push({
+        usuario,
+        handleCol: idxHandle >= 0 ? limpiarHandle(row?.[idxHandle]) : null,
+        dt,
+      });
+    }
 
-      // El handle SOLO sale de su columna. Se intentó deducirlo del nombre
-      // visible (si no tiene espacios, será el @) y estaba mal: "Martin",
-      // "Max" y "Sofii" pasan el filtro pero son nombres de pila, así que el
-      // link caía en el DM de un desconocido con ese @. Mandar al setter a
-      // escribirle a la persona equivocada es peor que no darle el link.
-      const handle = idxHandle >= 0 ? limpiarHandle(row?.[idxHandle]) : null;
+    // ¿Esta fila guarda el @ o el nombre visible?
+    //
+    // Depende del campo que use cada flujo de ManyChat, y cambia con el
+    // tiempo: hasta el 9/9/2026 casi todas las pestañas escribían el nombre
+    // visible y desde el 10/9 escriben el @ (menos "4ª pregunta" y "No
+    // agendó", que siguen con el nombre). Por eso se MIDE, en vez de listar
+    // pestañas a mano: si las filas vecinas en el tiempo tienen forma de @,
+    // esta también es un @ y se puede linkear. Así el panel se acomoda solo
+    // cuando un flujo empieza (o deja de) mandar el usuario.
+    //
+    // Se mira la vecindad y no cada fila por separado a propósito: suelto,
+    // un "martin" pasa el filtro y mandaría al setter al DM de un
+    // desconocido. Rodeado de nombres visibles, queda descartado con ellos.
+    crudas.sort((a, b) => a.dt.getTime() - b.dt.getTime());
+    const forma = crudas.map((c) => (pareceHandle(c.usuario) ? 1 : 0));
+    // Suma acumulada para que la ventana de cada fila sea O(1).
+    const acum: number[] = [0];
+    for (const f of forma) acum.push(acum[acum.length - 1] + f);
+    const RADIO = 10;
+    const MINIMO = 0.8;
 
+    for (let i = 0; i < crudas.length; i++) {
+      const c = crudas[i];
+      const desde = Math.max(0, i - RADIO);
+      const hasta = Math.min(crudas.length, i + RADIO + 1);
+      const vecinas = hasta - desde;
+      const conForma = acum[hasta] - acum[desde];
+      const usuarioEsHandle = vecinas > 0 && conForma / vecinas >= MINIMO;
       entries.push({
         tipo,
-        usuario,
-        handle,
-        fecha: dt.toISOString(),
-        dia: dateKeyInAppTz(dt),
+        usuario: c.usuario,
+        // pareceHandle otra vez sobre la propia fila: la vecindad dice que la
+        // pestaña manda @s, pero un "Angelo" ahí en el medio sigue siendo un
+        // nombre visible (limpiarHandle acepta mayúsculas y lo dejaría pasar).
+        handle:
+          c.handleCol ??
+          (usuarioEsHandle && pareceHandle(c.usuario) ? limpiarHandle(c.usuario) : null),
+        fecha: c.dt.toISOString(),
+        dia: dateKeyInAppTz(c.dt),
       });
     }
   });
