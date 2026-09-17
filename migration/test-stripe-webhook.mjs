@@ -56,7 +56,7 @@ const event = {
   data: {
     object: {
       id: 'cs_test_' + crypto.randomBytes(8).toString('hex'),
-      payment_link: 'plink_1U7wpMCl9ClSszOM8LnWZaKv', // ADN
+      payment_link: process.env.TEST_PLINK || 'plink_1U7wpMCl9ClSszOM8LnWZaKv',
       payment_status: 'paid',
       amount_total: 10700,
       currency: 'usd',

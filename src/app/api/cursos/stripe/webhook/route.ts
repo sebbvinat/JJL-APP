@@ -36,6 +36,8 @@ const INSTAGRAM = 'jjl.oficial';
 const PLINK_MAP: Record<string, { tipo: 'bundle' | 'curso'; slug: string }> = {
   // ADN — https://buy.stripe.com/dRm4gy8mD3br0Hw5RpcfK08
   plink_1U7wpMCl9ClSszOM8LnWZaKv: { tipo: 'bundle', slug: 'el-adn-del-jiu-jitsu' },
+  // Front Headlock US$47 — https://buy.stripe.com/7sYfZgeL15jz3TIenVcfK0a
+  plink_1UGfoKCl9ClSszOMnYaOCXFt: { tipo: 'curso', slug: 'front-headlock' },
 };
 
 // Payment links que NO son de cursos (cobros manuales del programa high
