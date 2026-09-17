@@ -1,4 +1,4 @@
-import { NextResponse, type NextRequest } from 'next/server';
+import { NextResponse, after, type NextRequest } from 'next/server';
 import crypto from 'crypto';
 import { createAdminSupabaseClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/logger';
@@ -285,20 +285,32 @@ async function fulfill(session: StripeSession): Promise<
   if (courseIds.length === 0)
     return { ok: false, retry: false, motivo: `El pack ${productTitle} no tiene cursos` };
 
-  // Usuario: buscar por email en auth, crear si no existe
+  // Usuario: primero por email en public.users (indexado y barato). Si no
+  // está, se recorre auth.users como respaldo — hay cuentas viejas cuya
+  // fila en public.users quedó sin email.
   let userId: string | null = null;
   let esCuentaNueva = false;
-  let page = 1;
-  while (!userId) {
-    const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 1000 });
-    if (error) return { ok: false, retry: true, motivo: `listUsers: ${error.message}` };
-    const hit = data.users.find((u) => u.email?.toLowerCase() === email);
-    if (hit) {
-      userId = hit.id;
-      break;
+
+  const { data: perfil } = await admin
+    .from('users')
+    .select('id')
+    .ilike('email', email)
+    .maybeSingle<{ id: string }>();
+  userId = perfil?.id ?? null;
+
+  if (!userId) {
+    let page = 1;
+    while (!userId) {
+      const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 1000 });
+      if (error) return { ok: false, retry: true, motivo: `listUsers: ${error.message}` };
+      const hit = data.users.find((u) => u.email?.toLowerCase() === email);
+      if (hit) {
+        userId = hit.id;
+        break;
+      }
+      if (data.users.length < 1000) break;
+      page++;
     }
-    if (data.users.length < 1000) break;
-    page++;
   }
 
   if (!userId) {
@@ -311,12 +323,19 @@ async function fulfill(session: StripeSession): Promise<
       return { ok: false, retry: true, motivo: `createUser: ${error?.message}` };
     userId = created.user.id;
     esCuentaNueva = true;
-    // el trigger handle_new_user crea la fila en public.users
+    // el trigger handle_new_user crea la fila en public.users, pero la
+    // version viva no copia el email — lo escribimos nosotros para que el
+    // cliente sea buscable por mail desde el panel.
     await new Promise((r) => setTimeout(r, 500));
-    const updates: Record<string, unknown> = { rol: 'cliente_cursos' };
     const nombre = session.customer_details?.name?.trim();
-    if (nombre) updates.nombre = nombre;
-    await admin.from('users').update(updates).eq('id', userId);
+    await admin
+      .from('users')
+      .update({
+        rol: 'cliente_cursos',
+        email,
+        ...(nombre ? { nombre } : {}),
+      })
+      .eq('id', userId);
   }
 
   // Idempotencia: si esta session ya fue procesada, no repetir (ni re-mandar mail)
@@ -388,6 +407,12 @@ async function fulfill(session: StripeSession): Promise<
 
 // ---------- handler ----------
 
+// El fulfillment (crear cuenta, otorgar accesos, mandar mail) puede tardar
+// varios segundos. Le damos aire a la función y, sobre todo, le contestamos
+// a Stripe apenas validamos la firma: Stripe corta la conexión si tardamos
+// y la registra como entrega fallida.
+export const maxDuration = 60;
+
 export async function POST(request: NextRequest) {
   const secret = process.env.STRIPE_WEBHOOK_SECRET;
   if (!secret) {
@@ -419,17 +444,24 @@ export async function POST(request: NextRequest) {
   // en ese caso esperamos el async_payment_succeeded.
   if (session.payment_status !== 'paid') return NextResponse.json({ received: true });
 
-  const result = await fulfill(session);
-  if (!result.ok) {
-    logger.error('stripe.webhook.fulfill_failed', {
-      session: session.id,
-      motivo: result.motivo,
-      retry: result.retry,
-    });
-    await alertOwner(result.motivo, session);
-    if (result.retry) {
-      return NextResponse.json({ error: result.motivo }, { status: 500 });
+  // Respondemos YA y hacemos el trabajo después de contestar. Como Stripe
+  // recibe 200 no reintenta: si algo falla, el aviso al dueño es la red de
+  // seguridad para dar el acceso a mano.
+  after(async () => {
+    try {
+      const result = await fulfill(session);
+      if (!result.ok) {
+        logger.error('stripe.webhook.fulfill_failed', {
+          session: session.id,
+          motivo: result.motivo,
+        });
+        await alertOwner(result.motivo, session);
+      }
+    } catch (err) {
+      logger.error('stripe.webhook.fulfill_threw', { session: session.id, err });
+      await alertOwner(`Excepción procesando el pago: ${String(err)}`, session);
     }
-  }
+  });
+
   return NextResponse.json({ received: true });
 }

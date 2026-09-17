@@ -7,7 +7,8 @@ import crypto from 'crypto';
 import { createClient } from '@supabase/supabase-js';
 
 const CLEANUP = process.argv.includes('--cleanup');
-const URL = 'http://localhost:3000/api/cursos/stripe/webhook';
+const PORT = process.env.TEST_PORT || '3000';
+const URL = `http://localhost:${PORT}/api/cursos/stripe/webhook`;
 const SECRET = process.env.STRIPE_WEBHOOK_SECRET;
 const TEST_EMAIL = 'test-webhook-jjl@example.com';
 
@@ -82,9 +83,13 @@ const res = await fetch(URL, {
 });
 console.log(`→ HTTP ${res.status}: ${await res.text()}`);
 
-// Verificar el resultado en la DB
-await new Promise((r) => setTimeout(r, 1500));
-const user = await findUser(TEST_EMAIL);
+// El webhook contesta 200 al toque y hace el trabajo después de responder:
+// esperamos a que aparezca el usuario (hasta 30s).
+let user = null;
+for (let i = 0; i < 30 && !user; i++) {
+  await new Promise((r) => setTimeout(r, 1000));
+  user = await findUser(TEST_EMAIL);
+}
 if (!user) {
   console.log('\n✗ No se creó el usuario.');
   process.exit(1);
