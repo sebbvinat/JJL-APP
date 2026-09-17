@@ -155,6 +155,35 @@ export async function GET(request: NextRequest) {
 }
 
 // POST: Create a new post
+/**
+ * ¿El archivo de Drive se ve sin estar logueado?
+ *
+ * En Drive todo nace privado. Si el alumno pega el link sin compartirlo, el
+ * reproductor le funciona a él (tiene sesión) y el resto ve un cartel de
+ * Google pidiendo permiso — o sea, un post roto que nadie detecta hasta que
+ * alguien avisa. Se chequea al publicar, sin credenciales, que es exactamente
+ * lo que va a ver el otro alumno.
+ *
+ * Solo se corta con un NO definitivo de Google. Si la consulta falla (timeout,
+ * corte de red, un 500 de Drive) se deja pasar: es peor bloquear un video que
+ * está bien por un problema nuestro.
+ */
+async function driveEsPublico(id: string): Promise<boolean> {
+  try {
+    const res = await fetch(`https://drive.google.com/file/d/${id}/preview`, {
+      redirect: 'manual',
+      signal: AbortSignal.timeout(5000),
+    });
+    if (res.status === 403 || res.status === 404) return false;
+    // Un redirect al login es la otra forma que tiene Drive de decir que no.
+    const destino = res.headers.get('location') || '';
+    if (destino.includes('accounts.google.com')) return false;
+    return true;
+  } catch {
+    return true;
+  }
+}
+
 export async function POST(request: NextRequest) {
   const { user, supabase } = await getAuthedUser(request);
   if (!user) {
@@ -182,8 +211,21 @@ export async function POST(request: NextRequest) {
   // link crudo.
   let video: string | null = null;
   if (typeof video_url === 'string' && video_url.trim()) {
-    if (!videoEmbedDe(video_url)) {
-      return NextResponse.json({ error: 'El link del video tiene que ser de YouTube, Instagram o Vimeo.' }, { status: 400 });
+    const embed = videoEmbedDe(video_url);
+    if (!embed) {
+      return NextResponse.json(
+        { error: 'El link del video tiene que ser de YouTube, Instagram, Vimeo o Google Drive.' },
+        { status: 400 },
+      );
+    }
+    if (embed.plataforma === 'drive' && !(await driveEsPublico(embed.id))) {
+      return NextResponse.json(
+        {
+          error:
+            'Ese video de Drive es privado. Abrilo en Drive, tocá Compartir y poné "Cualquiera con el enlace".',
+        },
+        { status: 400 },
+      );
     }
     video = video_url.trim().slice(0, 500);
   }

@@ -5,7 +5,7 @@ import { X, BarChart3, Plus, ImagePlus, Video, Loader2 } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import { comprimirImagen } from '@/lib/comprimir-imagen';
-import { videoEmbedDe } from '@/lib/video-embed';
+import { videoEmbedDe, NOMBRE_PLATAFORMA } from '@/lib/video-embed';
 
 interface PostFormProps {
   onClose: () => void;
@@ -176,7 +176,7 @@ export default function PostForm({ onClose, onSubmit }: PostFormProps) {
                     inputMode="url"
                     value={videoLink}
                     onChange={(e) => setVideoLink(e.target.value)}
-                    placeholder="Pegá el link de YouTube, Instagram o Vimeo"
+                    placeholder="Pegá el link de YouTube, Instagram, Vimeo o Google Drive"
                     className={`flex-1 rounded-lg border bg-jjl-gray-light px-3.5 py-2.5 text-base text-white placeholder:text-jjl-muted/60 focus:outline-none focus:ring-2 ${
                       videoConError
                         ? 'border-jjl-red focus:ring-jjl-red/40'
@@ -195,11 +195,21 @@ export default function PostForm({ onClose, onSubmit }: PostFormProps) {
                 </div>
                 {videoConError && (
                   <p className="mt-1.5 text-[12.5px] text-jjl-red">
-                    Ese link no es de YouTube, Instagram o Vimeo. Copialo desde el botón Compartir del video.
+                    Ese link no es de YouTube, Instagram, Vimeo ni Google Drive. Copialo desde el botón
+                    Compartir del video.
                   </p>
                 )}
                 {videoValido && (
-                  <p className="mt-1.5 text-[12.5px] text-green-400">Video de {videoValido.plataforma === 'youtube' ? 'YouTube' : videoValido.plataforma === 'instagram' ? 'Instagram' : 'Vimeo'} listo.</p>
+                  <p className="mt-1.5 text-[12.5px] text-green-400">
+                    Video de {NOMBRE_PLATAFORMA[videoValido.plataforma]} listo.
+                  </p>
+                )}
+                {videoValido?.plataforma === 'drive' && (
+                  // En Drive el archivo nace privado: si no lo comparten, el
+                  // resto ve un cartel de Google pidiendo permiso.
+                  <p className="mt-1.5 text-[12.5px] text-jjl-muted">
+                    En Drive, compartilo como “Cualquiera con el enlace” para que el resto pueda verlo.
+                  </p>
                 )}
               </div>
             )}

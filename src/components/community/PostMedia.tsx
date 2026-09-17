@@ -1,9 +1,7 @@
 'use client';
 
 import { Play } from 'lucide-react';
-import { videoEmbedDe } from '@/lib/video-embed';
-
-const NOMBRE_PLATAFORMA = { youtube: 'YouTube', instagram: 'Instagram', vimeo: 'Vimeo' } as const;
+import { videoEmbedDe, NOMBRE_PLATAFORMA, type Plataforma } from '@/lib/video-embed';
 
 /**
  * La foto y/o el video de un post.
@@ -41,7 +39,7 @@ export default function PostMedia({
         />
       )}
 
-      {video && compacto && <MiniaturaVideo plataforma={video.plataforma} embedUrl={video.embedUrl} />}
+      {video && compacto && <MiniaturaVideo plataforma={video.plataforma} id={video.id} />}
 
       {video && !compacto && (
         <div
@@ -63,15 +61,20 @@ export default function PostMedia({
   );
 }
 
-function MiniaturaVideo({ plataforma, embedUrl }: { plataforma: keyof typeof NOMBRE_PLATAFORMA; embedUrl: string }) {
-  // YouTube publica la miniatura de cada video en una URL fija por id.
-  if (plataforma === 'youtube') {
-    const id = embedUrl.split('/').pop();
+function MiniaturaVideo({ plataforma, id }: { plataforma: Plataforma; id: string }) {
+  // YouTube y Drive publican la miniatura de cada video en una URL fija por id.
+  const miniatura =
+    plataforma === 'youtube'
+      ? `https://img.youtube.com/vi/${id}/hqdefault.jpg`
+      : plataforma === 'drive'
+        ? `https://drive.google.com/thumbnail?id=${id}&sz=w640`
+        : null;
+  if (miniatura) {
     return (
       <div className="relative overflow-hidden rounded-xl border border-jjl-border bg-black">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={`https://img.youtube.com/vi/${id}/hqdefault.jpg`}
+          src={miniatura}
           alt=""
           loading="lazy"
           className="aspect-video w-full object-cover opacity-85"
