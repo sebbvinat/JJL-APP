@@ -1,15 +1,16 @@
 'use client';
 
+import { useState } from 'react';
 import { Play } from 'lucide-react';
-import { videoEmbedDe, NOMBRE_PLATAFORMA, type Plataforma } from '@/lib/video-embed';
+import { videoEmbedDe, NOMBRE_PLATAFORMA, type Plataforma, type VideoEmbed } from '@/lib/video-embed';
 
 /**
  * La foto y/o el video de un post.
  *
- * `compacto` es la version del feed. Ahi el video NO se embebe: el feed trae
- * hasta 50 posts y un iframe de Instagram por cada uno hace que la lista tarde
- * una eternidad en un celular. Se muestra la miniatura (YouTube la da gratis)
- * o un aviso de que hay video, y se reproduce al abrir el post.
+ * `compacto` es la version del feed. Ahi el video no arranca embebido: el feed
+ * trae hasta 50 posts y un iframe por cada uno hace que la lista tarde una
+ * eternidad en un celular. Se muestra la miniatura y el reproductor aparece
+ * en el mismo lugar al tocarla, sin salir del feed ni abrir el post.
  */
 export default function PostMedia({
   imagenUrl,
@@ -39,7 +40,7 @@ export default function PostMedia({
         />
       )}
 
-      {video && compacto && <MiniaturaVideo plataforma={video.plataforma} id={video.id} />}
+      {video && compacto && <VideoEnElFeed video={video} />}
 
       {video && !compacto && (
         <div
@@ -59,6 +60,67 @@ export default function PostMedia({
       )}
     </div>
   );
+}
+
+/**
+ * Video dentro del feed: miniatura hasta que la tocan, reproductor despues.
+ *
+ * El click no puede burbujear: la tarjeta entera del feed abre el post, y si
+ * dejamos pasar el evento, tocar play te saca del feed en vez de reproducir.
+ */
+function VideoEnElFeed({ video }: { video: VideoEmbed }) {
+  const [reproduciendo, setReproduciendo] = useState(false);
+
+  if (!reproduciendo) {
+    return (
+      <button
+        type="button"
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setReproduciendo(true);
+        }}
+        className="block w-full text-left"
+        aria-label={`Reproducir el video de ${NOMBRE_PLATAFORMA[video.plataforma]}`}
+      >
+        <MiniaturaVideo plataforma={video.plataforma} id={video.id} />
+      </button>
+    );
+  }
+
+  return (
+    <div
+      onClick={(e) => {
+        // Los controles viven dentro del iframe, pero el contenedor sigue
+        // siendo parte de la tarjeta: sin esto, un toque al costado del video
+        // abre el post.
+        e.preventDefault();
+        e.stopPropagation();
+      }}
+      className={`overflow-hidden rounded-xl border border-jjl-border bg-black ${
+        video.vertical ? 'mx-auto aspect-[9/16] max-w-[320px]' : 'aspect-video w-full'
+      }`}
+    >
+      <iframe
+        src={conAutoplay(video)}
+        title={`Video de ${NOMBRE_PLATAFORMA[video.plataforma]}`}
+        className="h-full w-full"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+        allowFullScreen
+      />
+    </div>
+  );
+}
+
+/**
+ * Si ya tocaron play, que el video arranque solo. YouTube y Vimeo lo aceptan
+ * por parametro; Instagram y Drive no, asi que ahi queda el play del propio
+ * reproductor (un toque mas, pero sin salir del feed).
+ */
+function conAutoplay(video: VideoEmbed): string {
+  if (video.plataforma === 'youtube') return `${video.embedUrl}?autoplay=1&rel=0`;
+  if (video.plataforma === 'vimeo') return `${video.embedUrl}?autoplay=1`;
+  return video.embedUrl;
 }
 
 function MiniaturaVideo({ plataforma, id }: { plataforma: Plataforma; id: string }) {
