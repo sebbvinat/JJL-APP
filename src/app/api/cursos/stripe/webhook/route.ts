@@ -416,7 +416,11 @@ async function fulfill(session: StripeSession): Promise<
 export const maxDuration = 60;
 
 export async function POST(request: NextRequest) {
-  const secret = process.env.STRIPE_WEBHOOK_SECRET;
+  // Al pegar el secreto en Vercel es fácil arrastrar un espacio, un salto
+  // de línea o comillas: cualquiera de esos invalida TODAS las firmas.
+  const secret = (process.env.STRIPE_WEBHOOK_SECRET ?? '')
+    .trim()
+    .replace(/^["']|["']$/g, '');
   if (!secret) {
     logger.error('stripe.webhook.no_secret');
     return NextResponse.json({ error: 'Webhook no configurado' }, { status: 500 });
@@ -425,7 +429,13 @@ export async function POST(request: NextRequest) {
   const payload = await request.text();
   const signature = request.headers.get('stripe-signature');
   if (!verifyStripeSignature(payload, signature, secret)) {
-    logger.warn('stripe.webhook.bad_signature');
+    // Sin exponer nada del secreto: formato y largo alcanzan para ver si
+    // en Vercel quedó algo mal pegado.
+    logger.warn('stripe.webhook.bad_signature', {
+      secretFormatOk: secret.startsWith('whsec_'),
+      secretLength: secret.length,
+      hasSignature: Boolean(signature),
+    });
     return NextResponse.json({ error: 'Firma inválida' }, { status: 400 });
   }
 
