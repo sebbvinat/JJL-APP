@@ -15,6 +15,14 @@ function getSupabase(request: NextRequest) {
   );
 }
 
+// Tipos de las filas que lee este endpoint. El cliente de Supabase del repo no
+// tiene tipos generados, así que las filas llegan como `any`; acá declaramos
+// SOLO los campos que el código usa. `EventRow` es abierto porque el select es
+// '*' y el resto de las columnas se reenvían tal cual al cliente con `...e`.
+type EventRow = { id: string } & Record<string, unknown>;
+type RsvpRow = { event_id: string; status: string };
+type ProfileRol = { rol?: string } | null;
+
 // GET: list upcoming events with RSVP status
 export async function GET(request: NextRequest) {
   const supabase = getSupabase(request);
@@ -30,9 +38,9 @@ export async function GET(request: NextRequest) {
     .limit(20);
 
   // Get RSVP status for current user + attendee counts
-  const eventIds = (events || []).map((e: any) => e.id);
-  let userRsvps: Record<string, string> = {};
-  let rsvpCounts: Record<string, { confirmed: number; total: number }> = {};
+  const eventIds = (events || []).map((e: EventRow) => e.id);
+  const userRsvps: Record<string, string> = {};
+  const rsvpCounts: Record<string, { confirmed: number; total: number }> = {};
 
   if (eventIds.length > 0) {
     const [{ data: myRsvps }, { data: allRsvps }] = await Promise.all([
@@ -40,8 +48,8 @@ export async function GET(request: NextRequest) {
       supabase.from('event_rsvps').select('event_id, status').in('event_id', eventIds),
     ]);
 
-    (myRsvps || []).forEach((r: any) => { userRsvps[r.event_id] = r.status; });
-    (allRsvps || []).forEach((r: any) => {
+    (myRsvps || []).forEach((r: RsvpRow) => { userRsvps[r.event_id] = r.status; });
+    (allRsvps || []).forEach((r: RsvpRow) => {
       if (!rsvpCounts[r.event_id]) rsvpCounts[r.event_id] = { confirmed: 0, total: 0 };
       rsvpCounts[r.event_id].total++;
       if (r.status === 'confirmed') rsvpCounts[r.event_id].confirmed++;
@@ -56,7 +64,7 @@ export async function GET(request: NextRequest) {
     .order('fecha_hora', { ascending: false })
     .limit(5);
 
-  const formatted = (events || []).map((e: any) => ({
+  const formatted = (events || []).map((e: EventRow) => ({
     ...e,
     myRsvp: userRsvps[e.id] || null,
     confirmedCount: rsvpCounts[e.id]?.confirmed || 0,
@@ -77,7 +85,7 @@ export async function POST(request: NextRequest) {
 
   // Check admin
   const { data: profile } = await supabase.from('users').select('rol').eq('id', user.id).single();
-  if ((profile as any)?.rol !== 'admin') {
+  if ((profile as ProfileRol)?.rol !== 'admin') {
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
   }
 
@@ -160,7 +168,7 @@ export async function DELETE(request: NextRequest) {
   if (!user) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
 
   const { data: profile } = await supabase.from('users').select('rol').eq('id', user.id).single();
-  if ((profile as any)?.rol !== 'admin') return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
+  if ((profile as ProfileRol)?.rol !== 'admin') return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
 
   const { eventId } = await request.json();
   if (!eventId) return NextResponse.json({ error: 'eventId requerido' }, { status: 400 });

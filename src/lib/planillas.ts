@@ -1,6 +1,13 @@
 // Planillas — Training program templates
 // Each planilla defines the full 6-month curriculum (Fundamentos + 24 weeks)
 
+// Import estático en vez de los `require()` que había adentro de las funciones.
+// Se puede porque mock-data.ts son solo constantes: no importa nada (no hay
+// ciclo con este archivo) y no tiene efectos al cargarse. El bundler ya lo
+// incluía igual (el require tenía la ruta literal), así que no cambia el peso
+// del bundle; lo que se gana es que MOCK_LESSONS deja de ser `any`.
+import { MOCK_MODULES, MOCK_LESSONS, type MockLesson } from '@/lib/mock-data';
+
 export interface PlanillaLesson {
   titulo: string;
   tipo: 'video' | 'reflection';
@@ -1099,14 +1106,12 @@ export const PLANILLAS: Planilla[] = [
 
 /**
  * Build Atleticos planilla dynamically from MOCK data.
- * Called lazily so we don't import mock-data at module level.
  */
 export function buildAtleticosPlanilla(): PlanillaWeek[] {
-  // Dynamic import workaround: we'll import inline
-  // This is called from client components so it's fine
-  const { MOCK_MODULES, MOCK_LESSONS } = require('@/lib/mock-data');
-  return MOCK_MODULES.map((mod: any) => {
-    const lessons = (MOCK_LESSONS[mod.id] || []).map((l: any) => ({
+  // MOCK_MODULES / MOCK_LESSONS vienen del import de arriba (antes era un
+  // require() acá adentro, que eslint prohíbe y dejaba todo tipado como any).
+  return MOCK_MODULES.map((mod) => {
+    const lessons = (MOCK_LESSONS[mod.id] || []).map((l) => ({
       titulo: l.titulo,
       tipo: l.tipo as 'video' | 'reflection',
     }));
@@ -1134,9 +1139,8 @@ export function getPlanillaForSave(planillaId: string) {
   if (weeks.length === 0) return null;
 
   // For Atleticos, also copy youtube_ids from MOCK_LESSONS
-  let mockLessonsMap: Record<string, any[]> | null = null;
+  let mockLessonsMap: Record<string, MockLesson[]> | null = null;
   if (planillaId === 'atleticos') {
-    const { MOCK_LESSONS } = require('@/lib/mock-data');
     mockLessonsMap = MOCK_LESSONS;
   }
 

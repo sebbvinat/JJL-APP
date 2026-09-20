@@ -18,6 +18,15 @@ function getAdmin() {
   );
 }
 
+// Tipos de las filas que lee este endpoint (el cliente de Supabase del repo no
+// tiene tipos generados, las filas llegan como `any`). Cada tipo refleja
+// exactamente las columnas del select que lo alimenta, nada más.
+type ProfileRow = { rol?: string; nombre?: string } | null;
+type MessageRow = { id: string; from_user_id: string; contenido: string | null; created_at: string };
+type SenderRow = { id: string; nombre: string; avatar_url: string | null; rol: string };
+type AlumnoRow = { id: string; nombre: string; avatar_url: string | null };
+type RecentRow = { contenido: string | null; created_at: string; from_user_id: string; to_user_id: string };
+
 /**
  * Format a raw `messages.contenido` value for the channel list preview.
  * Audio messages are stored as `[audio]<url>` — we don't want to leak the
@@ -37,7 +46,7 @@ export async function GET(request: NextRequest) {
   if (!user) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
 
   const { data: profile } = await supabase.from('users').select('rol, nombre').eq('id', user.id).single();
-  const isAdmin = (profile as any)?.rol === 'admin';
+  const isAdmin = (profile as ProfileRow)?.rol === 'admin';
 
   const channelId = request.nextUrl.searchParams.get('channel');
 
@@ -84,18 +93,18 @@ export async function GET(request: NextRequest) {
     const messages = (rows || []).slice().reverse();
 
     // Get sender names
-    const senderIds = [...new Set((messages || []).map((m: any) => m.from_user_id))];
-    let senders: Record<string, { nombre: string; avatar_url: string | null; rol: string }> = {};
+    const senderIds = [...new Set((messages || []).map((m: MessageRow) => m.from_user_id))];
+    const senders: Record<string, { nombre: string; avatar_url: string | null; rol: string }> = {};
     if (senderIds.length > 0) {
       const { data } = await admin.from('users').select('id, nombre, avatar_url, rol').in('id', senderIds);
-      (data || []).forEach((u: any) => { senders[u.id] = { nombre: u.nombre, avatar_url: u.avatar_url, rol: u.rol }; });
+      (data || []).forEach((u: SenderRow) => { senders[u.id] = { nombre: u.nombre, avatar_url: u.avatar_url, rol: u.rol }; });
     }
 
     // Mark as read (for this user)
     // We don't track per-message read status in group chat — just return messages
 
     return NextResponse.json({
-      messages: (messages || []).map((m: any) => ({
+      messages: (messages || []).map((m: MessageRow) => ({
         ...m,
         senderName: senders[m.from_user_id]?.nombre || 'Usuario',
         senderAvatar: senders[m.from_user_id]?.avatar_url || null,
@@ -118,7 +127,7 @@ export async function GET(request: NextRequest) {
     // Último mensaje por canal en UNA query. Antes era un bucle con un query
     // adentro: 1 + N (26 consultas con 25 alumnos), y se re-ejecutaba cada vez
     // que el admin volvía a la lista. Mismo patrón que ya usa /api/admin/soporte.
-    const alumnoIds = (alumnos || []).map((a: any) => a.id);
+    const alumnoIds = (alumnos || []).map((a: AlumnoRow) => a.id);
     const lastByChannel = new Map<string, { contenido: string | null; created_at: string; from_user_id: string }>();
     if (alumnoIds.length > 0) {
       const { data: recent } = await admin
@@ -128,12 +137,12 @@ export async function GET(request: NextRequest) {
         .order('created_at', { ascending: false })
         .limit(1000);
       // Vienen ordenados desc → el primero de cada canal es el más reciente.
-      for (const m of (recent || []) as any[]) {
+      for (const m of (recent || []) as RecentRow[]) {
         if (!lastByChannel.has(m.to_user_id)) lastByChannel.set(m.to_user_id, m);
       }
     }
 
-    const channels = (alumnos || []).map((alumno: any) => {
+    const channels = (alumnos || []).map((alumno: AlumnoRow) => {
       const msg = lastByChannel.get(alumno.id);
       // "hasNew" = last message is FROM the alumno (not from an admin)
       const hasNew = msg?.from_user_id === alumno.id;
@@ -185,7 +194,7 @@ export async function POST(request: NextRequest) {
   if (!user) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
 
   const { data: profile } = await supabase.from('users').select('rol, nombre').eq('id', user.id).single();
-  const isAdmin = (profile as any)?.rol === 'admin';
+  const isAdmin = (profile as ProfileRow)?.rol === 'admin';
 
   const { channelId, contenido } = await request.json();
   if (!channelId || !contenido?.trim()) {
@@ -216,7 +225,7 @@ export async function POST(request: NextRequest) {
   const notify = (async () => {
     try {
       const { createNotification } = await import('@/lib/notifications');
-      const senderName = (profile as any)?.nombre || 'alguien';
+      const senderName = (profile as ProfileRow)?.nombre || 'alguien';
       const preview = contenido.trim().slice(0, 100);
 
       if (isAdmin) {

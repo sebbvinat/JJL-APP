@@ -3,6 +3,37 @@ import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
 import { dateKeyDaysAgo } from '@/lib/dates';
 
+// Tipos de las filas que lee este endpoint (el cliente de Supabase del repo no
+// tiene tipos generados, las filas llegan como `any`). Solo los campos de los
+// select de abajo. `puntos` y `avatar_url` aceptan null porque el código ya los
+// trata así (`u.puntos || 0`).
+type UserRow = {
+  id: string;
+  nombre: string;
+  cinturon_actual: string | null;
+  puntos: number | null;
+  avatar_url: string | null;
+  rol: string;
+};
+type ProgressRow = { user_id: string };
+type TrainingRow = { user_id: string; fecha: string };
+
+// Una fila del ranking. `rank` es opcional porque se completa DESPUÉS de
+// ordenar (el forEach del final muta cada entrada); se deja así para no tocar
+// la lógica.
+type LeaderboardEntry = {
+  id: string;
+  nombre: string;
+  avatar_url: string | null;
+  cinturon: string | null;
+  puntos: number;
+  lessons: number;
+  trainingDays: number;
+  streak: number;
+  isMe: boolean;
+  rank?: number;
+};
+
 /**
  * GET /api/leaderboard
  *
@@ -49,7 +80,7 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const userIds = users.map((u: any) => u.id);
+  const userIds = users.map((u: UserRow) => u.id);
   // Fechas en hora ARGENTINA. Con `new Date()` en UTC, después de las 21:00
   // ART el índice 0 del loop de racha apuntaba a MAÑANA y se consumía el slot
   // de tolerancia de "hoy todavía no entrené": el alumno veía su racha en 0 en
@@ -72,13 +103,13 @@ export async function GET(request: NextRequest) {
   ]);
 
   const lessonCounts: Record<string, number> = {};
-  (allProgress || []).forEach((p: any) => {
+  (allProgress || []).forEach((p: ProgressRow) => {
     lessonCounts[p.user_id] = (lessonCounts[p.user_id] || 0) + 1;
   });
 
   const trainingCounts: Record<string, number> = {};
   const userTrainingDates: Record<string, Set<string>> = {};
-  (allTraining || []).forEach((t: any) => {
+  (allTraining || []).forEach((t: TrainingRow) => {
     trainingCounts[t.user_id] = (trainingCounts[t.user_id] || 0) + 1;
     if (!userTrainingDates[t.user_id]) userTrainingDates[t.user_id] = new Set();
     userTrainingDates[t.user_id].add(t.fecha);
@@ -97,7 +128,7 @@ export async function GET(request: NextRequest) {
     streaks[userId] = streak;
   }
 
-  const leaderboard = users.map((u: any) => ({
+  const leaderboard: LeaderboardEntry[] = users.map((u: UserRow) => ({
     id: u.id,
     nombre: u.nombre,
     avatar_url: u.avatar_url,
@@ -109,8 +140,8 @@ export async function GET(request: NextRequest) {
     isMe: u.id === user.id,
   }));
 
-  leaderboard.sort((a: any, b: any) => b.puntos - a.puntos);
-  leaderboard.forEach((u: any, i: number) => { u.rank = i + 1; });
+  leaderboard.sort((a, b) => b.puntos - a.puntos);
+  leaderboard.forEach((u, i) => { u.rank = i + 1; });
 
   return NextResponse.json(
     { leaderboard },
