@@ -47,3 +47,7 @@ next-env.d.ts
 migration/extracted.json
 migration/*.sql
 migration/*.dump
+
+# backups y listados de los scripts que escriben en la base: traen filas
+# completas de leads/alumnos (nombre, teléfono, mail), no se commitean
+scripts/backups/
