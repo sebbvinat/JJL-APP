@@ -3,10 +3,17 @@ import 'server-only';
 /**
  * Lectura de las consultorías agendadas en Calendly.
  *
- * El webhook de Calendly (`/api/webhooks/calendly`) nunca llegó a funcionar:
- * crear webhooks requiere plan Standard y la cuenta no lo tiene. Por eso
- * ningún lead tiene `scheduled_at` cargado y el panel nunca supo cuándo era
- * cada reunión.
+ * OJO (corregido el 19/9/2026): acá decía que el webhook de Calendly
+ * (`/api/webhooks/calendly`) "nunca llegó a funcionar" y que ningún lead tenía
+ * `scheduled_at`. Es FALSO, no decidir nada en base a eso: el webhook anda y es
+ * lo único que escribe `scheduled_at` y `calendly_event_uri` en
+ * `lead_quiz_responses` (264 de los 267 agendados los tienen).
+ *
+ * Esta lectura no lo reemplaza, lo completa. El webhook solo engancha las
+ * agendas que nacen del formulario web (las ata al lead por `utm_content` y
+ * descarta el resto). Las que el equipo carga directo en Calendly (cierres por
+ * WhatsApp o DM: 21 de 47 entre el 29/8 y el 9/9) no tienen lead, así que solo
+ * se ven pidiéndoselas a Calendly, que es lo que hace este archivo.
  *
  * Leer las agendas SÍ está permitido en el plan actual, así que en vez de
  * esperar a que Calendly nos avise, las pedimos nosotros. Es una integración
