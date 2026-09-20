@@ -45,7 +45,13 @@ function sheetsClient() {
   const key = JSON.parse(raw) as { client_email: string; private_key: string };
   const auth = new google.auth.JWT({
     email: key.client_email,
-    key: String(key.private_key).replace(/\n/g, '\n'),
+    // La clave puede llegar con los saltos de linea escritos como dos
+    // caracteres (barra invertida + n) si la variable de entorno se pego ya
+    // escapada; Google exige saltos reales en el PEM. Antes este replace
+    // cambiaba un salto real por otro salto real (no hacia nada): la barra
+    // doble se perdio al escribir el archivo por heredoc. Es el mismo replace
+    // que usa crm-logs.ts.
+    key: String(key.private_key).replace(/\\n/g, '\n'),
     scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
   });
   return google.sheets({ version: 'v4', auth });

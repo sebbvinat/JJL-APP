@@ -18,8 +18,59 @@ export const runtime = 'nodejs';
 // que un cliente malicioso infle la tabla con payloads gigantes.
 const MAX = { event: 200, message: 600, stack: 5000, url: 600, ua: 300 } as const;
 
+// Tope del pedido entero, antes de parsearlo. Los caps de arriba recortan lo
+// que se GUARDA, pero sin esto igual se leía y parseaba un JSON de megas en un
+// endpoint público. Un reporte legítimo (stack de 5000 + meta + url) pesa unos
+// pocos KB aun con los escapes de JSON; 32 KB deja margen de sobra.
+const MAX_BODY_CHARS = 32_000;
+
 const NOTIFY_WINDOW_MS = 6 * 60 * 60 * 1000;
 const NOTIFY_TITLE = 'Errores en la app';
+
+/**
+ * Errores que se GUARDAN en la tabla pero NO avisan a los admins.
+ *
+ * Son fallas del teléfono, de la red o del navegador embebido de otra app: no
+ * las arregla ningún cambio en nuestro código. Como la alerta sale con el
+ * primer error de cada ventana de 6 horas, este ruido la disparaba casi
+ * siempre y además "gastaba" la ventana, así que un error real que llegaba
+ * después no avisaba. Medido sobre los 407 errores guardados al 19/9: 249
+ * caían en los primeros seis patrones y 120 más en el último.
+ *
+ * Se siguen guardando a propósito: si un día "Load failed" se dispara de
+ * golpe, el dato está para verlo.
+ *
+ * Los de chunk ("Failed to load chunk ...") NO van acá: aparecen cuando hay un
+ * deploy en curso y eso sí conviene saberlo.
+ */
+const RUIDO_CONOCIDO: RegExp[] = [
+  // El navegador no pudo bajar o actualizar /sw.js: conexión cortada a mitad.
+  /Failed to (update|register) a ServiceWorker/,
+  // WebView de Android (navegador de Instagram/Facebook): el puente Java de la
+  // app que lo contiene se destruyó mientras la página seguía viva.
+  /Java (object is gone|exception was raised)/,
+  // fetch cortado por la red. Safari dice "Load failed", Chrome "Failed to
+  // fetch", Firefox "NetworkError ...". Anclados con ^$ para no tapar mensajes
+  // nuestros que solo contengan esas palabras.
+  /^Load failed$/,
+  /^Failed to fetch$/,
+  /NetworkError/,
+  // Error de un script de otro dominio (GA, Calendly, ManyChat): el navegador
+  // oculta el mensaje real, no hay nada para diagnosticar.
+  /^Script error[.]?$/,
+  // Navegador embebido de Instagram/Facebook en iOS: el script que inyecta la
+  // app busca window.webkit.messageHandlers y no existe. En nuestro código no
+  // hay ninguna referencia a window.webkit, y es el mensaje más repetido de la
+  // tabla (120 de 407). No estaba en la lista original del plan: se sumó al
+  // ver los datos.
+  /window[.]webkit[.]messageHandlers/,
+];
+
+function esRuidoConocido(message: string | null): boolean {
+  // Sin mensaje no se puede saber qué fue: que avise.
+  if (!message) return false;
+  return RUIDO_CONOCIDO.some((patron) => patron.test(message));
+}
 
 function clip(v: unknown, max: number): string | null {
   if (typeof v !== 'string' || !v.trim()) return null;
@@ -27,9 +78,26 @@ function clip(v: unknown, max: number): string | null {
 }
 
 export async function POST(request: NextRequest) {
+  // Primero el tamaño declarado (barato: ni se lee el cuerpo) y después el
+  // real, porque el header puede faltar o mentir.
+  const declarado = Number(request.headers.get('content-length') || 0);
+  if (declarado > MAX_BODY_CHARS) {
+    return NextResponse.json({ error: 'Reporte demasiado grande' }, { status: 413 });
+  }
+
   let body: Record<string, unknown>;
   try {
-    body = await request.json();
+    const crudo = await request.text();
+    if (crudo.length > MAX_BODY_CHARS) {
+      return NextResponse.json({ error: 'Reporte demasiado grande' }, { status: 413 });
+    }
+    const parseado: unknown = JSON.parse(crudo);
+    // `null`, un número o un array son JSON válido: sin este chequeo,
+    // leer `.event` de un null tiraba una excepción y el endpoint daba 500.
+    if (!parseado || typeof parseado !== 'object' || Array.isArray(parseado)) {
+      return NextResponse.json({ error: 'JSON inválido' }, { status: 400 });
+    }
+    body = parseado as Record<string, unknown>;
   } catch {
     return NextResponse.json({ error: 'JSON inválido' }, { status: 400 });
   }
@@ -66,6 +134,12 @@ export async function POST(request: NextRequest) {
     // debe romper nada en el cliente.
     logger.error('client-errors.insert.failed', { err: insertError.message, event });
     return NextResponse.json({ ok: false });
+  }
+
+  // El ruido conocido queda guardado (ya se insertó arriba) pero no avisa ni
+  // consume la ventana de 6 horas. Ver RUIDO_CONOCIDO.
+  if (esRuidoConocido(row.message)) {
+    return NextResponse.json({ ok: true });
   }
 
   // ── Aviso a admins, con throttle de 6h para no spamear ──
