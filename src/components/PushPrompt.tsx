@@ -2,10 +2,78 @@
 
 import { useEffect, useState } from 'react';
 import { Bell } from 'lucide-react';
-import { logger } from '@/lib/logger';
+import { logger, esErrorDeRed, reintentarSiFallaLaRed } from '@/lib/logger';
+import { useToast } from '@/components/ui/Toast';
+
+// Estas dos funciones viven fuera del componente porque no usan nada de él:
+// así el useEffect de abajo las puede llamar sin depender de funciones que se
+// recrean en cada render (era un error de lint: se usaban antes de declararse).
+
+type ResultadoGuardado = 'ok' | 'sin-red' | 'fallo';
+
+/**
+ * Manda la suscripción al servidor. Devuelve el resultado en vez de mostrar el
+ * toast acá porque quien llama sabe si el alumno pidió algo o no (ver
+ * subscribeQuietly).
+ */
+async function saveSubscription(subscription: PushSubscription): Promise<ResultadoGuardado> {
+  try {
+    // Un reintento a los 1,5 s: el corte típico del celular dura menos que
+    // eso. Es seguro repetir el pedido porque el endpoint hace upsert por
+    // (user_id, endpoint).
+    const res = await reintentarSiFallaLaRed(() =>
+      fetch('/api/push/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subscription: subscription.toJSON() }),
+      }),
+    );
+    if (!res.ok) {
+      logger.error('push.saveSubscription.badStatus', { status: res.status });
+      return 'fallo';
+    }
+    return 'ok';
+  } catch (err) {
+    if (esErrorDeRed(err)) {
+      // Red mala, no un bug: warn (consola sí, client_errors no). Antes salía
+      // como error y los "Load failed" de iOS tapaban los errores reales.
+      logger.warn('push.saveSubscription.failed', { err });
+      return 'sin-red';
+    }
+    logger.error('push.saveSubscription.failed', { err });
+    return 'fallo';
+  }
+}
+
+/**
+ * Camino silencioso: corre solo cada vez que se abre la app con el permiso ya
+ * dado. No muestra toast aunque falle la red: un "Sin conexión" por algo que
+ * el alumno no pidió confunde más de lo que ayuda, y la próxima vez que abra
+ * la app se reintenta igual.
+ */
+async function subscribeQuietly() {
+  try {
+    const registration = await navigator.serviceWorker.ready;
+    const existing = await registration.pushManager.getSubscription();
+    if (existing) {
+      // Already subscribed, send to server
+      await saveSubscription(existing);
+      return;
+    }
+    const subscription = await registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
+    });
+    await saveSubscription(subscription);
+  } catch (err) {
+    logger.warn('push.subscribeQuietly.failed', { err });
+  }
+}
 
 export default function PushPrompt() {
   const [showPrompt, setShowPrompt] = useState(false);
+  // El ToastProvider está en el layout raíz, así que acá siempre hay contexto.
+  const toast = useToast();
 
   useEffect(() => {
     // Only show if push is supported and not already subscribed
@@ -22,25 +90,6 @@ export default function PushPrompt() {
     return () => clearTimeout(timer);
   }, []);
 
-  async function subscribeQuietly() {
-    try {
-      const registration = await navigator.serviceWorker.ready;
-      const existing = await registration.pushManager.getSubscription();
-      if (existing) {
-        // Already subscribed, send to server
-        await saveSubscription(existing);
-        return;
-      }
-      const subscription = await registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
-      });
-      await saveSubscription(subscription);
-    } catch (err) {
-      logger.warn('push.subscribeQuietly.failed', { err });
-    }
-  }
-
   async function handleEnable() {
     setShowPrompt(false);
     try {
@@ -52,24 +101,13 @@ export default function PushPrompt() {
         userVisibleOnly: true,
         applicationServerKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
       });
-      await saveSubscription(subscription);
+      // Acá sí avisamos: el alumno acaba de tocar "Activar" y espera que pase
+      // algo. El permiso ya quedó dado, así que aunque ahora falle la red, la
+      // próxima vez que abra la app subscribeQuietly lo termina de guardar.
+      const resultado = await saveSubscription(subscription);
+      if (resultado === 'sin-red') toast.warning('Sin conexión, probá de nuevo');
     } catch (err) {
       logger.error('push.handleEnable.failed', { err });
-    }
-  }
-
-  async function saveSubscription(subscription: PushSubscription) {
-    try {
-      const res = await fetch('/api/push/subscribe', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ subscription: subscription.toJSON() }),
-      });
-      if (!res.ok) {
-        logger.error('push.saveSubscription.badStatus', { status: res.status });
-      }
-    } catch (err) {
-      logger.error('push.saveSubscription.failed', { err });
     }
   }
 

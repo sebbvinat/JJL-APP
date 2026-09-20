@@ -6,7 +6,7 @@ import { Dumbbell, CheckCircle, Send } from 'lucide-react';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import { useToast } from '@/components/ui/Toast';
-import { logger } from '@/lib/logger';
+import { logger, esErrorDeRed, reintentarSiFallaLaRed } from '@/lib/logger';
 
 interface TaskDashboardProps {
   todayChecked?: boolean;
@@ -19,16 +19,37 @@ export default function TaskDashboard({ todayChecked = false }: TaskDashboardPro
   const [saving, setSaving] = useState(false);
   const toast = useToast();
 
+  // Los dos pedidos de esta pantalla van a /api/daily-task, que hace upsert por
+  // (user_id, fecha): repetirlos no duplica nada, por eso se pueden reintentar.
+  // El botón queda en "cargando" durante el reintento (1,5 s), así el alumno no
+  // toca dos veces.
+  const enviarTareaDiaria = (cuerpo: Record<string, unknown>) =>
+    reintentarSiFallaLaRed(() =>
+      fetch('/api/daily-task', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(cuerpo),
+      }),
+    );
+
+  // Un corte de red del celular no es un bug: warn (no va a client_errors) y un
+  // mensaje que le dice al alumno qué hacer. Cualquier otro error sí se reporta.
+  const avisarFalla = (evento: string, err: unknown) => {
+    if (esErrorDeRed(err)) {
+      logger.warn(evento, { err });
+      toast.warning('Sin conexión, probá de nuevo');
+      return;
+    }
+    logger.error(evento, { err });
+    toast.error('Algo falló, probá de nuevo');
+  };
+
   const handleCheckIn = async () => {
     setSaving(true);
     try {
-      const res = await fetch('/api/daily-task', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'check-in',
-          fecha: format(new Date(), 'yyyy-MM-dd'),
-        }),
+      const res = await enviarTareaDiaria({
+        action: 'check-in',
+        fecha: format(new Date(), 'yyyy-MM-dd'),
       });
       if (res.ok) {
         setChecked(true);
@@ -37,8 +58,7 @@ export default function TaskDashboard({ todayChecked = false }: TaskDashboardPro
         toast.error('No pudimos registrar el entrenamiento');
       }
     } catch (err) {
-      logger.error('dashboard.checkin.failed', { err });
-      toast.error('Error de conexion');
+      avisarFalla('dashboard.checkin.failed', err);
     }
     setSaving(false);
   };
@@ -47,14 +67,10 @@ export default function TaskDashboard({ todayChecked = false }: TaskDashboardPro
     if (!feedback.trim()) return;
     setSaving(true);
     try {
-      const res = await fetch('/api/daily-task', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'feedback',
-          text: feedback,
-          fecha: format(new Date(), 'yyyy-MM-dd'),
-        }),
+      const res = await enviarTareaDiaria({
+        action: 'feedback',
+        text: feedback,
+        fecha: format(new Date(), 'yyyy-MM-dd'),
       });
       if (res.ok) {
         setFeedbackSent(true);
@@ -63,8 +79,7 @@ export default function TaskDashboard({ todayChecked = false }: TaskDashboardPro
         toast.error('No pudimos enviar el feedback');
       }
     } catch (err) {
-      logger.error('dashboard.feedback.failed', { err });
-      toast.error('Error de conexion');
+      avisarFalla('dashboard.feedback.failed', err);
     }
     setSaving(false);
   };
