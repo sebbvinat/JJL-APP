@@ -2,40 +2,9 @@ import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 import type { SupabaseClient, User } from '@supabase/supabase-js';
 import { getSiteFromRequest } from '@/lib/hosts';
-
-/**
- * Rutas de admin que un SETTER sí puede usar. Todo lo demás bajo /api/admin/*
- * le queda cerrado (deny-by-default): así una ruta nueva nace protegida en
- * lugar de nacer expuesta por olvido.
- *
- * El setter solo opera el Kanban de /admin/agendas, así que necesita:
- *  - listar y editar leads (y sus sub-rutas: contacts, convert, mark-sale)
- *  - su resumen de ventas y comisión
- *  - el dropdown de asignación (GET de tags — el PATCH queda bloqueado abajo)
- *  - marcar como vista la guía de bienvenida
- */
-const SETTER_ALLOWED_PREFIXES = [
-  '/api/admin/leads',
-  '/api/admin/setter/',
-];
-
-/** Rutas permitidas al setter solo en lectura. */
-const SETTER_ALLOWED_GET_ONLY = ['/api/admin/tags'];
-
-function isAdminApi(pathname: string): boolean {
-  return pathname.startsWith('/api/admin/');
-}
-
-function isSetterAllowed(pathname: string, method: string): boolean {
-  if (SETTER_ALLOWED_GET_ONLY.some((p) => pathname === p || pathname.startsWith(p + '/'))) {
-    // Sin el gate de método, un setter se borra su propio tag 'setter' con un
-    // PATCH y el panel deja de restringirlo: escalada a admin pleno.
-    return method === 'GET';
-  }
-  return SETTER_ALLOWED_PREFIXES.some(
-    (p) => pathname === p || pathname.startsWith(p.endsWith('/') ? p : p + '/'),
-  );
-}
+// La lista blanca del setter vive en un módulo puro (sin Next ni Supabase) para
+// poder aplicarla en los DOS hosts y testearla sola: scripts/check-permisos.ts.
+import { esApiDeAdmin, setterPuedeUsar } from '@/lib/permisos-setter';
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
@@ -94,7 +63,11 @@ async function handleAlumno(
   // dejamos pasar para no romper APIs publicas: cada route se
   // autentica por su cuenta como hasta ahora.
   // ============================================================
-  if (pathname.startsWith('/api/')) {
+  // `esApiDeAdmin` cubre las variantes con percent-encoding
+  // (/api/%61dmin/...): no empiezan con '/api/' como texto, pero el router
+  // puede decodificarlas y resolverlas igual, y en ese caso se salteaban este
+  // bloque entero (y con él, el gate de setter). Por las dudas, cerrado.
+  if (pathname.startsWith('/api/') || esApiDeAdmin(pathname)) {
     // Endpoints PÚBLICOS de captación de leads + tracking. Los usan las
     // landings de marketing (/auditoria, /que-luchador-sos,
     // /consultoria-gratuita, /agendar), que cualquiera puede visitar — incluido un
@@ -133,8 +106,8 @@ async function handleAlumno(
       // Vale para cualquiera con la marca, sea admin o no: un setter puede ser
       // una alumna que usa la app con su cuenta, y la lista blanca tiene que
       // valer igual para ella.
-      if ((prof?.tags || []).includes('setter') && isAdminApi(pathname)) {
-        if (!isSetterAllowed(pathname, request.method)) {
+      if ((prof?.tags || []).includes('setter') && esApiDeAdmin(pathname)) {
+        if (!setterPuedeUsar(pathname, request.method)) {
           return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
         }
       }
@@ -272,10 +245,33 @@ async function handleCursos(
 ) {
   const { pathname } = request.nextUrl;
 
-  // /api/* en host cursos: el middleware no toca; cada route handler hace
+  // /api/* en host cursos: el middleware casi no toca; cada route handler hace
   // su propia auth (devuelve 401 JSON si no hay sesion). Asi no rompemos
   // clientes que llaman a /api/cursos/* esperando respuestas JSON.
   if (pathname.startsWith('/api/')) {
+    // GATE DE SETTER, también en este host. Los dos dominios pegan al MISMO
+    // deploy, así que /api/admin/* existe acá igual que en el de alumnos. Antes
+    // este handler dejaba pasar todo /api/*, y un setter (rol='admin' + tag)
+    // se salteaba la lista blanca con solo entrar por jiujitsulatino.com:
+    // le respondían analytics, soporte, update-role, etc.
+    //
+    // El perfil se lee SOLO para /api/admin/* con usuario logueado: así no le
+    // sumamos una query a cada /api/cursos/* (que es el tráfico real de este
+    // host). Si la lectura falla dejamos pasar: la segunda capa es
+    // `requireAdmin`, que rechaza setters por defecto leyendo con service role.
+    if (user && esApiDeAdmin(pathname)) {
+      const { data: prof } = await supabase
+        .from('users')
+        .select('tags')
+        .eq('id', user.id)
+        .single<{ tags: string[] | null }>();
+      if (
+        (prof?.tags || []).includes('setter') &&
+        !setterPuedeUsar(pathname, request.method)
+      ) {
+        return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
+      }
+    }
     return supabaseResponse;
   }
 

@@ -1,36 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@supabase/ssr';
-import { createClient } from '@supabase/supabase-js';
-import { format, subDays, subWeeks } from 'date-fns';
+import { format, subDays } from 'date-fns';
+import { verificarAdmin } from '@/lib/supabase/server';
 
 export async function GET(request: NextRequest) {
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() { return request.cookies.getAll(); },
-        setAll() {},
-      },
-    }
-  );
-
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
-
-  const adminClient = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { auth: { autoRefreshToken: false, persistSession: false } }
-  );
-
-  const { data: profile } = await adminClient.from('users').select('rol').eq('id', user.id).single();
-  if (profile?.rol !== 'admin') return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
+  // Auth centralizada. Antes esta ruta miraba a mano solo `rol === 'admin'`, y
+  // como el setter ES rol='admin' (+ tag), le devolvía la lista completa de
+  // alumnos con sus mails. `verificarAdmin` rechaza setters por defecto y
+  // mantiene los mismos códigos: 401 sin sesión, 403 sin permiso.
+  const auth = await verificarAdmin(request);
+  if (!auth.ctx) return NextResponse.json({ error: auth.error }, { status: auth.status });
+  const adminClient = auth.ctx.admin;
 
   const now = new Date();
-  const today = format(now, 'yyyy-MM-dd');
   const weekAgo = format(subDays(now, 7), 'yyyy-MM-dd');
-  const monthAgo = format(subDays(now, 30), 'yyyy-MM-dd');
 
   // 1. Total users (solo program_member del programa, no compradores
   // de cursos sueltos). Fallback si la columna no existe todavía.
@@ -51,7 +33,7 @@ export async function GET(request: NextRequest) {
     .select('user_id')
     .gte('started_at', subDays(now, 7).toISOString());
 
-  const activeUserIds = new Set((recentSessions || []).map((s: any) => s.user_id));
+  const activeUserIds = new Set((recentSessions || []).map((s) => s.user_id));
   const activeUsersCount = activeUserIds.size;
 
   // 3. Training days this week
@@ -62,7 +44,7 @@ export async function GET(request: NextRequest) {
     .gte('fecha', weekAgo);
 
   const trainingThisWeek = (weekTraining || []).length;
-  const uniqueTrainers = new Set((weekTraining || []).map((t: any) => t.user_id)).size;
+  const uniqueTrainers = new Set((weekTraining || []).map((t) => t.user_id)).size;
 
   // 4. Lessons completed (total + this week)
   const { count: totalLessons } = await adminClient
@@ -95,11 +77,11 @@ export async function GET(request: NextRequest) {
     .gt('duration_seconds', 10); // ignore bounces
 
   const avgDuration = sessions7d && sessions7d.length > 0
-    ? Math.round(sessions7d.reduce((sum: number, s: any) => sum + s.duration_seconds, 0) / sessions7d.length)
+    ? Math.round(sessions7d.reduce((sum: number, s) => sum + s.duration_seconds, 0) / sessions7d.length)
     : 0;
 
   const totalTimeMinutes = sessions7d
-    ? Math.round(sessions7d.reduce((sum: number, s: any) => sum + s.duration_seconds, 0) / 60)
+    ? Math.round(sessions7d.reduce((sum: number, s) => sum + s.duration_seconds, 0) / 60)
     : 0;
 
   // 7. Retention: users active this week vs last week
@@ -109,7 +91,7 @@ export async function GET(request: NextRequest) {
     .gte('started_at', subDays(now, 14).toISOString())
     .lt('started_at', subDays(now, 7).toISOString());
 
-  const lastWeekUsers = new Set((lastWeekSessions || []).map((s: any) => s.user_id));
+  const lastWeekUsers = new Set((lastWeekSessions || []).map((s) => s.user_id));
   const retained = [...activeUserIds].filter((id) => lastWeekUsers.has(id)).length;
   const retentionRate = lastWeekUsers.size > 0 ? Math.round((retained / lastWeekUsers.size) * 100) : 0;
 
@@ -140,7 +122,7 @@ export async function GET(request: NextRequest) {
     .gt('duration_seconds', 0);
 
   const userSessionMap: Record<string, { totalMin: number; count: number; lastActive: string }> = {};
-  (allSessions || []).forEach((s: any) => {
+  (allSessions || []).forEach((s) => {
     if (!userSessionMap[s.user_id]) {
       userSessionMap[s.user_id] = { totalMin: 0, count: 0, lastActive: s.started_at };
     }
@@ -157,27 +139,27 @@ export async function GET(request: NextRequest) {
   // las dos que más crecen) y encima secuenciales, solo para contar por
   // usuario. Ahora se acotan a los usuarios que el panel realmente muestra y
   // van en paralelo.
-  const userIds = (allUsers || []).map((u: any) => u.id);
+  const userIds = (allUsers || []).map((u) => u.id);
   const [lessonsRes, trainingRes] = await Promise.all([
     userIds.length
       ? adminClient.from('user_progress').select('user_id').eq('completado', true).in('user_id', userIds)
-      : Promise.resolve({ data: [] as any[] }),
+      : Promise.resolve({ data: [] as { user_id: string }[] }),
     userIds.length
       ? adminClient.from('daily_tasks').select('user_id').eq('entreno_check', true).in('user_id', userIds)
-      : Promise.resolve({ data: [] as any[] }),
+      : Promise.resolve({ data: [] as { user_id: string }[] }),
   ]);
 
   const userLessonCounts: Record<string, number> = {};
-  (lessonsRes.data || []).forEach((l: any) => {
+  (lessonsRes.data || []).forEach((l) => {
     userLessonCounts[l.user_id] = (userLessonCounts[l.user_id] || 0) + 1;
   });
 
   const userTrainingCounts: Record<string, number> = {};
-  (trainingRes.data || []).forEach((t: any) => {
+  (trainingRes.data || []).forEach((t) => {
     userTrainingCounts[t.user_id] = (userTrainingCounts[t.user_id] || 0) + 1;
   });
 
-  const userDetails = (allUsers || []).map((u: any) => ({
+  const userDetails = (allUsers || []).map((u) => ({
     id: u.id,
     nombre: u.nombre,
     email: u.email,
@@ -203,8 +185,8 @@ export async function GET(request: NextRequest) {
     const date = format(subDays(now, i), 'yyyy-MM-dd');
     const dayUsers = new Set(
       (allRecentSessions || [])
-        .filter((s: any) => s.started_at.startsWith(date))
-        .map((s: any) => s.user_id)
+        .filter((s) => s.started_at.startsWith(date))
+        .map((s) => s.user_id)
     );
     dailyActive.push({ date, count: dayUsers.size });
   }

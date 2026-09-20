@@ -1,35 +1,15 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { createServerClient } from '@supabase/ssr';
-import { createClient } from '@supabase/supabase-js';
-
-function getSupabase(request: NextRequest) {
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { cookies: { getAll() { return request.cookies.getAll(); }, setAll() {} } }
-  );
-}
-function getAdmin() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { auth: { autoRefreshToken: false, persistSession: false } }
-  );
-}
+import { verificarAdmin } from '@/lib/supabase/server';
 
 // GET /api/admin/soporte — inbox: lista de hilos (1 por alumno con mensajes)
 // + ultimo mensaje + count de no-leidos del alumno (sender='user' & leido=false).
 export async function GET(request: NextRequest) {
-  const supabase = getSupabase(request);
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
-
-  const { data: profile } = await supabase.from('users').select('rol').eq('id', user.id).single();
-  if ((profile as { rol?: string } | null)?.rol !== 'admin') {
-    return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
-  }
-
-  const admin = getAdmin();
+  // Auth centralizada: la bandeja de soporte tiene conversaciones privadas de
+  // los alumnos y al setter no le corresponde. A mano solo se miraba
+  // `rol === 'admin'`, que el setter cumple. Mismos códigos que antes (401/403).
+  const auth = await verificarAdmin(request);
+  if (!auth.ctx) return NextResponse.json({ error: auth.error }, { status: auth.status });
+  const admin = auth.ctx.admin;
 
   // Traer los mensajes recientes y agregar en memoria por user_id.
   //

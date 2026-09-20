@@ -1,29 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@supabase/ssr';
-import { createClient } from '@supabase/supabase-js';
+import { verificarAdmin } from '@/lib/supabase/server';
 
 export async function GET(request: NextRequest) {
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { cookies: { getAll() { return request.cookies.getAll(); }, setAll() {} } }
-  );
-
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
-
-  // Check admin
-  const { data: profile } = await supabase.from('users').select('rol').eq('id', user.id).single();
-  if ((profile as any)?.rol !== 'admin') return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
+  // Auth centralizada: el diario es de lo más privado que escribe un alumno. A
+  // mano solo se miraba `rol === 'admin'`, que el setter cumple (rol='admin' +
+  // tag). `verificarAdmin` lo rechaza por defecto y mantiene los mismos
+  // códigos: 401 sin sesión, 403 sin permiso.
+  const auth = await verificarAdmin(request);
+  if (!auth.ctx) return NextResponse.json({ error: auth.error }, { status: auth.status });
 
   const studentId = request.nextUrl.searchParams.get('userId');
   if (!studentId) return NextResponse.json({ error: 'userId requerido' }, { status: 400 });
 
-  const admin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { auth: { autoRefreshToken: false, persistSession: false } }
-  );
+  const admin = auth.ctx.admin;
 
   const { data: entries } = await admin
     .from('daily_tasks')

@@ -1,41 +1,19 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { createServerClient } from '@supabase/ssr';
-import { createClient } from '@supabase/supabase-js';
+import { verificarAdmin } from '@/lib/supabase/server';
 
-function getSupabase(request: NextRequest) {
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { cookies: { getAll() { return request.cookies.getAll(); }, setAll() {} } }
-  );
-}
-function getAdmin() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { auth: { autoRefreshToken: false, persistSession: false } }
-  );
-}
-
-async function ensureAdmin(request: NextRequest) {
-  const supabase = getSupabase(request);
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { user: null as null, admin: null as null, error: 'No autenticado' as string, status: 401 as number };
-  const { data: profile } = await supabase.from('users').select('rol').eq('id', user.id).single();
-  if ((profile as { rol?: string } | null)?.rol !== 'admin') {
-    return { user, admin: null, error: 'No autorizado', status: 403 } as const;
-  }
-  return { user, admin: getAdmin(), error: null as null, status: 200 as number };
-}
+// La auth va por `verificarAdmin` (central) y no a mano: el chequeo manual
+// miraba solo `rol === 'admin'`, y el setter ES rol='admin' + tag, así que podía
+// leer y responder los hilos privados de soporte. El helper lo rechaza por
+// defecto y conserva los códigos de siempre: 401 sin sesión, 403 sin permiso.
 
 // GET /api/admin/soporte/[userId] — hilo completo con un alumno + nombre del admin
 // que escribio cada respuesta (para auditoria visual interna). Marca como leidos
 // los mensajes del alumno (sender='user').
 export async function GET(request: NextRequest, ctx: { params: Promise<{ userId: string }> }) {
   const { userId } = await ctx.params;
-  const auth = await ensureAdmin(request);
-  if (!auth.admin) return NextResponse.json({ error: auth.error }, { status: auth.status });
-  const admin = auth.admin;
+  const auth = await verificarAdmin(request);
+  if (!auth.ctx) return NextResponse.json({ error: auth.error }, { status: auth.status });
+  const admin = auth.ctx.admin;
 
   const { data, error } = await admin
     .from('support_messages')
@@ -48,7 +26,7 @@ export async function GET(request: NextRequest, ctx: { params: Promise<{ userId:
   type Row = { id: string; sender: string; sender_user_id: string | null; contenido: string; leido: boolean; created_at: string };
   const rows = (data || []) as Row[];
   const adminIds = [...new Set(rows.filter((r) => r.sender === 'admin' && r.sender_user_id).map((r) => r.sender_user_id as string))];
-  let names: Record<string, string> = {};
+  const names: Record<string, string> = {};
   if (adminIds.length > 0) {
     const { data: us } = await admin.from('users').select('id, nombre').in('id', adminIds);
     (us || []).forEach((u: { id: string; nombre: string }) => { names[u.id] = u.nombre; });
@@ -80,9 +58,9 @@ export async function GET(request: NextRequest, ctx: { params: Promise<{ userId:
 // POST /api/admin/soporte/[userId] — el admin responde al alumno como "Soporte".
 export async function POST(request: NextRequest, ctx: { params: Promise<{ userId: string }> }) {
   const { userId } = await ctx.params;
-  const auth = await ensureAdmin(request);
-  if (!auth.admin || !auth.user) return NextResponse.json({ error: auth.error }, { status: auth.status });
-  const admin = auth.admin;
+  const auth = await verificarAdmin(request);
+  if (!auth.ctx) return NextResponse.json({ error: auth.error }, { status: auth.status });
+  const admin = auth.ctx.admin;
 
   const body = await request.json();
   const contenido = String(body?.contenido || '').trim();
@@ -92,7 +70,7 @@ export async function POST(request: NextRequest, ctx: { params: Promise<{ userId
   const { error } = await admin.from('support_messages').insert({
     user_id: userId,
     sender: 'admin',
-    sender_user_id: auth.user.id,
+    sender_user_id: auth.ctx.user.id,
     contenido,
   });
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });

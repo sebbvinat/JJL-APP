@@ -83,23 +83,25 @@ export async function getAuthedUser(request: NextRequest) {
   return { user, supabase };
 }
 
+type OpcionesAdmin = { denyTags?: string[]; allowSetter?: boolean };
+
 /**
- * Helper: return the authenticated user AND verify admin role.
- * Returns { user, supabase, admin, tags } where admin is the service-role
- * client, or null if not authenticated / not admin.
+ * Igual que `requireAdmin`, pero cuando rechaza dice POR QUÉ: 401 si no hay
+ * sesión, 403 si hay sesión y no alcanza el permiso.
  *
- * `opts.denyTags`: rechaza al caller si tiene alguno de esos tags. Los setters
- * son rol='admin' + tags:['setter'], así que sin esto pasan por TODOS los
- * endpoints de admin. El middleware ya aplica una whitelist global; esto es la
- * segunda capa para las rutas sensibles (defensa en profundidad — si alguien
- * suma una ruta al whitelist por error, el guard local sigue cerrando).
+ * Por qué existe: las rutas que hacían la auth a mano (analytics, soporte,
+ * announcements, sync-planillas, drive, student-diary) distinguían esos dos
+ * casos. Al pasarlas a este helper central mantienen los mismos códigos y el
+ * mismo `{ error }`, y de paso heredan el rechazo de setters, que a mano no
+ * tenían (miraban solo `rol === 'admin'`, y el setter ES rol='admin').
+ *
+ * Uso:
+ *   const auth = await verificarAdmin(request);
+ *   if (!auth.ctx) return NextResponse.json({ error: auth.error }, { status: auth.status });
  */
-export async function requireAdmin(
-  request: NextRequest,
-  opts?: { denyTags?: string[]; allowSetter?: boolean },
-) {
+export async function verificarAdmin(request: NextRequest, opts?: OpcionesAdmin) {
   const { user, supabase } = await getAuthedUser(request);
-  if (!user) return null;
+  if (!user) return { ctx: null, error: 'No autenticado', status: 401 } as const;
 
   const admin = createAdminSupabaseClient();
   const { data: profile } = await admin
@@ -109,6 +111,19 @@ export async function requireAdmin(
     .single<{ rol: string; tags: string[] | null }>();
 
   const tags = profile?.tags || [];
+  const esSetter = tags.includes('setter');
+  const rechazo = { ctx: null, error: 'No autorizado', status: 403 } as const;
+
+  // FALLA CERRADO CON SETTERS. Un setter es rol='admin' + tags:['setter'], así
+  // que con mirar solo el rol pasaba TODOS los endpoints de admin; lo único que
+  // lo frenaba era la lista blanca del middleware, que además no se aplicaba
+  // entrando por el host de cursos. Ahora la marca 'setter' rechaza por
+  // defecto y solo pasan las rutas que declaran `allowSetter: true` (las
+  // mismas de src/lib/permisos-setter.ts). Si alguien crea una ruta nueva y se
+  // olvida de pensar en el setter, nace cerrada para él.
+  if (esSetter && !opts?.allowSetter) {
+    return rechazo;
+  }
 
   // `allowSetter`: un setter puede NO ser admin. Es una alumna con la marca
   // 'setter', que usa la app de alumnos con su cuenta y ademas opera Agendas.
@@ -116,12 +131,33 @@ export async function requireAdmin(
   // lista blanca del middleware). En cualquier otra ruta de admin, una alumna
   // con la marca sigue rebotando aca: si alguien se olvida de algo, falla
   // cerrado.
-  if (profile?.rol !== 'admin' && !(opts?.allowSetter && tags.includes('setter'))) {
-    return null;
+  if (profile?.rol !== 'admin' && !(opts?.allowSetter && esSetter)) {
+    return rechazo;
   }
+  // `denyTags`: rechaza al caller si tiene alguno de esos tags. Para 'setter'
+  // quedó redundante con el rechazo por defecto de arriba (inofensivo); sigue
+  // sirviendo para cerrarle una ruta a cualquier otra marca.
   if (opts?.denyTags?.length && opts.denyTags.some((t) => tags.includes(t))) {
-    return null;
+    return rechazo;
   }
 
-  return { user, supabase, admin, tags, rol: profile?.rol ?? null };
+  return {
+    ctx: { user, supabase, admin, tags, rol: profile?.rol ?? null },
+    error: null,
+    status: 200,
+  };
+}
+
+/**
+ * Helper: return the authenticated user AND verify admin role.
+ * Returns { user, supabase, admin, tags } where admin is the service-role
+ * client, or null if not authenticated / not admin.
+ *
+ * Rechaza setters salvo `opts.allowSetter` (ver `verificarAdmin`). El
+ * middleware ya aplica una lista blanca global; esto es la segunda capa
+ * (defensa en profundidad — si el middleware no corre o alguien suma una ruta
+ * a la lista por error, el guard local sigue cerrando).
+ */
+export async function requireAdmin(request: NextRequest, opts?: OpcionesAdmin) {
+  return (await verificarAdmin(request, opts)).ctx;
 }

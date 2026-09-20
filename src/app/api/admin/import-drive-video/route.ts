@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { getAuthedUser, createAdminSupabaseClient } from '@/lib/supabase/server';
+import { verificarAdmin } from '@/lib/supabase/server';
 import { getDriveFileInfo } from '@/lib/google-drive';
 
 export const runtime = 'nodejs';
@@ -9,13 +9,11 @@ export const runtime = 'nodejs';
 // Manually imports a single Drive video and assigns it to a student. Useful
 // when sync can't see the file (permissions issue) but admin has the URL.
 export async function POST(request: NextRequest) {
-  const { user, supabase } = await getAuthedUser(request);
-  if (!user) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
-
-  const { data: profile } = await supabase.from('users').select('rol').eq('id', user.id).single();
-  if ((profile as any)?.rol !== 'admin') {
-    return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
-  }
+  // Auth centralizada: a mano solo se miraba `rol === 'admin'`, que el setter
+  // cumple (es rol='admin' + tag). `verificarAdmin` lo rechaza por defecto y
+  // mantiene los mismos códigos: 401 sin sesión, 403 sin permiso.
+  const auth = await verificarAdmin(request);
+  if (!auth.ctx) return NextResponse.json({ error: auth.error }, { status: auth.status });
 
   const { fileIdOrUrl, userId } = await request.json();
   if (!fileIdOrUrl || !userId) {
@@ -33,24 +31,25 @@ export async function POST(request: NextRequest) {
   let info;
   try {
     info = await getDriveFileInfo(fileId);
-  } catch (err: any) {
+  } catch (err) {
+    const detalle = err instanceof Error && err.message ? err.message : 'error';
     return NextResponse.json({
-      error: `No se pudo leer el archivo en Drive: ${err.message || 'error'}. Asegurate de que la cuenta de servicio tenga acceso al archivo (compartir con el email de la service account).`,
+      error: `No se pudo leer el archivo en Drive: ${detalle}. Asegurate de que la cuenta de servicio tenga acceso al archivo (compartir con el email de la service account).`,
     }, { status: 500 });
   }
 
-  const admin = createAdminSupabaseClient();
+  const admin = auth.ctx.admin;
 
   // Avoid duplicates if it's already in the DB
   const { data: existing } = await admin
     .from('video_uploads')
     .select('id')
     .eq('drive_file_id', fileId)
-    .maybeSingle();
+    .maybeSingle<{ id: string }>();
   if (existing) {
     return NextResponse.json({
       error: 'Este video ya estaba importado',
-      videoId: (existing as any).id,
+      videoId: existing.id,
     }, { status: 409 });
   }
 
@@ -74,10 +73,10 @@ export async function POST(request: NextRequest) {
       admin.from('users').select('nombre').eq('id', userId).single(),
       admin.from('users').select('id').eq('rol', 'admin'),
     ]);
-    const studentName = (studentRow as any)?.nombre || 'Alumno';
+    const studentName = (studentRow as { nombre?: string } | null)?.nombre || 'Alumno';
     const { createNotification } = await import('@/lib/notifications');
     await Promise.all(
-      (admins || []).map((a: any) =>
+      ((admins || []) as { id: string }[]).map((a) =>
         createNotification(
           a.id,
           'system',

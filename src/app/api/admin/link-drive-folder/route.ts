@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { getAuthedUser, createAdminSupabaseClient } from '@/lib/supabase/server';
+import { verificarAdmin } from '@/lib/supabase/server';
 
 export const runtime = 'nodejs';
 
@@ -7,13 +7,11 @@ export const runtime = 'nodejs';
 // Body: { folderIdOrUrl: string, userId: string }
 // Manually attaches a Drive folder to a student, so future syncs scan it.
 export async function POST(request: NextRequest) {
-  const { user, supabase } = await getAuthedUser(request);
-  if (!user) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
-
-  const { data: profile } = await supabase.from('users').select('rol').eq('id', user.id).single();
-  if ((profile as any)?.rol !== 'admin') {
-    return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
-  }
+  // Auth centralizada: a mano solo se miraba `rol === 'admin'`, que el setter
+  // cumple (es rol='admin' + tag). `verificarAdmin` lo rechaza por defecto y
+  // mantiene los mismos códigos: 401 sin sesión, 403 sin permiso.
+  const auth = await verificarAdmin(request);
+  if (!auth.ctx) return NextResponse.json({ error: auth.error }, { status: auth.status });
 
   const { folderIdOrUrl, userId } = await request.json();
   if (!folderIdOrUrl || !userId) {
@@ -27,7 +25,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'No pude extraer el ID del link' }, { status: 400 });
   }
 
-  const admin = createAdminSupabaseClient();
+  const admin = auth.ctx.admin;
   const { error } = await admin
     .from('users')
     .update({

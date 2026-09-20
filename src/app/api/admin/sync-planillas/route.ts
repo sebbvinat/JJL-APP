@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@supabase/ssr';
-import { createClient } from '@supabase/supabase-js';
+import { verificarAdmin } from '@/lib/supabase/server';
 import { getPlanillaForSave } from '@/lib/planillas';
 
 export const runtime = 'nodejs';
@@ -10,35 +9,12 @@ export const maxDuration = 60;
 // Preserves lesson IDs so user_progress is not lost.
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() { return request.cookies.getAll(); },
-          setAll() {},
-        },
-      }
-    );
-
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
-
-    const adminClient = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      { auth: { autoRefreshToken: false, persistSession: false } }
-    );
-
-    const { data: profile } = await adminClient
-      .from('users')
-      .select('rol')
-      .eq('id', user.id)
-      .single();
-
-    if (profile?.rol !== 'admin') {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
-    }
+    // Auth centralizada. Esta ruta REESCRIBE course_data de todos los alumnos;
+    // a mano solo miraba `rol === 'admin'`, que el setter cumple. El helper lo
+    // rechaza por defecto y mantiene los mismos códigos (401 / 403).
+    const auth = await verificarAdmin(request);
+    if (!auth.ctx) return NextResponse.json({ error: auth.error }, { status: auth.status });
+    const adminClient = auth.ctx.admin;
 
     // Get all students with a planilla assigned
     const { data: students } = await adminClient
@@ -71,7 +47,7 @@ export async function POST(request: NextRequest) {
       if (!overrideByModule.has(o.module_id)) overrideByModule.set(o.module_id, new Map());
       overrideByModule.get(o.module_id)!.set(o.lesson_key, o);
     }
-    const applyOverrides = (moduleId: string, lessons: any[]): any[] => {
+    const applyOverrides = <L extends { titulo?: unknown }>(moduleId: string, lessons: L[]): L[] => {
       const m = overrideByModule.get(moduleId);
       if (!m || !Array.isArray(lessons)) return lessons;
       return lessons.map((l) => {
@@ -161,8 +137,9 @@ export async function POST(request: NextRequest) {
       details: details.length > 0 ? details : undefined,
       message: `${synced} alumnos sincronizados`,
     });
-  } catch (err: any) {
+  } catch (err) {
     console.error('[sync-planillas] failed', err);
-    return NextResponse.json({ error: err.message || 'Error' }, { status: 500 });
+    const mensaje = err instanceof Error && err.message ? err.message : 'Error';
+    return NextResponse.json({ error: mensaje }, { status: 500 });
   }
 }
