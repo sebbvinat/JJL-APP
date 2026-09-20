@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createAdminSupabaseClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/logger';
 import { ARQUETIPOS, calculateMatch, construirBrecha, type ArquetipoId, type QuizAnswers } from '@/lib/match-arquetipos';
+import { permitirRuta } from '@/lib/rate-limit';
+import { sessionIdParaBase } from '@/lib/session-id';
 
 export const runtime = 'nodejs';
 
@@ -42,17 +44,30 @@ function normalizarWhatsapp(crudo: string | null): string | null {
  * Idempotente: re-postear el mismo session_id update-ea la fila existente.
  */
 export async function POST(request: NextRequest) {
+  // Límite por IP antes de mirar el body. POST y PATCH comparten el mismo cupo
+  // (30 cada 10 min): un recorrido real son 2 POST y un par de PATCH. Falla
+  // abierto (src/lib/rate-limit.ts).
+  if (!(await permitirRuta(request, 'match-quiz'))) {
+    return NextResponse.json({ error: 'Demasiadas solicitudes' }, { status: 429 });
+  }
+
   let body: Record<string, unknown> | null = null;
   try {
     body = await request.json();
   } catch {
     return NextResponse.json({ error: 'JSON inválido' }, { status: 400 });
   }
-  if (!body) return NextResponse.json({ error: 'Body vacío' }, { status: 400 });
+  // `typeof` y no solo `!body`: un JSON válido puede ser un número o un texto,
+  // y con eso `body.session_id` de abajo no tiene sentido.
+  if (!body || typeof body !== 'object') {
+    return NextResponse.json({ error: 'Body vacío' }, { status: 400 });
+  }
 
-  const sessionId = typeof body.session_id === 'string' ? body.session_id.trim() : '';
-  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(sessionId)) {
-    return NextResponse.json({ error: 'session_id inválido (esperado UUID)' }, { status: 400 });
+  // Misma validación que el resto del embudo (src/lib/session-id.ts), en vez de
+  // un regex propio copiado en cada handler.
+  const sessionId = await sessionIdParaBase(body.session_id);
+  if (!sessionId) {
+    return NextResponse.json({ error: 'session_id inválido' }, { status: 400 });
   }
 
   const pick = (k: string): string | null => {
@@ -170,6 +185,11 @@ export async function POST(request: NextRequest) {
  * Los dos pueden venir juntos (el boton de WhatsApp manda contacto + accion).
  */
 export async function PATCH(request: NextRequest) {
+  // Mismo cupo que el POST (ver arriba). Falla abierto.
+  if (!(await permitirRuta(request, 'match-quiz'))) {
+    return NextResponse.json({ error: 'Demasiadas solicitudes' }, { status: 429 });
+  }
+
   let body: Record<string, unknown> | null = null;
   try {
     const raw = await request.text();
@@ -178,8 +198,8 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: 'JSON inválido' }, { status: 400 });
   }
 
-  const sessionId = typeof body?.session_id === 'string' ? body.session_id.trim() : '';
-  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(sessionId)) {
+  const sessionId = await sessionIdParaBase(body?.session_id);
+  if (!sessionId) {
     return NextResponse.json({ error: 'session_id inválido' }, { status: 400 });
   }
 

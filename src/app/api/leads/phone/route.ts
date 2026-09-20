@@ -12,8 +12,15 @@ import {
   VISION_LABEL,
   flagFor,
 } from '@/lib/lead-labels';
+import { permitir, permitirRuta } from '@/lib/rate-limit';
+import { sessionIdParaBase } from '@/lib/session-id';
 
 export const runtime = 'nodejs';
+
+// Un solo aviso (WhatsApp + campanita) por lead cada 24 h, aunque el POST se
+// repita. El teléfono se guarda igual todas las veces; lo que no se repite es
+// el mensaje al coach.
+const VENTANA_AVISO_SEG = 24 * 60 * 60;
 
 /**
  * POST /api/leads/phone
@@ -33,6 +40,12 @@ export const runtime = 'nodejs';
  * Body: { session_id, telefono, pais }
  */
 export async function POST(request: NextRequest) {
+  // Este endpoint le manda un WhatsApp al coach: es el más tentador para
+  // abusar. Límite por IP antes de mirar el body. Falla abierto.
+  if (!(await permitirRuta(request, 'phone'))) {
+    return NextResponse.json({ error: 'Demasiadas solicitudes' }, { status: 429 });
+  }
+
   let body: unknown = null;
   try {
     body = await request.json();
@@ -41,17 +54,24 @@ export async function POST(request: NextRequest) {
   }
 
   const obj = (body as Record<string, unknown>) || {};
-  const session_id = obj.session_id;
   const telefono = obj.telefono;
   const pais = obj.pais;
 
-  if (typeof session_id !== 'string' || !session_id.trim()) {
-    return NextResponse.json({ error: 'session_id es requerido' }, { status: 400 });
+  // La columna es `uuid`: validamos acá en vez de dejar que Postgres conteste
+  // un 500. El id de respaldo de navegadores viejos se convierte al mismo UUID
+  // que usó /api/leads/quiz, así cae en la misma fila. Ver src/lib/session-id.ts.
+  const sessionId = await sessionIdParaBase(obj.session_id);
+  if (!sessionId) {
+    return NextResponse.json({ error: 'session_id inválido' }, { status: 400 });
   }
-  if (typeof telefono !== 'string' || telefono.replace(/\D/g, '').length < 6) {
+  if (
+    typeof telefono !== 'string' ||
+    telefono.length > MAX_LARGO_TELEFONO ||
+    telefono.replace(/\D/g, '').length < 6
+  ) {
     return NextResponse.json({ error: 'Teléfono inválido' }, { status: 400 });
   }
-  if (typeof pais !== 'string' || !pais.trim()) {
+  if (typeof pais !== 'string' || !pais.trim() || pais.length > MAX_LARGO_PAIS) {
     return NextResponse.json({ error: 'País requerido' }, { status: 400 });
   }
 
@@ -61,7 +81,7 @@ export async function POST(request: NextRequest) {
       .from('lead_quiz_responses')
       .upsert(
         {
-          session_id: session_id.trim(),
+          session_id: sessionId,
           telefono: telefono.trim(),
           pais: pais.trim(),
           booked: true,
@@ -72,32 +92,46 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) {
+      // El detalle queda en el log; al navegador no le mostramos el mensaje de
+      // Postgres (PhoneCollect le muestra este texto tal cual a la persona).
       logger.error('leads.phone.upsert.failed', { err: error });
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json({ error: 'No se pudo guardar' }, { status: 500 });
     }
 
     // El webhook de Calendly suele llegar muy cerca de este POST (a veces
     // antes, a veces después). Si todavía no tenemos la fecha agendada ni
     // el nombre del invitee, esperamos un toque a que aparezcan para mandar
     // un WhatsApp con todo el contexto. Si no aparece, mandamos lo que hay.
+    // Si ya vinieron los dos, no se espera nada.
     let enriched = lead as LeadForNotification | null;
     if (enriched && (!enriched.scheduled_at || !enriched.nombre)) {
-      enriched = await waitForCalendlyEnrichment(admin, session_id.trim(), enriched);
+      enriched = await waitForCalendlyEnrichment(admin, sessionId, enriched);
     }
+
+    // Un solo aviso por lead cada 24 h. La marca se consume recién ACÁ, después
+    // de guardar bien: si el upsert hubiera fallado, el reintento de la persona
+    // tiene que poder avisar. Falla abierto: sin la migración, avisa siempre
+    // (que es lo que pasaba hasta ahora).
+    const esPrimerAviso = await permitir(`phone-wa:${sessionId}`, 1, VENTANA_AVISO_SEG);
 
     // Disparar notificaciones. Best-effort: cualquier fallo se logea y NO
     // rompe la respuesta — el lead ya quedó guardado y eso es lo crítico.
-    try {
-      await fanOutLeadNotifications(admin, enriched);
-    } catch (err) {
-      logger.warn('leads.phone.notify.threw', { err });
+    if (esPrimerAviso) {
+      try {
+        await fanOutLeadNotifications(admin, enriched);
+      } catch (err) {
+        logger.warn('leads.phone.notify.threw', { err });
+      }
+    } else {
+      logger.info('leads.phone.notify.repetido', { sessionId });
     }
 
     // Webhook externo (Make/Zapier/etc.) — usado para automatizaciones
-    // de follow-up por IG o Google Sheet.
+    // de follow-up por IG o Google Sheet. Este NO se deduplica: se dispara
+    // igual que antes en cada POST. Lo acota el límite por IP de arriba.
     if (enriched) {
       void dispatchLeadWebhook('lead.booked', {
-        session_id: session_id.trim(),
+        session_id: sessionId,
         instagram: enriched.instagram,
         ocupacion: enriched.ocupacion,
         fortaleza: enriched.fortaleza,
@@ -145,8 +179,17 @@ interface LeadForNotification {
 const LEAD_SELECT =
   'id, instagram, ocupacion, fortaleza, limitacion, estado, vision, compromiso, telefono, pais, nombre, email, scheduled_at, disqualified';
 
-const ENRICHMENT_TIMEOUT_MS = 3500;
+// Bajado de 3500 a 1500 ms. La persona está mirando un botón "Guardando..."
+// mientras esto espera, y el webhook de Calendly casi siempre llega antes que
+// este POST (106 de 109 agendas ya tenían `scheduled_at`). Si en 1,5 s no
+// apareció, el WhatsApp sale igual con lo que haya.
+const ENRICHMENT_TIMEOUT_MS = 1500;
 const ENRICHMENT_POLL_MS = 500;
+
+// PhoneCollect manda "+<código><dígitos>" y el código de país solo ("54").
+// Topes holgados: sirven para frenar basura, no para validar el formato.
+const MAX_LARGO_TELEFONO = 40;
+const MAX_LARGO_PAIS = 40;
 
 /**
  * Polea la fila del lead durante un breve período hasta que el webhook de

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminSupabaseClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/logger';
+import { permitirRuta } from '@/lib/rate-limit';
+import { sessionIdParaBase } from '@/lib/session-id';
 
 export const runtime = 'nodejs';
 
@@ -15,10 +17,20 @@ export const runtime = 'nodejs';
  * el form de teléfono se saltea automáticamente.
  */
 export async function GET(request: NextRequest) {
+  // El cliente consulta esto en bucle unos 6 segundos después de agendar. Si se
+  // pasa del límite contestamos 200 con "no tiene teléfono": el cliente sigue
+  // su camino normal (muestra el form de teléfono) en vez de romperse con un
+  // 429. Falla abierto (src/lib/rate-limit.ts).
+  if (!(await permitirRuta(request, 'check'))) {
+    return NextResponse.json({ ok: false, has_phone: false, booked: false });
+  }
+
   const url = new URL(request.url);
-  const sessionId = url.searchParams.get('session_id');
+  // La columna es `uuid`: un texto con otra forma hacía fallar el select. El id
+  // de respaldo se convierte al mismo UUID del quiz. Ver src/lib/session-id.ts.
+  const sessionId = await sessionIdParaBase(url.searchParams.get('session_id'));
   if (!sessionId) {
-    return NextResponse.json({ error: 'session_id requerido' }, { status: 400 });
+    return NextResponse.json({ error: 'session_id inválido' }, { status: 400 });
   }
 
   try {

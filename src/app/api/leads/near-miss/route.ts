@@ -3,6 +3,8 @@ import { createAdminSupabaseClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/logger';
 import { notifyCoachWhatsApp } from '@/lib/whatsapp';
 import { FORTALEZA_LABEL, flagFor } from '@/lib/lead-labels';
+import { permitirRuta } from '@/lib/rate-limit';
+import { sessionIdParaBase } from '@/lib/session-id';
 
 export const runtime = 'nodejs';
 
@@ -28,6 +30,14 @@ export const runtime = 'nodejs';
  * Body: { session_id, kind?: 'slot' | 'quiz' }
  */
 export async function POST(request: NextRequest) {
+  // Este endpoint le manda un WhatsApp al setter, así que el techo es bajo.
+  // Responde 200 y no 429 a propósito: llega por sendBeacon cuando la persona
+  // se está yendo, nadie lee la respuesta y no queremos que nada reintente.
+  // Falla abierto (ver src/lib/rate-limit.ts).
+  if (!(await permitirRuta(request, 'near-miss'))) {
+    return NextResponse.json({ ok: false });
+  }
+
   let body: { session_id?: unknown; kind?: unknown } | null = null;
   try {
     const raw = await request.text();
@@ -36,9 +46,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'JSON inválido' }, { status: 400 });
   }
 
-  const sessionId = typeof body?.session_id === 'string' ? body.session_id.trim() : '';
+  // La columna es `uuid`: con un id con otra forma, Postgres tiraba error en el
+  // select. El id de respaldo se convierte al mismo UUID con el que se guardó
+  // el quiz. Ver src/lib/session-id.ts.
+  const sessionId = await sessionIdParaBase(body?.session_id);
   if (!sessionId) {
-    return NextResponse.json({ error: 'session_id requerido' }, { status: 400 });
+    return NextResponse.json({ error: 'session_id inválido' }, { status: 400 });
   }
   const kind: 'slot' | 'quiz' = body?.kind === 'quiz' ? 'quiz' : 'slot';
 

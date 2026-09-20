@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminSupabaseClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/logger';
+import { permitirRuta } from '@/lib/rate-limit';
+import { sessionIdParaBase } from '@/lib/session-id';
 
 export const runtime = 'nodejs';
 
@@ -30,6 +32,12 @@ const EVENT_COLUMN: Record<string, string> = {
 };
 
 export async function POST(request: NextRequest) {
+  // Es tracking best-effort: si se pasa del límite contestamos 200 (no 429)
+  // para que el navegador no reintente. Falla abierto (src/lib/rate-limit.ts).
+  if (!(await permitirRuta(request, 'calendly-event'))) {
+    return NextResponse.json({ ok: false });
+  }
+
   let body: { session_id?: unknown; event?: unknown } | null = null;
   try {
     const raw = await request.text();
@@ -38,8 +46,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'JSON inválido' }, { status: 400 });
   }
 
-  const sessionId = typeof body?.session_id === 'string' ? body.session_id.trim() : '';
-  if (sessionId.length < 8 || sessionId.length > 100) {
+  // Antes solo se miraba el largo (8–100), y como la columna es `uuid`,
+  // cualquier texto que no lo fuera terminaba en un error de Postgres. El id de
+  // respaldo se convierte al mismo UUID del quiz. Ver src/lib/session-id.ts.
+  const sessionId = await sessionIdParaBase(body?.session_id);
+  if (!sessionId) {
     return NextResponse.json({ error: 'session_id inválido' }, { status: 400 });
   }
 

@@ -2,8 +2,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createAdminSupabaseClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/logger';
 import { dispatchLeadWebhook } from '@/lib/lead-webhook';
+import { permitirRuta } from '@/lib/rate-limit';
+import { sessionIdParaBase } from '@/lib/session-id';
 
 export const runtime = 'nodejs';
+
+// Tope por campo de texto. Los valores reales son cortos (opciones del quiz, un
+// handle, un mail, un teléfono, la ocupación). Sin tope, un script podía meter
+// megas en `nombre` y eso terminaba en la base, en el WhatsApp y en Make.
+const MAX_LARGO_CAMPO = 500;
+const MAX_LARGO_CABECERA = 2000;
 
 /**
  * POST /api/leads/quiz
@@ -23,6 +31,13 @@ export const runtime = 'nodejs';
  * por esta ruta.
  */
 export async function POST(request: NextRequest) {
+  // Límite por IP ANTES de mirar el body, para que los pedidos basura también
+  // cuenten. Falla abierto: si la migración no corrió o la base no contesta,
+  // deja pasar (ver src/lib/rate-limit.ts).
+  if (!(await permitirRuta(request, 'quiz'))) {
+    return NextResponse.json({ error: 'Demasiadas solicitudes' }, { status: 429 });
+  }
+
   let body: unknown = null;
   try {
     body = await request.json();
@@ -31,13 +46,21 @@ export async function POST(request: NextRequest) {
   }
 
   const obj = (body as Record<string, unknown>) || {};
-  const session_id = obj.session_id;
-  if (typeof session_id !== 'string' || !session_id.trim()) {
-    return NextResponse.json({ error: 'session_id es requerido' }, { status: 400 });
+  // La columna session_id es `uuid`. Antes cualquier texto llegaba hasta
+  // Postgres y volvía como 500 con el mensaje crudo de la base. Ahora se valida
+  // acá, y el id de respaldo de los navegadores viejos (que no es UUID) se
+  // convierte a uno en vez de perder el lead. Ver src/lib/session-id.ts.
+  const session_id = await sessionIdParaBase(obj.session_id);
+  if (!session_id) {
+    return NextResponse.json({ error: 'session_id inválido' }, { status: 400 });
   }
 
-  const userAgent = request.headers.get('user-agent') || null;
-  const referrer = request.headers.get('referer') || null;
+  // Recortados por lo mismo que los campos del body: los escribe el que llama.
+  // El tope es más holgado que el de los campos porque el referrer es el link
+  // original con todos sus parámetros (utm, fbclid, ?ig=) y se usa después para
+  // recuperar handles (scripts/recuperar-handles.mjs): cortarlo corto lo rompería.
+  const userAgent = request.headers.get('user-agent')?.slice(0, MAX_LARGO_CABECERA) || null;
+  const referrer = request.headers.get('referer')?.slice(0, MAX_LARGO_CABECERA) || null;
 
   // Recolectar campos opcionales — si no vienen, no se mandan al insert.
   const update: Record<string, unknown> = { session_id };
@@ -61,7 +84,7 @@ export async function POST(request: NextRequest) {
   ];
   for (const f of stringFields) {
     const v = obj[f];
-    if (typeof v === 'string' && v.trim()) update[f] = v.trim();
+    if (typeof v === 'string' && v.trim()) update[f] = v.trim().slice(0, MAX_LARGO_CAMPO);
   }
   if (typeof obj.disqualified === 'boolean') update.disqualified = obj.disqualified;
   if (typeof obj.booked === 'boolean') update.booked = obj.booked;
@@ -98,8 +121,10 @@ export async function POST(request: NextRequest) {
       )
       .single();
     if (error) {
+      // El detalle queda en el log. Al que llama no le devolvemos el mensaje de
+      // Postgres: nombra tablas, columnas y constraints, y este endpoint es público.
       logger.error('leads.quiz.upsert.failed', { err: error });
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json({ error: 'No se pudo guardar' }, { status: 500 });
     }
     // Si es el insert inicial (todas las respuestas), notificar al webhook
     // externo para que dispare automatizaciones de follow-up (Make/Zapier).

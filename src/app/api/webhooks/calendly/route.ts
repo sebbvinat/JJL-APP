@@ -3,6 +3,7 @@ import crypto from 'node:crypto';
 import { createAdminSupabaseClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/logger';
 import { notifySettersLeadBooked } from '@/lib/lead-notifications';
+import { sessionIdParaBase } from '@/lib/session-id';
 
 export const runtime = 'nodejs';
 
@@ -53,10 +54,11 @@ export async function POST(request: NextRequest) {
 
   // Buscar el session_id que pusimos en el utm_content del link.
   const tracking = (payload.tracking as Record<string, unknown>) || {};
-  const sessionId =
-    typeof tracking.utm_content === 'string' && tracking.utm_content.trim()
-      ? tracking.utm_content.trim()
-      : null;
+  // Mismo pasaje que hacen las rutas de /api/leads/*: la columna es `uuid`, y el
+  // id de respaldo de los navegadores viejos (que no es UUID) se guarda como un
+  // UUID derivado. Calendly nos devuelve el id CRUDO que viajó en el link, así
+  // que sin convertirlo acá la agenda de esa persona nunca encontraba su fila.
+  const sessionId = await sessionIdParaBase(tracking.utm_content);
 
   if (!sessionId) {
     logger.warn('calendly.webhook.missing_session_id', { event });
