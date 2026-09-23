@@ -479,16 +479,14 @@ button.marco.poster:hover{border-color:var(--rojo)}
    imágenes se recortan para llenar la tarjeta (object-fit:cover más abajo) en vez de
    quedar con cajas negras arriba y abajo. */
 .muro-aviso{margin:0 0 12px}
-.muro{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;align-content:start}
-.tcard{margin:0}
-.tcard .marco{width:100%}
-.tcard .marco img,.tcard .marco video{object-fit:cover}
-.tcard .marco-btn{margin-top:0}
-.tcard .vacio-in{padding:8px;font-size:12px;gap:5px}
-.tcard .vacio-in svg{width:26px;height:26px}
-.tcard .vacio-in small{font-size:10.5px}
-.es-chat .marco{border-color:#2a3b2f}
-.es-chat .vacio-in svg{stroke:#25d366}
+/* Feed de una columna, como un canal de Discord: cada imagen con su forma real, sin
+   marco, sin fondo y sin tamaño forzado; una abajo de la otra y se scrollea. */
+.muro{display:flex;flex-direction:column;align-items:center;gap:22px;padding:6px 0 48px}
+.vic{margin:0;max-width:min(100%,520px)}
+.vic button{display:block;padding:0;border:0;background:none;cursor:zoom-in}
+.vic img,.vic video{display:block;max-width:100%;max-height:80vh;width:auto;height:auto;border-radius:8px}
+.vic video{background:#000}
+.vic-emb{width:min(100%,320px)}
 
 .fila-btn{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
 
@@ -835,7 +833,7 @@ const CONFIG = {
   interfaz: {
     siguiente: "Siguiente", anterior: "Anterior", cerrar: "Cerrar", recorridoAria: "Recorrido", mapaAria: "Mapa de juego",
     aca: "Acá va el testimonio de", vertical: "video vertical 9:16", unAlumno: "un alumno",
-    acaVideo: "Acá va el video", acaChat: "Acá va la captura", capturaChat: "chat de WhatsApp",
+    capturaChat: "chat de WhatsApp",
     muroNada: "Los marcos están vacíos a propósito: acá van tus videos y tus capturas reales.",
     reproducir: "Reproducir el testimonio de", testimonioDe: "Testimonio de", abrirAparte: "Abrir en otra pestaña",
     ejemplo: "EJEMPLO", marcadorProfe: "PROFE", ampliarCaptura: "Ampliar captura", capturaReal: "Captura real",
@@ -855,7 +853,7 @@ const CONFIG = {
       conexion: "A antes / después · tocá una posición · → siguiente",
       concepto: "Tocá una posición · → siguiente",
       entreno: "Tocá una flecha del mapa · → siguiente",
-      testimonios: "Tocá un video o una captura para ampliarla"
+      testimonios: "Scrolleá con la rueda o las flechas · tocá una captura para verla grande"
     }
   },
 
@@ -1463,15 +1461,16 @@ const CONFIG = {
   },
 
   /* EL MURO DE VICTORIAS (última pantalla). Tiene que estar LLENO y verse de un
-     vistazo, tipo Discord: se scrollea y se van viendo las victorias, sin filtro
-     ni título abajo de cada una (23/9, a pedido de Sebastián). Las imágenes se
-     recortan para llenar la tarjeta, no quedan con cajas negras.
+     vistazo, tipo canal de Discord: una columna que se scrollea, cada captura con
+     su forma real y sin tarjeta, y los videos se reproducen ahí mismo (23/9, a
+     pedido de Sebastián). Sin filtro ni título abajo de cada una.
        tipo    "video" (vertical 9:16, se reproduce acá) o "chat" (captura de WhatsApp)
        para    a qué modelos le sirve — ids de "perfiles": mas40, azul, pesado,
                liviano, vuelve, compite, ensena. Hoy no se usa en pantalla (no
                hay filtro), pero queda cargado por si se vuelve a poner uno.
-       video   link de YouTube, de Google Drive o un .mp4. Vacío = marco esperando.
-       captura ruta o link de la imagen del chat. Vacío = marco esperando.
+       video   link de YouTube, de Google Drive o un .mp4. Vacío = no aparece.
+       poster  (solo videos) la imagen que se ve antes de darle play.
+       captura ruta o link de la imagen del chat. Vacío = no aparece.
      Nunca con nombre real de cliente: "Alumno A", "Alumna C", etc.
      AGREGAR MÁS ES SUMAR LÍNEAS ACÁ: el muro se llena solo. */
   testimonios: [
@@ -1490,11 +1489,11 @@ const CONFIG = {
     { tipo: "chat",  quien: "Le cambió la forma de dar sus clases", detalle: "",       para: ["ensena"],            captura: "capturas/victoria-09-cambiaron-mis-clases.jpg" },
     { tipo: "chat",  quien: "Su cuerpo le pedía otra guardia y la encontró", detalle: "", para: ["pesado", "liviano"], captura: "capturas/victoria-10-leg-trap.jpg" },
     { tipo: "chat",  quien: "“Esto no está en ningún lado”", detalle: "",              para: ["azul", "ensena"],    captura: "capturas/victoria-11-gracias.jpg" },
-    { tipo: "video", quien: "Graduación en la academia", detalle: "36 segundos",       para: ["azul", "vuelve"],    video: "videos/victoria-graduacion.mp4" },
+    { tipo: "video", quien: "Graduación en la academia", detalle: "36 segundos",       para: ["azul", "vuelve"],    video: "videos/victoria-graduacion.mp4", poster: "videos/victoria-graduacion.jpg" },
     /* Compilado de luchas del reto. Venía en 1080x1920 y en HEVC (78 MB), que
        Chrome no siempre reproduce: quedó en H.264 720x1280, 9 MB. El original
        está en tu carpeta de Downloads. */
-    { tipo: "video", quien: "Terminó el reto", detalle: "1 minuto 28",                 para: ["azul", "compite"],   video: "videos/victoria-reto-terminado.mp4" },
+    { tipo: "video", quien: "Terminó el reto", detalle: "1 minuto 28",                 para: ["azul", "compite"],   video: "videos/victoria-reto-terminado.mp4", poster: "videos/victoria-reto-terminado.jpg" },
 
     /* --- LUGARES ESPERANDO ---
        Quedan a propósito, y apuntados a los modelos que todavía no tienen nada:
@@ -1942,8 +1941,8 @@ function alFallarImagen(ev) {
   /* En el muro de victorias la tarjeta es chica: meterle el ejemplo dibujado de
      WhatsApp queda apretado y encima hace parecer real algo que no cargó. Ahí
      vuelve al marco punteado, que dice qué falta. */
-  var tarjeta = img.closest('.tcard');
-  if (tarjeta) { (img.closest('.marco-btn') || caja).outerHTML = marcoVacio(r === 'correccion' ? 'video' : 'chat'); return; }
+  var item = img.closest('.vic');
+  if (item) { item.remove(); return; }
   if (r === 'correccion') caja.outerHTML = correccionMock();
   else caja.outerHTML = mockForma(r);
 }
@@ -2406,39 +2405,30 @@ function vistaFormas() {
   return html + '<p class="chica' + (esAsincronico() ? ' fuerte' : '') + '">' + esc(T.formas.asincronico) + '</p>';
 }
 /* ---------- el muro de victorias ----------
-   23/9: sin filtro y sin titulo abajo de cada una, a pedido de Sebastian
-   ("como Discord"): un muro que se scrollea y muestra las victorias, nada mas.
-   Las imagenes se recortan para llenar la tarjeta (object-fit:cover en el
-   CSS) en vez de quedar con cajas negras arriba y abajo. El nombre de quien
-   lo escribio sigue en el aria-label del boton, para el lector de pantalla,
-   pero ya no se imprime en la tarjeta. */
-function tieneAlgo(v) { return v.tipo === 'chat' ? !!fuenteImagen(v.captura) : hayVideo(v); }
-/* El marco punteado de una tarjeta que todavia no tiene nada cargado. Se usa
-   tambien cuando una captura no carga, asi nunca queda una imagen rota. */
-function marcoVacio(tipo) {
-  var chat = tipo === 'chat';
-  return '<div class="marco v916 vacio"><div class="vacio-in">' + (chat ? ICO.chat : ICO.playAro) +
-    '<span>' + esc(chat ? I.acaChat : I.acaVideo) + '</span><small>' + esc(chat ? I.capturaChat : I.vertical) + '</small></div></div>';
-}
-function tarjetaTesti(v, i) {
-  var chat = v.tipo === 'chat', cuerpo;
-  if (chat) {
+   23/9: feed de una columna, como un canal de Discord. Cada captura con su forma
+   real (sin marco, sin recorte, sin tarjeta) y una abajo de la otra; los videos se
+   reproducen ahi mismo. Lo que todavia no tiene material NO aparece: en un feed un
+   marco vacio no tiene sentido. El nombre de quien lo escribio queda solo en el
+   alt de la imagen, para el lector de pantalla. */
+function itemVictoria(v, i) {
+  if (v.tipo === 'chat') {
     var img = fuenteImagen(v.captura);
-    cuerpo = img
-      ? '<button type="button" class="marco-btn" data-accion="ampliar-chat" data-v="' + i + '" aria-label="' + esc(I.ampliarCaptura) + '"><div class="marco v916">' + capturaHTML(img, esc(v.quien || I.capturaChat), 'whatsapp') + '</div></button>'
-      : marcoVacio('chat');
-  } else if (hayVideo(v)) {
-    /* En el muro el video NO se reproduce adentro de la tarjeta (son chicas a
-       proposito, para que entren todas): se abre grande encima de la pared. */
-    cuerpo = '<button type="button" class="marco v916 poster" data-accion="ver-testi" data-v="' + i + '" aria-label="' + esc(I.reproducir) + ' ' + esc(v.quien || I.unAlumno) + '"><span class="vacio-in">' + ICO.playAro + '</span></button>';
-  } else {
-    cuerpo = marcoVacio('video');
+    if (!img) return '';
+    return '<figure class="vic"><button type="button" data-accion="ampliar-chat" data-v="' + i + '" aria-label="' + esc(I.ampliarCaptura) + '">' +
+      capturaHTML(img, v.quien || I.capturaChat, 'whatsapp') + '</button></figure>';
   }
-  return '<figure class="tcard' + (chat ? ' es-chat' : '') + '">' + cuerpo + '</figure>';
+  var f = fuenteVideo(v.video);
+  if (!f || f.tipo === 'desconocido') return '';
+  if (f.tipo === 'archivo') {
+    return '<figure class="vic"><video src="' + esc(f.url) + '" controls playsinline preload="metadata"' +
+      (v.poster ? ' poster="' + esc(v.poster) + '"' : '') + ' aria-label="' + esc(I.testimonioDe + ' ' + (v.quien || I.unAlumno)) + '"></video></figure>';
+  }
+  /* YouTube o Drive: el iframe necesita un tamaño fijo, asi que ese si va en 9:16. */
+  return '<figure class="vic vic-emb"><div class="marco v916">' + reproductor(f, esc(v.quien || ''), false) + '</div></figure>';
 }
 function muroHTML() {
-  var aviso = CONFIG.testimonios.some(tieneAlgo) ? '' : '<p class="chica muro-aviso">' + esc(I.muroNada) + '</p>';
-  return aviso + '<div class="muro">' + CONFIG.testimonios.map(function (v, i) { return tarjetaTesti(v, i); }).join('') + '</div>';
+  var items = CONFIG.testimonios.map(itemVictoria).join('');
+  return items ? '<div class="muro">' + items + '</div>' : '<p class="chica muro-aviso">' + esc(I.muroNada) + '</p>';
 }
 function vistaTestimonios() { return movil ? muroHTML() : ''; }   // en pantalla grande el muro ocupa todo: se dibuja en la capa
 /* Las vistas que no están en PASOS (hoy, elegir, modelo, recorrido, semanas) quedan
@@ -2684,7 +2674,6 @@ function accion(ev) {
   else if (a === 'hilo') { estado.hilo = v === '1'; repintar(); }
   else if (a === 'nodo') tocarNodo(v);
   else if (a === 'canal') { estado.canal = +v; refrescarTodo(); }
-  else if (a === 'ver-testi') { var tv2 = CONFIG.testimonios[+v] || {}, fv = fuenteVideo(tv2.video); if (fv && fv.tipo !== 'desconocido') abrirLuz('<div class="marco v916">' + reproductor(fv, esc(tv2.quien || ''), true) + '</div>', '<b>' + esc(tv2.quien || '') + '</b> · ' + esc(tv2.detalle || '') + ' ' + linkAbrir(tv2)); }
   else if (a === 'ampliar-chat') { var tc = CONFIG.testimonios[+v] || {}, ic = fuenteImagen(tc.captura); if (ic) abrirLuz('<div class="marco libre">' + capturaHTML(ic, esc(tc.quien || ''), 'whatsapp') + '</div>', esc(tc.quien || '')); }
   else if (a === 'ampliar-correccion') { var img = fuenteImagen(CONFIG.acompanamiento.correccionCaptura), ok = img && b.querySelector('img'); abrirLuz(ok ? '<div class="marco libre">' + capturaHTML(img, T.correccion.altCaptura, 'correccion') + '</div>' : correccionMock(), ok ? esc((perfil().correccion || {}).nota || '') : ''); }
   else if (a === 'ampliar-forma') { var fo = CONFIG.acompanamiento.formas[estado.canal], im = fuenteImagen(fo.captura); if (im) abrirLuz('<div class="marco libre">' + capturaHTML(im, fo.nombre, fo.id) + '</div>', esc(fo.titulo)); }
