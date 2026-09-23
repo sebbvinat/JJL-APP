@@ -10,12 +10,16 @@ import type {
 
 export type BeltLevel = 'white' | 'blue' | 'purple' | 'brown' | 'black';
 export type UserRole = 'admin' | 'alumno' | 'cliente_cursos';
+// Tienen que coincidir con el CHECK "posts_categoria_check" de la base.
+// Si agregás una, va también en la migracion; si no, el post falla al guardarse.
 export type PostCategory =
+  | 'victorias'
   | 'question'
   | 'technique'
   | 'progress'
   | 'discussion'
   | 'competition'
+  | 'bienvenida'
   | 'offtopic';
 export type NotificationType = 'belt' | 'module' | 'streak' | 'achievement' | 'system';
 export type FatigaLevel = 'verde' | 'amarillo' | 'rojo';

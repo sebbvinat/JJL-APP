@@ -22,6 +22,8 @@ interface PostFormProps {
 }
 
 const CATEGORIES = [
+  // Primera de la lista a proposito: es la que queremos que la gente elija.
+  { value: 'victorias', label: 'Victorias' },
   { value: 'question', label: 'Pregunta' },
   // Solo cambia la etiqueta: por dentro sigue siendo 'technique' para no
   // dejar huerfanos los posts ya publicados con esa categoria.

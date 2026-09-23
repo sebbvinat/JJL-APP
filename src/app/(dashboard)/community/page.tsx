@@ -44,6 +44,7 @@ interface Post {
 }
 
 const CATEGORY_LABELS: Record<string, string> = {
+  victorias: 'Victorias',
   question: 'Pregunta',
   technique: 'Subí tu treino',
   progress: 'Progreso',
@@ -53,8 +54,13 @@ const CATEGORY_LABELS: Record<string, string> = {
   bienvenida: 'Bienvenida',
 };
 
+// "Victorias" va primera despues de "Todos": es la que queremos que se vea y
+// que la gente use. Si agregás una categoria nueva, acordate de las 3 cosas:
+// esta lista, el desplegable de PostForm y el CHECK de la base
+// (supabase/migrations/2026_09_23_categoria_victorias.sql tiene el modelo).
 const CATEGORIES = [
   'all',
+  'victorias',
   'question',
   'technique',
   'progress',
@@ -65,6 +71,7 @@ const CATEGORIES = [
 ];
 const CATEGORY_DISPLAY = [
   'Todos',
+  'Victorias',
   'Preguntas',
   'Subí tu treino',
   'Progreso',

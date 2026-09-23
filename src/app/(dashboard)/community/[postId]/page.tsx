@@ -43,6 +43,7 @@ interface Comment {
 }
 
 const CATEGORY_LABELS: Record<string, string> = {
+  victorias: 'Victorias',
   question: 'Pregunta',
   technique: 'Tecnica',
   progress: 'Progreso',
