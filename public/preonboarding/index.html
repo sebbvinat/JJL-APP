@@ -1443,7 +1443,7 @@ const CONFIG = {
   acompanamiento: {
     correccionCaptura: "",             /* captura real de una corrección (video del alumno con la nota encima). Vacío = ejemplo dibujado. */
     formas: [
-      { id: "app",      nombre: "App",      titulo: "Subís tu lucha o tu bloque, vuelve corregida", texto: "Tu profesor la mira entera y te escribe la corrección encima del video, con el minuto exacto.", captura: "", notaMapa: "" },
+      { id: "app",      nombre: "App",      titulo: "Subís tu lucha o tu bloque, vuelve corregida", texto: "Tu profesor la mira entera y te escribe qué corregir, punto por punto.", captura: "capturas/victoria-app-04.jpg", notaMapa: "" },
       { id: "whatsapp", nombre: "WhatsApp", titulo: "Dudas del día a día",              texto: "Le escribís a tu profesor. Te responde con audio y con luchas de alguien con tu mismo problema.", captura: "capturas/victoria-04-detalle-en-la-lucha.jpg", notaMapa: "Te mando una lucha de alguien con tu mismo problema en esta posición." },
       { id: "llamada",  nombre: "Llamada",  titulo: "Una llamada por mes: revisamos el mapa juntos", texto: "Todos los meses: qué funcionó, qué ajustamos y qué sigue en las próximas semanas.", captura: "", notaMapa: "Una vez por mes revisamos el mapa entero y ajustamos lo que sigue." }
     ],
@@ -1492,6 +1492,14 @@ const CONFIG = {
     { tipo: "chat",  quien: "Le cambió la forma de dar sus clases", detalle: "",       para: ["ensena"],            captura: "capturas/victoria-09-cambiaron-mis-clases.jpg" },
     { tipo: "chat",  quien: "Su cuerpo le pedía otra guardia y la encontró", detalle: "", para: ["pesado", "liviano"], captura: "capturas/victoria-10-leg-trap.jpg" },
     { tipo: "chat",  quien: "“Esto no está en ningún lado”", detalle: "",              para: ["azul", "ensena"],    captura: "capturas/victoria-11-gracias.jpg" },
+    /* Capturas reales del panel de revisiones de la app (23/9): el feedback que
+       le devolvemos a cada lucha. Sin nombre ni foto del alumno. */
+    { tipo: "chat",  quien: "Feedback: nunca sueltes el agarre del pantalón", detalle: "", para: ["azul"],            captura: "capturas/victoria-app-01.jpg" },
+    { tipo: "chat",  quien: "Feedback: específico de leg drag", detalle: "",           para: ["liviano"],           captura: "capturas/victoria-app-02.jpg" },
+    { tipo: "chat",  quien: "Feedback: este mes 100% guardia cerrada", detalle: "",    para: ["azul", "compite"],   captura: "capturas/victoria-app-03.jpg" },
+    { tipo: "chat",  quien: "Feedback: dos detallitos a corregir", detalle: "",        para: ["azul"],              captura: "capturas/victoria-app-04.jpg" },
+    { tipo: "chat",  quien: "Feedback: bien filmado, así mejoramos", detalle: "",      para: ["vuelve"],            captura: "capturas/victoria-app-05.jpg" },
+    { tipo: "chat",  quien: "Feedback: toreo y guardia cerrada combinados", detalle: "", para: ["ensena"],          captura: "capturas/victoria-app-06.jpg" },
     { tipo: "video", quien: "Graduación en la academia", detalle: "36 segundos",       para: ["azul", "vuelve"],    video: "videos/victoria-graduacion.mp4", poster: "videos/victoria-graduacion.jpg" },
     /* Compilado de luchas del reto. Venía en 1080x1920 y en HEVC (78 MB), que
        Chrome no siempre reproduce: quedó en H.264 720x1280, 9 MB. El original
