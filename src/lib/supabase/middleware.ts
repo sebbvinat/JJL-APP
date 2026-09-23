@@ -116,7 +116,9 @@ async function handleAlumno(
   }
 
   // Public routes that don't require auth
-  const publicRoutes = ['/', '/login', '/register', '/consultoria-gratuita', '/agendar', '/que-luchador-sos', '/auditoria'];
+  // '/preonboarding' es la presentación de los 3 pilares: se la mandamos al lead
+  // antes de que sea alumno, asi que no puede pedir login.
+  const publicRoutes = ['/', '/login', '/register', '/consultoria-gratuita', '/agendar', '/que-luchador-sos', '/auditoria', '/preonboarding'];
   const isPublicRoute =
     publicRoutes.includes(pathname) ||
     pathname.startsWith('/auth/') ||
